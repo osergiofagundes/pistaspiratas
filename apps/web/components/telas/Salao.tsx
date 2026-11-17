@@ -22,7 +22,7 @@ import {
   Texto,
 } from '@/components/ui'
 import { Avisos } from '@/components/ui/Avisos'
-import { ModalComoJogar, ModalConfirmar, ModalPerfil } from '@/components/modais/comuns'
+import { BotaoPreferencias, ModalComoJogar, ModalConfirmar, ModalPerfil } from '@/components/modais/comuns'
 import { ModalConfiguracoes, rotuloTempo } from '@/components/modais/Configuracoes'
 import { salvarPerfil } from '@/lib/identidade'
 import { useSala, type Visao } from '@/lib/sala'
@@ -91,8 +91,9 @@ export function Salao({ view }: { view: Visao }) {
       <Texto x={560} y={122} w={800} centro tam={20} cor="#FFF8EC" className="contorno-fino">
         Sala {view.code} · Almirante: {almirante?.name ?? '—'}
       </Texto>
-      <Icone nome={mudo ? 'som-desligado' : 'som-ligado'} x={1494} y={38} onClick={() => setPrefs({ mudo: !mudo })} title={mudo ? 'Ligar o som' : 'Silenciar'} />
-      <Icone nome="ajuda" x={1572} y={38} onClick={() => setAjuda(true)} title="Como jogar" />
+      <Icone nome={mudo ? 'som-desligado' : 'som-ligado'} x={1416} y={38} onClick={() => setPrefs({ mudo: !mudo })} title={mudo ? 'Ligar o som' : 'Silenciar'} />
+      <Icone nome="ajuda" x={1494} y={38} onClick={() => setAjuda(true)} title="Como jogar" />
+      <BotaoPreferencias x={1572} y={38} onEditarPerfil={me ? () => setPerfil(true) : undefined} />
       <button
         type="button"
         className="img-botao"

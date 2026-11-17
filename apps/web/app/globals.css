@@ -438,3 +438,9 @@ button:disabled {
 .deslizante:disabled {
   opacity: 0.5;
 }
+
+/* pílulas do Segmentado e campos dos nomes dos navios */
+.segmento { transition: filter .12s, transform .08s; }
+.segmento:not(:disabled):hover { filter: brightness(1.12); }
+.segmento:not(:disabled):active { transform: translateY(1px); }
+.campo-navio:focus { box-shadow: 0 0 0 3px rgba(240,180,76,.55), inset 0 2px 4px rgba(90,52,16,.15) !important; }

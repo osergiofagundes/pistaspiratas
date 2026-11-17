@@ -492,6 +492,61 @@ export function Pilula({ children, onClick, ativo, ...p }: Pos & { children: Rea
   )
 }
 
+/** Grupo de pílulas grudadas: mostra todas as opções e marca a escolhida de verde. */
+export function Segmentado<T extends string | number | null>({
+  opcoes,
+  valor,
+  onChange,
+  disabled,
+  tam = 15,
+  ...p
+}: Pos & { opcoes: { v: T; rotulo: ReactNode }[]; valor: T; onChange: (v: T) => void; disabled?: boolean; tam?: number }) {
+  const h = p.h ?? 36
+  return (
+    <div role="radiogroup" style={{ ...pos({ h, ...p }), display: 'flex', opacity: disabled ? 0.55 : 1, filter: disabled ? 'saturate(.5)' : undefined }}>
+      {opcoes.map((o, i) => {
+        const ativo = o.v === valor
+        const primeiro = i === 0
+        const ultimo = i === opcoes.length - 1
+        return (
+          <button
+            key={String(o.v)}
+            type="button"
+            role="radio"
+            aria-checked={ativo}
+            disabled={disabled}
+            onClick={() => {
+              if (ativo) return
+              tocar('clique')
+              onChange(o.v)
+            }}
+            className="lilita segmento"
+            style={{
+              flex: 1,
+              height: h,
+              minWidth: 0,
+              padding: '0 6px',
+              marginLeft: primeiro ? 0 : -2,
+              borderRadius: `${primeiro ? 9 : 0}px ${ultimo ? 9 : 0}px ${ultimo ? 9 : 0}px ${primeiro ? 9 : 0}px`,
+              border: `2px solid ${ativo ? '#1E5A1E' : '#3A1D0C'}`,
+              background: ativo ? 'linear-gradient(#5DBB4A,#2E8A2A)' : 'linear-gradient(#9A5A2A,#6B3A17)',
+              color: ativo ? '#FFFFFF' : '#F3DDB0',
+              fontSize: tam,
+              boxShadow: ativo ? 'inset 0 2px 0 rgba(255,255,255,.3)' : 'inset 0 2px 0 rgba(255,255,255,.15), 0 2px 0 rgba(0,0,0,.35)',
+              cursor: disabled ? 'default' : 'pointer',
+              whiteSpace: 'nowrap',
+              position: 'relative',
+              zIndex: ativo ? 1 : 0,
+            }}
+          >
+            {o.rotulo}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- modais
 
 export type Deco = { src: string; x: number; y: number; w: number; h: number }
@@ -505,6 +560,7 @@ export function Modal({
   decos = [],
   escurecer = 0.55,
   y,
+  fecharNoFundo = true,
 }: {
   titulo?: string
   w?: number
@@ -514,6 +570,8 @@ export function Modal({
   decos?: Deco[]
   escurecer?: number
   y?: number
+  /** false: clicar no fundo não fecha (formulários longos); Esc e o X continuam fechando */
+  fecharNoFundo?: boolean
 }) {
   const x = (1920 - w) / 2
   const top = y ?? (1080 - h) / 2
@@ -527,7 +585,7 @@ export function Modal({
   const larguraPlaca = titulo ? Math.max(280, titulo.length * 18 + 120) : 0
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 50 }}>
-      <FundoEscuro opacidade={escurecer} onClick={onFechar} />
+      <FundoEscuro opacidade={escurecer} onClick={fecharNoFundo ? onFechar : undefined} />
       <motion.div
         initial={anim ? { opacity: 0, scale: 0.92 } : false}
         animate={{ opacity: 1, scale: 1 }}

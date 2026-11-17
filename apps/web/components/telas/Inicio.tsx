@@ -16,13 +16,13 @@ import {
   Texto,
   IMG,
 } from '@/components/ui'
-import { ModalComoJogar, ModalInfo, ModalPerfil, ModalPreferencias } from '@/components/modais/comuns'
+import { BotaoPreferencias, ModalComoJogar, ModalInfo, ModalPerfil } from '@/components/modais/comuns'
 import { criarSala, infoSala } from '@/lib/api'
 import { perfil as lerPerfil, salvarPerfil, type Perfil } from '@/lib/identidade'
 import { useSala } from '@/lib/sala'
 import { useMusica } from '@/lib/useMusica'
 
-type Modal = null | 'perfil' | 'ajuda' | 'prefs' | 'cheia'
+type Modal = null | 'perfil' | 'ajuda' | 'cheia'
 
 /** Início da plataforma (tela 726). */
 export function Inicio({ erroInicial }: { erroInicial?: string | null }) {
@@ -92,7 +92,7 @@ export function Inicio({ erroInicial }: { erroInicial?: string | null }) {
       </button>
       <Icone nome={mudo ? 'som-desligado' : 'som-ligado'} x={1648} y={42} onClick={() => setPrefs({ mudo: !mudo })} title={mudo ? 'Ligar o som' : 'Silenciar'} />
       <Icone nome="ajuda" x={1726} y={42} onClick={() => setModal('ajuda')} title="Como jogar" />
-      <IconeNovo nome="engrenagem" x={1804} y={42} w={66} h={66} onClick={() => setModal('prefs')} title="Preferências" />
+      <BotaoPreferencias x={1804} y={42} onEditarPerfil={() => setModal('perfil')} />
 
       {/* lado esquerdo: logo, faixa e chips */}
       <Entrar atraso={0.05} de="cima">
@@ -186,7 +186,6 @@ export function Inicio({ erroInicial }: { erroInicial?: string | null }) {
         />
       )}
       {modal === 'ajuda' && <ModalComoJogar onFechar={() => setModal(null)} />}
-      {modal === 'prefs' && <ModalPreferencias onFechar={() => setModal(null)} onEditarPerfil={() => setModal('perfil')} />}
       {modal === 'cheia' && (
         <ModalInfo
           titulo="Sala cheia"

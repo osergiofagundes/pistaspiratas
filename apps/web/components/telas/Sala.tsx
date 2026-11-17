@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Palco, Texto } from '@/components/ui'
-import { ModalInfo, ModalPerfil } from '@/components/modais/comuns'
+import { BotaoPreferencias, ModalInfo, ModalPerfil } from '@/components/modais/comuns'
 import { entrarNaSala, type ErroEntrada } from '@/lib/api'
 import { perfil as lerPerfil, salvarPerfil, type Perfil } from '@/lib/identidade'
 import { conectar, desconectar, useSala } from '@/lib/sala'
@@ -60,20 +60,24 @@ export function Sala({ code }: { code: string }) {
     setPerfil(p)
     if (p) void entrar(p)
     else setEtapa('perfil')
-    return () => desconectar()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code])
 
+  // sempre fecha o canal e limpa o store ao sair da tela (fora do efeito protegido por "tentou")
+  useEffect(() => () => desconectar(), [])
+
   useEffect(() => {
-    if (!fechado) return
+    // ignora um fechamento que sobrou de outra sala
+    if (!fechado || useSala.getState().code !== code) return
     if (fechado === 'left') router.push('/')
     else setEtapa({ erro: fechado === 'not-found' ? 'not-found' : fechado })
-  }, [fechado, router])
+  }, [fechado, router, code])
 
   if (typeof etapa === 'object') {
     const m = MENSAGENS[etapa.erro] ?? MENSAGENS['not-found']
     return (
       <Palco fundo="fundo-salao" escurecer={0.35}>
+        <BotaoPreferencias x={1804} y={42} />
         <ModalInfo titulo={m.titulo} texto={m.texto} botao="Voltar ao início" onFechar={() => router.push('/')} />
       </Palco>
     )
@@ -82,6 +86,7 @@ export function Sala({ code }: { code: string }) {
   if (etapa === 'perfil') {
     return (
       <Palco fundo="fundo-salao" escurecer={0.35}>
+        <BotaoPreferencias x={1804} y={42} />
         <Texto x={0} y={120} w={1920} centro titulo tam={40} cor="#FFF8EC" contorno>
           Você foi convidado para a sala {code}!
         </Texto>
@@ -106,6 +111,7 @@ export function Sala({ code }: { code: string }) {
   if (!view) {
     return (
       <Palco fundo="fundo-salao" escurecer={0.35}>
+        <BotaoPreferencias x={1804} y={42} />
         <Texto x={0} y={500} w={1920} centro titulo tam={44} cor="#FFF8EC" contorno>
           Içando as velas…
         </Texto>

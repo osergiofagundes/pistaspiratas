@@ -78,7 +78,7 @@ test('poderes do Almirante: configurar, expulsar, pausar, passar o cargo e encer
   // configurações (só o Almirante)
   await ana.getByRole('button', { name: 'Editar' }).click()
   await expect(ana.getByText('Configurações da sala')).toBeVisible()
-  await ana.getByRole('button', { name: 'Rápido' }).click()
+  await ana.getByRole('radio', { name: 'Rápido' }).click()
   await ana.getByRole('button', { name: 'Salvar' }).click()
   await expect.poll(async () => (await view(leo)).config.preset).toBe('rapido')
   expect(await act(leo, { type: 'updateConfig', patch: { preset: 'classico' } })).toBe(false)
@@ -163,4 +163,42 @@ test('música troca com a tela: porto no salão, alto-mar na partida, vinheta no
   await expect.poll(musica).toBe('alto-mar')
   await act(ana, { type: 'endGame' })
   await expect.poll(musica).toMatch(/vitoria|derrota/)
+})
+
+test('sair da sala e criar ou entrar em outra sem voltar ao início', async ({ browser }) => {
+  const ana = await jogador(browser, 'Ana')
+  const sair = async () => {
+    await ana.getByRole('button', { name: 'Sair da Sala' }).click()
+    await ana.getByRole('button', { name: 'Sair', exact: true }).click()
+    await ana.waitForURL(/localhost:\d+\/$/)
+  }
+  await ana.goto('/')
+  await ana.getByRole('button', { name: 'Criar Sala' }).click()
+  await expect(ana.getByText('Salão de espera')).toBeVisible()
+  // a engrenagem de Preferências está no salão
+  await ana.getByRole('button', { name: 'Preferências' }).click()
+  await expect(ana.getByText('Efeitos sonoros')).toBeVisible()
+  await ana.keyboard.press('Escape')
+  await sair()
+
+  // criar outra sala logo depois de sair
+  await ana.getByRole('button', { name: 'Criar Sala' }).click()
+  await ana.waitForURL(/\/sala\/[A-Z0-9]{6}$/)
+  await expect(ana.getByText('Salão de espera')).toBeVisible()
+  await ana.waitForTimeout(1500)
+  expect(ana.url()).toMatch(/\/sala\/[A-Z0-9]{6}$/)
+  await sair()
+
+  // entrar pelo código numa sala de outra pessoa
+  const leo = await jogador(browser, 'Léo')
+  await leo.goto('/')
+  await leo.getByRole('button', { name: 'Criar Sala' }).click()
+  await expect(leo.getByText('Salão de espera')).toBeVisible()
+  const code = leo.url().split('/sala/')[1]
+  await ana.getByPlaceholder('Código da sala').fill(code)
+  await ana.getByRole('button', { name: 'Entrar na Sala' }).click()
+  await expect(ana.getByText('Salão de espera')).toBeVisible()
+  await ana.waitForTimeout(1500)
+  expect(ana.url()).toContain(`/sala/${code}`)
+  await expect.poll(async () => (await view(leo)).players.length).toBe(2)
 })

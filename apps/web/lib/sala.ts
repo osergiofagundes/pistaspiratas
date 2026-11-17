@@ -99,9 +99,11 @@ export function conectar(code: string) {
   }
 }
 
+/** Fecha o canal e esquece a sala atual (as preferências ficam). */
 export function desconectar() {
   fonte?.close()
   fonte = null
+  useSala.setState({ code: null, view: null, fechado: null, conectado: false, eventos: [] })
 }
 
 function somDoEvento(ev: GameEvent) {

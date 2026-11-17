@@ -21,7 +21,7 @@ import {
   Texto,
 } from '@/components/ui'
 import { Avisos } from '@/components/ui/Avisos'
-import { ModalComoJogar, ModalConfirmar, ModalInfo } from '@/components/modais/comuns'
+import { BotaoPreferencias, ModalComoJogar, ModalConfirmar, ModalInfo } from '@/components/modais/comuns'
 import { Diario } from '@/components/jogo/Diario'
 import { PainelNavio, Tabuleiro } from '@/components/jogo/Paineis'
 import { useSala, type Visao } from '@/lib/sala'
@@ -244,7 +244,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
         className={`lilita ${restante !== null && restante > 0 && restante < 10_000 && !pausada ? 'tremer' : ''}`}
         style={{
           position: 'absolute',
-          left: 1516,
+          left: 1442,
           top: 30,
           width: 132,
           height: 56,
@@ -261,6 +261,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
       >
         {restante === null ? '∞' : formatarTempo(restante)}
       </div>
+      <BotaoPreferencias x={1592} y={25} />
       <Icone nome={prefs.mudo ? 'som-desligado' : 'som-ligado'} x={1666} y={25} onClick={() => setPrefs({ mudo: !prefs.mudo })} title={prefs.mudo ? 'Ligar o som' : 'Silenciar'} />
       <Icone nome="ajuda" x={1740} y={25} onClick={() => setOverlay('ajuda')} title="Como jogar" />
       <Icone nome="fechar" x={1814} y={25} onClick={() => setOverlay(souAlmirante ? (overlay === 'menu' ? null : 'menu') : 'sair')} title={souAlmirante ? 'Menu do Almirante' : 'Sair da partida'} />

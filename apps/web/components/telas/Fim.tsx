@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { SHIP_INFO } from '@arena/platform'
 import { Avatar, Bandeira, Botao, Icone, Moldura, Navio, Palco, Texto } from '@/components/ui'
 import { Avisos } from '@/components/ui/Avisos'
-import { ModalConfirmar } from '@/components/modais/comuns'
+import { BotaoPreferencias, ModalConfirmar } from '@/components/modais/comuns'
 import { Diario } from '@/components/jogo/Diario'
 import { Tabuleiro } from '@/components/jogo/Paineis'
 import { useSala, type Visao } from '@/lib/sala'
@@ -69,6 +69,7 @@ export function Fim({ view }: { view: Visao }) {
           {titulo}
         </Texto>
       </motion.div>
+      <BotaoPreferencias x={1740} y={18} />
       <Icone nome={prefs.mudo ? 'som-desligado' : 'som-ligado'} x={1814} y={18} onClick={() => setPrefs({ mudo: !prefs.mudo })} title={prefs.mudo ? 'Ligar o som' : 'Silenciar'} />
 
       {/* vencedor e placar */}

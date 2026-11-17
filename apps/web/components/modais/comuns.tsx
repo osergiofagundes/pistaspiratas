@@ -228,6 +228,28 @@ export function ModalComoJogar({ onFechar }: { onFechar: () => void }) {
   )
 }
 
+/** Engrenagem que abre as Preferências; fica na barra de cima de todas as telas. */
+export function BotaoPreferencias({ x, y, onEditarPerfil }: { x: number; y: number; onEditarPerfil?: () => void }) {
+  const [aberto, setAberto] = useState(false)
+  return (
+    <>
+      <IconeNovo nome="engrenagem" x={x} y={y} w={66} h={66} onClick={() => setAberto(true)} title="Preferências" />
+      {aberto && (
+        <ModalPreferencias
+          onFechar={() => setAberto(false)}
+          onEditarPerfil={
+            onEditarPerfil &&
+            (() => {
+              setAberto(false)
+              onEditarPerfil()
+            })
+          }
+        />
+      )}
+    </>
+  )
+}
+
 export function ModalPreferencias({ onFechar, onEditarPerfil }: { onFechar: () => void; onEditarPerfil?: () => void }) {
   const prefs = useSala((s) => s.prefs)
   const setPrefs = useSala((s) => s.setPrefs)
