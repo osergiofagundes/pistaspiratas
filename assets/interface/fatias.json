@@ -1,0 +1,359 @@
+{
+ "observacao": "px no próprio PNG. fatia = border-image-slice; contorno = onde fica a borda externa da moldura dentro do PNG; decorações: posição do canto superior esquerdo em relação à âncora da moldura.",
+ "pecas": {
+  "moldura": {
+   "arquivo": "interface/molduras/moldura.png",
+   "largura": 1000,
+   "altura": 1136,
+   "fatia": {
+    "top": 282,
+    "right": 224,
+    "bottom": 110,
+    "left": 224
+   },
+   "contorno": {
+    "top": 76,
+    "left": 21,
+    "right": 21,
+    "bottom": 46
+   },
+   "repetir": "stretch",
+   "conteudo": "padding mínimo = fatia (o texto fica no pergaminho)"
+  },
+  "deco-ancora": {
+   "arquivo": "interface/decoracoes/deco-ancora.png",
+   "largura": 667,
+   "altura": 536,
+   "ancora": "inferior-direito",
+   "dx": -626,
+   "dy": -490
+  },
+  "deco-barril-moedas": {
+   "arquivo": "interface/decoracoes/deco-barril-moedas.png",
+   "largura": 305,
+   "altura": 545,
+   "ancora": "inferior-esquerdo",
+   "dx": -23,
+   "dy": -540
+  },
+  "deco-moedas": {
+   "arquivo": "interface/decoracoes/deco-moedas.png",
+   "largura": 213,
+   "altura": 235,
+   "ancora": "inferior-direito",
+   "dx": -199,
+   "dy": -230
+  },
+  "deco-barril-sala-esq": {
+   "arquivo": "interface/decoracoes/deco-barril-sala-esq.png",
+   "largura": 580,
+   "altura": 418,
+   "ancora": "inferior-esquerdo",
+   "dx": -54,
+   "dy": -407
+  },
+  "deco-barril-sala-dir": {
+   "arquivo": "interface/decoracoes/deco-barril-sala-dir.png",
+   "largura": 512,
+   "altura": 338,
+   "ancora": "inferior-direito",
+   "dx": -484,
+   "dy": -327
+  },
+  "painel-grande-palmeira-esq": {
+   "arquivo": "interface/decoracoes/painel-grande-palmeira-esq.png",
+   "largura": 770,
+   "altura": 830,
+   "ancora": "superior-esquerdo",
+   "dx": -50,
+   "dy": -281
+  },
+  "painel-grande-palmeira-dir": {
+   "arquivo": "interface/decoracoes/painel-grande-palmeira-dir.png",
+   "largura": 724,
+   "altura": 830,
+   "ancora": "superior-direito",
+   "dx": -700,
+   "dy": -281
+  },
+  "painel-grande-barris-esq": {
+   "arquivo": "interface/decoracoes/painel-grande-barris-esq.png",
+   "largura": 730,
+   "altura": 524,
+   "ancora": "inferior-esquerdo",
+   "dx": -50,
+   "dy": -488
+  },
+  "painel-grande-barril-dir": {
+   "arquivo": "interface/decoracoes/painel-grande-barril-dir.png",
+   "largura": 640,
+   "altura": 624,
+   "ancora": "inferior-direito",
+   "dx": -616,
+   "dy": -588
+  },
+  "fechar": {
+   "arquivo": "interface/icones/fechar-modal.png",
+   "largura": 244,
+   "altura": 245,
+   "ancora": "superior-direito",
+   "dx": -175,
+   "dy": -73,
+   "estados": [
+    "interface/icones/fechar-modal.png",
+    "interface/icones/fechar-modal-hover.png",
+    "interface/icones/fechar-modal-pressionado.png",
+    "interface/icones/fechar-modal-desativado.png"
+   ]
+  },
+  "placa": {
+   "arquivo": "interface/molduras/placa.png",
+   "largura": 750,
+   "altura": 305,
+   "fatia": {
+    "top": 0,
+    "right": 100,
+    "bottom": 0,
+    "left": 105
+   },
+   "repetir": "stretch",
+   "uso": "título dos modais (âncora superior-centro, dy ≈ −altura/2) e rodapé do painel grande"
+  },
+  "painel-grande": {
+   "arquivo": "interface/molduras/painel-grande.png",
+   "largura": 960,
+   "altura": 1174,
+   "fatia": {
+    "top": 560,
+    "right": 330,
+    "bottom": 314,
+    "left": 330
+   },
+   "contorno": {
+    "top": 281,
+    "left": 50,
+    "right": 24,
+    "bottom": 36
+   },
+   "repetir": "stretch"
+  },
+  "painel-grande-placa": {
+   "arquivo": "interface/molduras/placa.png",
+   "ancora": "inferior-centro",
+   "dx": -303,
+   "dy": -323,
+   "largura": 750,
+   "nota": "placa.png esticada para esta largura (3 partes)"
+  },
+  "campo": {
+   "arquivo": "interface/molduras/campo.png",
+   "largura": 1600,
+   "altura": 440,
+   "fatia": {
+    "top": 0,
+    "right": 160,
+    "bottom": 0,
+    "left": 160
+   },
+   "repetir": "stretch",
+   "uso": "Campo/Texto: 3 partes, 10% de cada lado"
+  }
+ },
+ "botoes": {
+  "verde": {
+   "arquivo": "interface/botoes/verde.png",
+   "estados": [
+    "interface/botoes/verde.png",
+    "interface/botoes/verde-hover.png",
+    "interface/botoes/verde-pressionado.png",
+    "interface/botoes/verde-desativado.png"
+   ],
+   "largura": 482,
+   "altura": 459,
+   "folga": 28,
+   "fatia": {
+    "top": 0,
+    "right": 176,
+    "bottom": 0,
+    "left": 176
+   },
+   "meio": {
+    "de": 176,
+    "ate": 305,
+    "repetir": "stretch"
+   },
+   "alturaBotao": 403
+  },
+  "azul": {
+   "arquivo": "interface/botoes/azul.png",
+   "estados": [
+    "interface/botoes/azul.png",
+    "interface/botoes/azul-hover.png",
+    "interface/botoes/azul-pressionado.png",
+    "interface/botoes/azul-desativado.png"
+   ],
+   "largura": 374,
+   "altura": 436,
+   "folga": 28,
+   "fatia": {
+    "top": 0,
+    "right": 147,
+    "bottom": 0,
+    "left": 147
+   },
+   "meio": {
+    "de": 147,
+    "ate": 226,
+    "repetir": "stretch"
+   },
+   "alturaBotao": 380
+  },
+  "amarelo": {
+   "arquivo": "interface/botoes/amarelo.png",
+   "estados": [
+    "interface/botoes/amarelo.png",
+    "interface/botoes/amarelo-hover.png",
+    "interface/botoes/amarelo-pressionado.png",
+    "interface/botoes/amarelo-desativado.png"
+   ],
+   "largura": 374,
+   "altura": 438,
+   "folga": 28,
+   "fatia": {
+    "top": 0,
+    "right": 96,
+    "bottom": 0,
+    "left": 96
+   },
+   "meio": {
+    "de": 96,
+    "ate": 277,
+    "repetir": "stretch"
+   },
+   "alturaBotao": 382
+  },
+  "vermelho": {
+   "arquivo": "interface/botoes/vermelho.png",
+   "estados": [
+    "interface/botoes/vermelho.png",
+    "interface/botoes/vermelho-hover.png",
+    "interface/botoes/vermelho-pressionado.png",
+    "interface/botoes/vermelho-desativado.png"
+   ],
+   "largura": 488,
+   "altura": 430,
+   "folga": 28,
+   "fatia": {
+    "top": 0,
+    "right": 130,
+    "bottom": 0,
+    "left": 130
+   },
+   "meio": {
+    "de": 130,
+    "ate": 357,
+    "repetir": "stretch"
+   },
+   "alturaBotao": 374
+  },
+  "marrom": {
+   "arquivo": "interface/botoes/marrom.png",
+   "estados": [
+    "interface/botoes/marrom.png",
+    "interface/botoes/marrom-hover.png",
+    "interface/botoes/marrom-pressionado.png",
+    "interface/botoes/marrom-desativado.png"
+   ],
+   "largura": 397,
+   "altura": 428,
+   "folga": 28,
+   "fatia": {
+    "top": 0,
+    "right": 181,
+    "bottom": 0,
+    "left": 187
+   },
+   "meio": {
+    "de": 187,
+    "ate": 215,
+    "repetir": "stretch"
+   },
+   "alturaBotao": 372
+  },
+  "cinza": {
+   "arquivo": "interface/botoes/cinza.png",
+   "estados": [
+    "interface/botoes/cinza.png",
+    "interface/botoes/cinza-hover.png",
+    "interface/botoes/cinza-pressionado.png",
+    "interface/botoes/cinza-desativado.png"
+   ],
+   "largura": 315,
+   "altura": 319,
+   "folga": 28,
+   "fatia": {
+    "top": 0,
+    "right": 86,
+    "bottom": 0,
+    "left": 98
+   },
+   "meio": {
+    "de": 98,
+    "ate": 228,
+    "repetir": "stretch"
+   },
+   "alturaBotao": 263
+  },
+  "pequeno-verde": {
+   "arquivo": "interface/botoes/pequeno-verde.png",
+   "estados": [
+    "interface/botoes/pequeno-verde.png",
+    "interface/botoes/pequeno-verde-hover.png",
+    "interface/botoes/pequeno-verde-pressionado.png",
+    "interface/botoes/pequeno-verde-desativado.png"
+   ],
+   "largura": 298,
+   "altura": 248,
+   "folga": 28,
+   "fatia": {
+    "top": 0,
+    "right": 89,
+    "bottom": 0,
+    "left": 88
+   },
+   "meio": {
+    "de": 88,
+    "ate": 208,
+    "repetir": "stretch"
+   },
+   "alturaBotao": 192
+  },
+  "pequeno-marrom": {
+   "arquivo": "interface/botoes/pequeno-marrom.png",
+   "estados": [
+    "interface/botoes/pequeno-marrom.png",
+    "interface/botoes/pequeno-marrom-hover.png",
+    "interface/botoes/pequeno-marrom-pressionado.png",
+    "interface/botoes/pequeno-marrom-desativado.png"
+   ],
+   "largura": 157,
+   "altura": 243,
+   "folga": 28,
+   "fatia": {
+    "top": 0,
+    "right": 63,
+    "bottom": 0,
+    "left": 59
+   },
+   "meio": {
+    "de": 59,
+    "ate": 93,
+    "repetir": "stretch"
+   },
+   "alturaBotao": 187
+  }
+ },
+ "cartas": {
+  "observacao": "exportadas do FigCraft (componente Carta/tabuleiro) a 3×; 474×312 px, desenhadas a 158×104"
+ }
+}

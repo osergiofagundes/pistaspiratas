@@ -1,0 +1,9 @@
+{
+  "name": "imagem",
+  "private": true,
+  "type": "module",
+  "description": "Recorte e preparo das imagens geradas com IA (tira o fundo, amplia, corta as folhas).",
+  "dependencies": {
+    "sharp": "^0.35.5"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "arena-de-jogos",
+  "private": true,
+  "packageManager": "pnpm@12.21.0",
+  "scripts": {
+    "dev": "pnpm --filter @arena/web dev",
+    "build": "turbo run build",
+    "start": "pnpm --filter @arena/web start",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"apps/**/*.{ts,tsx,css}\" \"packages/**/*.ts\"",
+    "e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "prettier": "^3.10.1",
+    "turbo": "^2.11.11",
+    "typescript": "~5.9.3",
+    "vitest": "^5.1.0"
+  }
+}

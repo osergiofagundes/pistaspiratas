@@ -1,0 +1,16 @@
+node_modules/
+.next/
+.turbo/
+*.log
+.env*
+!.env.example
+ferramentas/imagem/saida/
+ferramentas/realesrgan/
+test-results/
+playwright-report/
+*.tsbuildinfo
+next-env.d.ts
+
+# arquivos de design (grandes; o backup fica fora do git)
+*.figcraft
+*.vectorcraft
