@@ -84,7 +84,7 @@ export function Salao({ view }: { view: Visao }) {
   return (
     <Palco fundo="fundo-salao" escurecer={0.25}>
       {menu && <FundoEscuro opacidade={0} z={39} onClick={() => setMenu(null)} />}
-      <Imagem src="logos/logo-codenomes.webp" x={28} y={14} w={204} h={134} />
+      <Imagem src="logos/logo-pistas-piratas.webp" x={28} y={14} w={204} h={134} />
       <Placa texto="Salão de espera" x={760} y={36} w={400} tam={28} />
       <Texto x={560} y={122} w={800} centro tam={20} cor="#FFF8EC" className="contorno-fino">
         Sala {view.code} · Almirante: {almirante?.name ?? '—'}

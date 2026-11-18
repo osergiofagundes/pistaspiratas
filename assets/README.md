@@ -18,7 +18,7 @@ cd ferramentas/imagem && node exportar-web.mjs
 | `personagens/vetor/` | vetores dos personagens (SVG; o arquivo do VectorCraft fica fora do git) | não vai para a web |
 | `navios/` | 4 navios e o navio afundado | painéis, Salão, fim |
 | `bandeiras/` | bandeiras grandes e bandeirinhas dos 4 navios | barra da vez, Diário |
-| `logos/` | CodeNomes Piratas | Início, Salão |
+| `logos/` | Pistas Piratas | Início, Salão |
 | `itens/` | brasão do Almirante e coroa do Capitão | selos |
 | `interface/botoes/` | botões de 3 partes por cor e botões com texto, cada um com 4 estados (normal, `-hover`, `-pressionado` e `-desativado`) | `Botao`, `BotaoImagem` |
 | `interface/icones/` | ícones redondos (som, ajuda, fechar e os da segunda leva) e o X dos modais (`fechar-modal`) | `Icone`, `IconeNovo` |

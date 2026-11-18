@@ -1,10 +1,10 @@
-# Documento de Projeto — Plataforma de Jogos & CodeNomes Piratas
+# Documento de Projeto — Plataforma de Jogos & Pistas Piratas
 
 Nov 16, 2026 · @Sérgio Fagundes
 
 ## 1. Visão geral
 
-A plataforma é um site de jogos multiplayer de navegador, jogados em salas criadas por um anfitrião e compartilhadas por link, sem necessidade de conta. O primeiro jogo é o **CodeNomes Piratas** (nome provisório), um jogo de palavras e dedução em equipes inspirado em Codenames, para 2 a 4 equipes. Os próximos jogos previstos são jogo da velha, xadrez e forca.
+A plataforma é um site de jogos multiplayer de navegador, jogados em salas criadas por um anfitrião e compartilhadas por link, sem necessidade de conta. O primeiro jogo é o **Pistas Piratas** (antes chamado de CodeNomes Piratas), um jogo de palavras e dedução em equipes inspirado em Codenames, para 2 a 4 equipes. Os próximos jogos previstos são jogo da velha, xadrez e forca.
 
 **Nome provisório da plataforma:** Arena de Jogos (a definir). O jogo não deve usar o nome "Codenames", que é marca registrada da Czech Games Edition.
 
@@ -197,7 +197,7 @@ Ao fim da partida, a tela mostra o mapa completo revelado, o vencedor e o histó
 
 São cinco telas, todas em uma única página por sala, que muda de estado sem recarregar.
 
-1. **Início da plataforma:** escolha do jogo (por enquanto só CodeNomes), botão "Criar sala" e campo "Entrar com código".
+1. **Início da plataforma:** escolha do jogo (por enquanto só Pistas Piratas), botão "Criar sala" e campo "Entrar com código".
 2. **Perfil:** nome e grade de avatares. Aparece só na primeira vez ou ao tocar no próprio avatar.
 3. **Salão (lobby):** colunas de navios com os jogadores, botão "Entrar neste navio", área de Gaivotas, link de convite em destaque, configurações (editáveis só pelo Almirante) e botão "Zarpar!" para iniciar, habilitado quando todo navio tem pelo menos 2 jogadores.
 4. **Partida:** tabuleiro, navios, dica atual e Diário de Bordo (histórico).
@@ -443,7 +443,7 @@ No MVP, mandar o estado filtrado inteiro a cada mudança é suficiente: um tabul
 
 ## 12. Escopo do MVP e roadmap
 
-O MVP é uma partida completa de CodeNomes Piratas com 2 a 4 navios, jogada por link no computador. A versão para celular (seção 7.2) fica para depois do MVP (decisão de 17/11/2026). Contas, estatísticas e novos jogos ficam para depois.
+O MVP é uma partida completa de Pistas Piratas com 2 a 4 navios, jogada por link no computador. A versão para celular (seção 7.2) fica para depois do MVP (decisão de 17/11/2026). Contas, estatísticas e novos jogos ficam para depois.
 
 ### 12.1 Checklist do MVP
 
@@ -464,7 +464,7 @@ O MVP é uma partida completa de CodeNomes Piratas com 2 a 4 navios, jogada por 
 
 ### 12.2 Fases
 
-1. **Fundação:** monorepo, interface `GameDefinition`, motor do CodeNomes com testes e banco de palavras. Ainda sem tela; dá para simular partidas inteiras nos testes.
+1. **Fundação:** monorepo, interface `GameDefinition`, motor do Pistas Piratas com testes e banco de palavras. Ainda sem tela; dá para simular partidas inteiras nos testes.
 2. **MVP jogável:** servidor das salas, telas, conexão em tempo real e o checklist acima. Termina com uma partida de verdade entre amigos pelo Discord.
 3. **Polimento:** sons, animações, tutorial interativo de 1 minuto, "Copiar resumo", categorias Brasil, Cultura pop e Infantil.
 4. **Plataforma:** tela inicial com vários jogos. Jogo da velha e forca entram primeiro, porque são simples e testam se a interface `GameDefinition` serve para outros jogos. Depois vem o xadrez.
@@ -474,7 +474,7 @@ O MVP é uma partida completa de CodeNomes Piratas com 2 a 4 navios, jogada por 
 
 Os itens abaixo ainda precisam de resposta. Os que têm uma suposição já estão escritos assim no documento e podem ser trocados.
 
-- [ ] **Nome da plataforma e do jogo:** "CodeNomes Piratas" são provisórios.
+- [x] **Nome do jogo:** decidido em 18/11/2026: **Pistas Piratas** (antes CodeNomes Piratas). Internamente o pacote continua `@arena/codenomes`. O nome da plataforma ("Arena de Jogos") segue provisório.
 - [x] **Onde rodar o tempo real:** decidido em 17/11/2026: opção B, tudo na Vercel com Upstash Redis. Seção 10.3.
 - [ ] **Primeiro palpite obrigatório:** os Marujos só podem encerrar a vez depois de pelo menos 1 palpite.
 - [ ] **Tesouro de navio eliminado:** não conta para ninguém e encerra a vez.

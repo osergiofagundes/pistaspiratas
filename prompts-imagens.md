@@ -10,7 +10,9 @@ Na hora de montar as telas, eu tiro o fundo branco, amplio com IA e corto as fol
 
 ---
 
-## 1. `logo-codenomes.png` — logo do jogo
+## 1. `logo-codenomes.png` — logo do jogo (substituída)
+
+> O jogo agora se chama **Pistas Piratas**. A logo em uso é `assets/logos/logo-pistas-piratas.png`, feita a partir de `Imagens/Novas/Placa Pirata Pistas Piratas.png` pelo `ferramentas/imagem/lotes/lote-4.mjs`. O prompt abaixo fica só como registro.
 
 ```
 Crie o logo do jogo "CodeNomes Piratas" no mesmo estilo das imagens anexadas: cartoon de jogo mobile, contorno marrom-escuro grosso, cores saturadas, luz quente. Uma placa de pergaminho com moldura de madeira, um chapéu pirata preto com caveira apoiado no topo da placa, e o texto em duas linhas: "CodeNomes" em marrom-escuro e "Piratas" em vermelho, letras grossas e arredondadas com contorno claro e sombra. Composição horizontal, centralizada. Fundo branco liso (#FFFFFF), sem sombra no chão, sem xadrez de transparência, sem nenhum outro texto, sem marca-d'água.

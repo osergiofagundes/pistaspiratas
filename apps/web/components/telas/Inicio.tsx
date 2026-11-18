@@ -96,7 +96,7 @@ export function Inicio({ erroInicial }: { erroInicial?: string | null }) {
       {/* lado esquerdo: logo, faixa e chips */}
       <Entrar atraso={0.05} de="cima">
         <div className="balancar-logo" style={{ position: 'absolute', left: 196, top: 110, width: 712, height: 470 }}>
-          <Imagem src="logos/logo-codenomes.webp" x={0} y={0} w={712} h={470} />
+          <Imagem src="logos/logo-pistas-piratas.webp" x={0} y={0} w={712} h={470} />
         </div>
       </Entrar>
       <Entrar atraso={0.25}>

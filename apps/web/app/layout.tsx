@@ -6,7 +6,7 @@ const lilita = Lilita_One({ weight: '400', subsets: ['latin'], variable: '--font
 const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700', '800', '900'], variable: '--font-nunito', display: 'swap' })
 
 export const metadata: Metadata = {
-  title: 'CodeNomes Piratas · Arena de Jogos',
+  title: 'Pistas Piratas · Arena de Jogos',
   description: 'Dê dicas, ache os tesouros e fuja do Kraken! Jogo de palavras em equipes, por link, sem conta.',
   icons: { icon: '/img/bandeiras/bandeira-rubi.webp' },
 }

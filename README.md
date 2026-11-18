@@ -1,4 +1,4 @@
-# Arena de Jogos · CodeNomes Piratas
+# Arena de Jogos · Pistas Piratas
 
 Jogo de palavras em equipes (2 a 4 navios), jogado por link, sem conta. Regras e decisões em [`projeto-jogo.md`](projeto-jogo.md); telas desenhadas em `telas/codenomes-piratas.figcraft`.
 

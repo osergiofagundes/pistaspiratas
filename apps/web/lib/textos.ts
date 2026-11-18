@@ -72,7 +72,7 @@ export function resumoPartida(view: CodenomesView): string {
   const linhas: string[] = []
   const vencedor = view.winner ? `Vitória do Navio ${nomeNavio(view, view.winner)}!` : 'Partida encerrada'
   const minutos = view.finishedAt ? Math.max(1, Math.round((view.finishedAt - view.startedAt) / 60000)) : 0
-  linhas.push(`🏴‍☠️ CodeNomes Piratas — ${vencedor} (${view.log.length} turnos, ${minutos} min)`)
+  linhas.push(`🏴‍☠️ Pistas Piratas — ${vencedor} (${view.log.length} turnos, ${minutos} min)`)
   for (const e of view.log) {
     if (!e.clue && e.picks.length === 0) continue
     const nome = nomeNavio(view, e.shipId)
