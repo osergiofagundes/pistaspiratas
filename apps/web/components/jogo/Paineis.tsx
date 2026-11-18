@@ -1,5 +1,5 @@
 'use client'
-import { SHIP_INFO, type Player } from '@arena/platform'
+import { SHIP_INFO, type Player, type ShipId } from '@arena/platform'
 import type { CardView, CodenomesView, ShipView } from '@arena/codenomes'
 import { Avatar, Moldura, Navio, Texto } from '@/components/ui'
 import { Carta } from './Carta'
@@ -58,6 +58,9 @@ export function Tabuleiro({
   mapa,
   podeVotar,
   onVotar,
+  podeMarcar,
+  onMarcar,
+  meuNavio,
   destaque,
   animadas,
   fim,
@@ -71,6 +74,10 @@ export function Tabuleiro({
   mapa: boolean
   podeVotar: boolean
   onVotar: (i: number) => void
+  /** Capitão: clicar nas cartas marca/desmarca (só os Capitães veem as marcas) */
+  podeMarcar?: boolean
+  onMarcar?: (i: number) => void
+  meuNavio?: ShipId | null
   destaque: number | null
   animadas: Set<number>
   fim?: boolean
@@ -85,6 +92,9 @@ export function Tabuleiro({
   const ox = x + (w - gridW) / 2
   const oy = y + (h - gridH) / 2
   const selecao = view.turn.selection ?? []
+  const marcasPorCarta = new Map<number, ShipId[]>()
+  for (const [s, cards] of Object.entries(view.marks ?? {}) as [ShipId, number[]][])
+    for (const c of cards) marcasPorCarta.set(c, [...(marcasPorCarta.get(c) ?? []), s])
   return (
     <>
       <div style={{ position: 'absolute', left: x, top: y, width: w, height: h, borderRadius: 20, background: 'rgba(27,16,9,.78)' }} />
@@ -100,6 +110,10 @@ export function Tabuleiro({
               mapa={mapa}
               ordem={selecao.includes(i) ? selecao.indexOf(i) + 1 : null}
               podeVotar={podeVotar && !c.revealed}
+              marcas={marcasPorCarta.get(i)}
+              minhaMarca={!!meuNavio && (marcasPorCarta.get(i) ?? []).includes(meuNavio)}
+              podeMarcar={!!podeMarcar && !!meuNavio && c.owner === meuNavio}
+              onMarcar={() => onMarcar?.(i)}
               destaque={destaque !== null && c.turn === destaque}
               onVotar={() => onVotar(i)}
               animar={animadas.has(i)}

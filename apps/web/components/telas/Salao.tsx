@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'motion/react'
 import { SHIP_IDS, SHIP_INFO, type Player, type ShipId } from '@arena/platform'
-import { PRESETS, canStart } from '@arena/codenomes'
+import { type CodenomesConfig, PRESETS, canStart, gridFor } from '@arena/codenomes'
 import {
   Botao,
   COR_DO_NAVIO,
@@ -13,17 +13,15 @@ import {
   Icone,
   IconeNovo,
   Imagem,
-  Interruptor,
   Moldura,
   Navio,
   Palco,
-  Pilula,
   Placa,
   Texto,
 } from '@/components/ui'
 import { Avisos } from '@/components/ui/Avisos'
 import { BotaoPreferencias, ModalComoJogar, ModalConfirmar, ModalPerfil } from '@/components/modais/comuns'
-import { ModalConfiguracoes, rotuloTabuleiro, rotuloTempo } from '@/components/modais/Configuracoes'
+import { ModalConfiguracoes } from '@/components/modais/Configuracoes'
 import { salvarPerfil } from '@/lib/identidade'
 import { useSala, type Visao } from '@/lib/sala'
 import { useMusica } from '@/lib/useMusica'
@@ -255,25 +253,7 @@ export function Salao({ view }: { view: Visao }) {
           </Texto>
         </>
       )}
-      {[
-        ['Preset', <Pilula key="p" x={0} y={0} w={130}>{PRESETS.find((p) => p.id === view.config.preset)?.nome}</Pilula>],
-        ['Navios', <Pilula key="n" x={0} y={0} w={130}>{view.config.shipCount} navios</Pilula>],
-        ['Tabuleiro', <Pilula key="tb" x={0} y={0} w={130}>{rotuloTabuleiro(view.config)}</Pilula>],
-        ['Tiro de Canhão', <Interruptor key="c" x={66} y={0} ligado={view.config.cannon} w={64} h={34} />],
-        ['Escolha do Capitão', <Pilula key="e" x={0} y={0} w={130}>{escolha ? 'O navio escolhe' : 'Sorteio'}</Pilula>],
-        ['Tempo do Capitão', <Pilula key="t1" x={0} y={0} w={130}>{rotuloTempo(view.config.captainTime)}</Pilula>],
-        ['Tempo dos Marujos', <Pilula key="t2" x={0} y={0} w={130}>{rotuloTempo(view.config.crewTime)}</Pilula>],
-        ['Rodízio de Capitão', <Interruptor key="r" x={66} y={0} ligado={view.config.captainRotation === 'trocar'} w={64} h={34} />],
-      ].map(([rot, el], i) => (
-        <div key={i} style={{ position: 'absolute', left: 1476, top: 484 + i * 38, width: 376, height: 36 }}>
-          <Texto x={0} y={8} tam={17} cor="#5A3410">
-            {rot}
-          </Texto>
-          <div style={{ position: 'absolute', right: 0, top: 2, width: 130, height: 34, display: 'flex', justifyContent: 'flex-end' }}>
-            <div style={{ position: 'relative', width: 130, height: 34, display: 'flex', justifyContent: 'flex-end' }}>{el}</div>
-          </div>
-        </div>
-      ))}
+      <ResumoConfig config={view.config} />
 
       {/* zarpar */}
       <Botao
@@ -507,6 +487,100 @@ function ItemMenu({
     >
       {children}
     </button>
+  )
+}
+
+/** Resumo das configurações no Salão: preset no topo e 8 cartões com ícone. */
+function ResumoConfig({ config }: { config: CodenomesConfig }) {
+  const anim = useSala((s) => s.prefs.animacoes)
+  const g = gridFor(config)
+  const preset = PRESETS.find((p) => p.id === config.preset)
+  const tempo = (t: number | null) => (t === null ? '∞' : `${t} s`)
+  const cartoes: { icone: string; rotulo: string; valor: string; apagado?: boolean }[] = [
+    { icone: 'navios/navio-rubi.webp', rotulo: 'Navios', valor: `${config.shipCount} navios` },
+    { icone: 'cartas/fechada.webp', rotulo: 'Tabuleiro', valor: `${g.cols}×${g.rows} · ${g.total} cartas` },
+    { icone: 'cartas/rubi.webp', rotulo: 'Tesouros por navio', valor: g.first > g.treasures ? `${g.first} e ${g.treasures}` : `${g.treasures} cada` },
+    { icone: 'cartas/kraken.webp', rotulo: 'Kraken', valor: `${g.kraken} Kraken` },
+    {
+      icone: 'itens/coroa.webp',
+      rotulo: 'Capitão',
+      valor: `${config.captainMode === 'escolha' ? 'Escolhido' : 'Sorteio'} · ${config.captainRotation === 'trocar' ? 'troca' : 'mantém'}`,
+    },
+    { icone: 'interface/icones/ampulheta.webp', rotulo: 'Capitão / Marujos', valor: `${tempo(config.captainTime)} / ${tempo(config.crewTime)}` },
+    { icone: 'interface/icones/canhao.webp', rotulo: 'Tiro de Canhão', valor: config.cannon ? 'Ligado' : 'Desligado', apagado: !config.cannon },
+    { icone: 'interface/icones/olho.webp', rotulo: 'Espectadores', valor: config.allowSpectators ? 'Permitidos' : 'Fechado', apagado: !config.allowSpectators },
+  ]
+  const X = 1462
+  const Y = 476
+  const W = 392
+  const CW = (W - 8) / 2
+  return (
+    <>
+      {/* preset */}
+      <motion.div
+        key={`preset-${config.preset}`}
+        initial={anim ? { opacity: 0, y: 6 } : false}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        style={{
+          position: 'absolute',
+          left: X,
+          top: Y,
+          width: W,
+          height: 50,
+          borderRadius: 12,
+          background: 'linear-gradient(#9A5A2A, #6B3A17)',
+          border: '2px solid #3A1D0C',
+          boxShadow: 'inset 0 2px 0 rgba(255,255,255,.2), 0 2px 0 rgba(0,0,0,.3)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          padding: '0 14px',
+        }}
+      >
+        <span className="lilita" style={{ fontSize: 19, lineHeight: 1.05, color: '#FFE08A' }}>
+          {preset?.nome}
+        </span>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: '#F3DDB0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {preset?.descricao}
+        </span>
+      </motion.div>
+      {/* cartões */}
+      {cartoes.map((c, i) => (
+        <motion.div
+          key={`${c.rotulo}-${c.valor}`}
+          initial={anim ? { opacity: 0, scale: 0.94 } : false}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.25, delay: anim ? i * 0.03 : 0 }}
+          title={`${c.rotulo}: ${c.valor}`}
+          style={{
+            position: 'absolute',
+            left: X + (i % 2) * (CW + 8),
+            top: Y + 60 + Math.floor(i / 2) * 64,
+            width: CW,
+            height: 56,
+            borderRadius: 12,
+            background: 'rgba(255,248,230,.75)',
+            border: '2px solid rgba(138,74,28,.3)',
+            boxShadow: 'inset 0 1px 4px rgba(138,74,28,.15)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '0 8px',
+            opacity: c.apagado ? 0.6 : 1,
+            filter: c.apagado ? 'grayscale(.6)' : undefined,
+          }}
+        >
+          <img src={`/img/${c.icone}`} alt="" style={{ width: 40, height: 40, objectFit: 'contain', flex: '0 0 auto' }} />
+          <span style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: 11.5, fontWeight: 800, color: '#8A6A4A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.rotulo}</span>
+            <span className="lilita" style={{ fontSize: 16, lineHeight: 1.1, color: '#5A3410', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {c.valor}
+            </span>
+          </span>
+        </motion.div>
+      ))}
+    </>
   )
 }
 

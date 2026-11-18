@@ -347,41 +347,12 @@ button:disabled {
 .brilho {
   animation: brilho 2.4s ease-in-out infinite;
 }
-@keyframes cair-moeda {
-  0% {
-    transform: translateY(-120px) rotate(0deg);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(1200px) rotate(720deg);
-    opacity: 0.9;
-  }
-}
-.moeda {
-  position: absolute;
-  top: 0;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff3b0 0 18%, #ffd24a 19% 55%, #b8860b 56% 100%);
-  border: 2px solid #8a5a00;
-  box-shadow: inset 0 0 0 3px rgba(255, 240, 160, 0.6);
-  animation: cair-moeda linear infinite;
-  pointer-events: none;
-}
-
 /* preferência Animações desligada ou sistema com movimento reduzido */
 .sem-animacoes *,
 .sem-animacoes *::before,
 .sem-animacoes *::after {
   animation: none !important;
   transition: none !important;
-}
-.sem-animacoes .moeda {
-  display: none;
 }
 
 
@@ -448,3 +419,11 @@ button:disabled {
 /* link dos créditos no Início */
 .link-credito { transition: color .15s; }
 .link-credito:hover { color: #FFE9A0 !important; }
+
+/* opções de avatar no perfil */
+.avatar-opcao { transition: transform .15s, filter .15s; cursor: pointer; }
+.avatar-opcao:hover { transform: translateY(-4px); filter: brightness(1.06); }
+
+/* link "voltar ao proporcional" nas configurações */
+.link-ajuste { cursor: pointer; }
+.link-ajuste:hover { color: #6B3A17 !important; }

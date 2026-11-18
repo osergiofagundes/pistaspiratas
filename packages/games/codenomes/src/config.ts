@@ -15,7 +15,9 @@ const TESOUROS_NO_TABULEIRO = 0.75
 export type CodenomesConfig = {
   preset: Preset
   shipCount: number // 2 a 4
-  treasuresPerShip: number // 4 a 10 (Personalizado)
+  treasuresPerShip: number // Personalizado (4 a 10) ou ajuste à mão no tabuleiro fixo
+  /** tabuleiro fixo: true = usa treasuresPerShip; false = proporcional ao tabuleiro */
+  treasuresManual: boolean
   krakenCount: number // 1 ou 2 (Personalizado)
   boardSize: BoardSize
   boardCols: number // 4 a 10 (boardSize 'custom')
@@ -59,6 +61,7 @@ export function defaultConfig(): CodenomesConfig {
     preset: 'classico',
     shipCount: 2,
     treasuresPerShip: 8,
+    treasuresManual: false,
     krakenCount: 1,
     boardSize: 'auto',
     boardCols: 6,
@@ -93,8 +96,10 @@ export function updateConfig(current: CodenomesConfig, patch: Partial<CodenomesC
     }
   }
   if (patch.shipCount !== undefined) c.shipCount = clamp(patch.shipCount, 2, 4)
+  // tesouros: aceitos em qualquer preset (o gridFor aplica o limite de cada modo)
+  if (patch.treasuresPerShip !== undefined) c.treasuresPerShip = clamp(patch.treasuresPerShip, 2, 60)
+  if (patch.treasuresManual !== undefined) c.treasuresManual = !!patch.treasuresManual
   if (c.preset === 'personalizado') {
-    if (patch.treasuresPerShip !== undefined) c.treasuresPerShip = clamp(patch.treasuresPerShip, 4, 10)
     if (patch.krakenCount !== undefined) c.krakenCount = clamp(patch.krakenCount, 1, 2)
   }
   if (patch.boardSize !== undefined && BOARD_SIZES.includes(patch.boardSize)) c.boardSize = patch.boardSize
@@ -135,6 +140,8 @@ export type GridInfo = {
   kraken: number
   sea: number
   seaWarning: boolean
+  /** maior número de tesouros por navio que o seletor aceita neste modo */
+  maxTreasures: number
 }
 
 /** Colunas e linhas de um tamanho fixo (null no modo automático). */
@@ -158,9 +165,10 @@ export function gridFor(config: CodenomesConfig): GridInfo {
   const bonus = config.firstBonus === false ? 0 : 1
   let treasures: number, kraken: number, seaMin: number
   if (config.preset === 'personalizado') {
-    treasures = config.treasuresPerShip
+    treasures = clamp(config.treasuresPerShip, 4, 10)
     kraken = config.krakenCount
-    seaMin = 0
+    // como nos outros presets, a grade automática deixa pelo menos 20% de Mar Aberto
+    seaMin = 0.2
   } else {
     const v = VALORES[config.preset]
     treasures = v.treasures
@@ -171,9 +179,13 @@ export function gridFor(config: CodenomesConfig): GridInfo {
   if (fixed) {
     const [cols, rows] = fixed
     const total = cols * rows
-    treasures = Math.max(2, Math.floor((total * TESOUROS_NO_TABULEIRO - kraken - bonus) / ships))
+    // sempre sobra pelo menos 1 casa de Mar Aberto
+    const maxTreasures = Math.max(2, Math.floor((total - kraken - bonus - 1) / ships))
+    treasures = config.treasuresManual
+      ? clamp(config.treasuresPerShip, 2, maxTreasures)
+      : Math.max(2, Math.floor((total * TESOUROS_NO_TABULEIRO - kraken - bonus) / ships))
     const sea = total - treasures * ships - bonus - kraken
-    return { cols, rows, total, treasures, first: treasures + bonus, kraken, sea, seaWarning: sea / total < 0.2 }
+    return { cols, rows, total, treasures, first: treasures + bonus, kraken, sea, seaWarning: sea / total < 0.2, maxTreasures }
   }
   const needed = treasures * ships + bonus + kraken
   const candidates: [number, number][] = []
@@ -199,6 +211,7 @@ export function gridFor(config: CodenomesConfig): GridInfo {
     kraken,
     sea,
     seaWarning: sea / total < 0.2,
+    maxTreasures: 10,
   }
 }
 

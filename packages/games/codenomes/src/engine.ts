@@ -17,6 +17,8 @@ import { type CodenomesConfig, shipName } from './config'
 export const CAPTAIN_WAIT_MS = 60_000
 /** Uma queda curta (recarregar a página) não tira o jogador da contagem. */
 export const PRESENCE_GRACE_MS = 15_000
+/** Ao liberar o Tiro de Canhão, o relógio fica parado enquanto o aviso aparece. */
+export const CANNON_HOLD_MS = 5000
 
 export type TurnPhase = 'clue' | 'guessing' | 'cannon'
 
@@ -49,6 +51,8 @@ export type Turn = {
   /** tempo que faltava quando o relógio parou porque o Capitão caiu */
   frozen: number | null
   captainAwaySince: number | null
+  /** relógio parado até esse instante (aviso do Tiro de Canhão) */
+  holdUntil: number | null
 }
 
 export type EndReason =
@@ -94,6 +98,8 @@ export type CodenomesState = {
   startedAt: number
   finishedAt: number | null
   settings: { cannon: boolean; captainTime: number | null; crewTime: number | null }
+  /** cartas que cada Capitão marcou para se organizar; só os Capitães veem */
+  marks: Partial<Record<ShipId, number[]>>
 }
 
 export type CodenomesAction =
@@ -101,6 +107,7 @@ export type CodenomesAction =
   | { type: 'select'; card: number }
   | { type: 'confirm'; value: boolean }
   | { type: 'end'; value: boolean }
+  | { type: 'mark'; card: number }
 
 export type CodenomesMemory = {
   recentWords: string[][]
@@ -200,6 +207,7 @@ export function setup(
     startedAt: ctx.now,
     finishedAt: null,
     settings: { cannon: config.cannon, captainTime: config.captainTime, crewTime: config.crewTime },
+    marks: {},
   }
   const newMemory: CodenomesMemory = {
     recentWords: [...(memory?.recentWords ?? []), cards.map((c) => c.word)].slice(-3),
@@ -223,6 +231,7 @@ function newTurn(number: number, shipId: ShipId, captainTime: number | null, now
     deadline: deadlineFor(captainTime, now),
     frozen: null,
     captainAwaySince: null,
+    holdUntil: null,
   }
 }
 
@@ -263,11 +272,10 @@ export function validate(state: CodenomesState, playerId: string, action: Codeno
         const t = action.card
         if (typeof t !== 'number' || !Number.isInteger(t) || t < 0 || t >= state.cards.length) return 'Carta inválida.'
         if (state.cards[t].revealed) return 'Essa carta já foi revelada.'
+        // com limite 1 a marca só troca de carta; acima disso é preciso desmarcar uma
         const limit = selectionLimit(state)
-        if (!turn.selection.includes(t) && turn.selection.length >= limit)
-          return limit === 1
-            ? 'Vocês já marcaram uma palavra. Desmarquem para trocar.'
-            : `Vocês já marcaram ${limit} palavras. Desmarquem uma para trocar.`
+        if (limit > 1 && !turn.selection.includes(t) && turn.selection.length >= limit)
+          return `Vocês já marcaram ${limit} palavras. Desmarquem uma para trocar.`
         return null
       }
       if (action.type === 'confirm') {
@@ -275,6 +283,15 @@ export function validate(state: CodenomesState, playerId: string, action: Codeno
         return null
       }
       if (action.value && turn.phase === 'guessing' && turn.guesses < 1) return 'Escolham pelo menos uma palavra antes de encerrar.'
+      return null
+    }
+    case 'mark': {
+      const meu = state.ships.find((s) => s.captainId === playerId && !s.eliminated)
+      if (!meu) return 'Só os Capitães marcam cartas no mapa.'
+      const t = action.card
+      if (typeof t !== 'number' || !Number.isInteger(t) || t < 0 || t >= state.cards.length) return 'Carta inválida.'
+      if (state.cards[t].revealed) return 'Essa carta já foi revelada.'
+      if (state.cards[t].owner !== meu.id) return 'Marque só os tesouros do seu navio.'
       return null
     }
   }
@@ -299,7 +316,9 @@ export function apply(state: CodenomesState, playerId: string, action: Codenomes
     current(s).clue = { word, count: action.count }
   } else if (action.type === 'select') {
     const t = s.turn
-    t.selection = t.selection.includes(action.card) ? t.selection.filter((c) => c !== action.card) : [...t.selection, action.card]
+    if (t.selection.includes(action.card)) t.selection = t.selection.filter((c) => c !== action.card)
+    else if (selectionLimit(s) === 1) t.selection = [action.card]
+    else t.selection = [...t.selection, action.card]
     // mudou a seleção: todo mundo confirma de novo
     t.confirms = []
     t.endVotes = []
@@ -311,6 +330,11 @@ export function apply(state: CodenomesState, playerId: string, action: Codenomes
     s.turn.endVotes = toggle(s.turn.endVotes, playerId, action.value)
     if (action.value) s.turn.confirms = s.turn.confirms.filter((id) => id !== playerId)
     checkUnanimity(d)
+  } else if (action.type === 'mark') {
+    // marcas do Capitão: só uma anotação para os Capitães, não muda nada no jogo
+    const meu = s.ships.find((x) => x.captainId === playerId && !x.eliminated)!
+    const atual = s.marks[meu.id] ?? []
+    s.marks[meu.id] = atual.includes(action.card) ? atual.filter((c) => c !== action.card) : [...atual, action.card]
   }
   return { state: s, events: d.events, changed: true }
 }
@@ -373,6 +397,7 @@ function reveal(d: Draft, index: number) {
   card.revealed = true
   card.revealedBy = turn.shipId
   card.turn = turn.number
+  for (const k of Object.keys(s.marks) as ShipId[]) s.marks[k] = s.marks[k]!.filter((c) => c !== index)
   turn.guesses++
   current(s).picks.push({ word: card.word, card: index, owner: card.owner, cannon })
   events.push({ type: 'reveal', card: index, owner: card.owner, shipId: turn.shipId })
@@ -398,6 +423,9 @@ function reveal(d: Draft, index: number) {
     if (s.settings.cannon) {
       turn.phase = 'cannon'
       clearSelection(turn)
+      // o relógio para enquanto o aviso do canhão aparece
+      turn.holdUntil = ctx.now + CANNON_HOLD_MS
+      if (turn.deadline !== null) turn.deadline += CANNON_HOLD_MS
     } else endTurn(d, 'todos')
   }
 }
@@ -409,6 +437,7 @@ function finish(d: Draft, winner: ShipId | null, reason: 'tesouros' | 'sobrevive
   s.finishedAt = ctx.now
   s.turn.deadline = null
   clearSelection(s.turn)
+  s.marks = {}
   const entry = current(s)
   if (!entry.end) entry.end = reason === 'encerrada' ? 'encerrada' : 'vitoria'
   if (winner) entry.notes.push(`O Navio ${shipOf(s, winner).name} venceu!`)
@@ -552,6 +581,7 @@ export function pause(state: CodenomesState, ctx: GameContext, paused: boolean, 
     const delta = ctx.now - s.paused
     if (s.turn.deadline !== null) s.turn.deadline += delta
     if (s.turn.captainAwaySince !== null) s.turn.captainAwaySince += delta
+    if (s.turn.holdUntil !== null) s.turn.holdUntil += delta
     s.paused = null
     current(s).notes.push('Partida retomada')
   }

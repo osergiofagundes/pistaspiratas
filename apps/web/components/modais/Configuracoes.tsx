@@ -93,8 +93,25 @@ export function ModalConfiguracoes({
   const set = (patch: Partial<CodenomesConfig>) => setC((atual) => updateConfig(atual, patch))
   const pers = c.preset === 'personalizado'
   const fixo = fixedBoard(c) !== null
-  // com tamanho fixo os tesouros saem do tabuleiro; no automático, só o Personalizado ajusta
-  const tesourosLivres = pers && !fixo
+  // mudou o tabuleiro (tamanho, navios, Kraken ou bônus): os tesouros voltam a ser proporcionais
+  const mudaTabuleiro = (patch: Partial<CodenomesConfig>) => set({ ...patch, treasuresManual: false })
+  const mudaTesouros = (v: number) => {
+    if (fixo) set({ treasuresPerShip: v, treasuresManual: true })
+    else if (pers) set({ treasuresPerShip: v })
+    // no automático, mexer nos tesouros vira Personalizado (guardando o Kraken de agora)
+    else set({ preset: 'personalizado', krakenCount: g.kraken, treasuresPerShip: v })
+  }
+  const mudaKraken = (v: number) => {
+    if (pers) mudaTabuleiro({ krakenCount: v })
+    else mudaTabuleiro({ preset: 'personalizado', treasuresPerShip: g.treasures, krakenCount: v })
+  }
+  const notaTabuleiro = fixo
+    ? c.treasuresManual
+      ? 'Tesouros: ajustados à mão'
+      : 'Tesouros: proporcionais ao tabuleiro'
+    : pers
+      ? undefined
+      : 'Mudar tesouros ou Kraken vira Personalizado'
   const categoria = (k: 'geral' | 'mar', v: boolean) => set({ categories: v ? [...c.categories, k] : c.categories.filter((x) => x !== k) })
 
   const yCartoes = 166
@@ -116,7 +133,7 @@ export function ModalConfiguracoes({
         tam={18}
         opcoes={PRESETS.map((p) => ({ v: p.id, rotulo: p.nome }))}
         valor={c.preset}
-        onChange={(v) => set({ preset: v })}
+        onChange={(v) => mudaTabuleiro({ preset: v })}
       />
       <Texto x={180} y={132} w={W - 230} tam={16} cor="#7A5A3A" peso={700}>
         {PRESETS.find((p) => p.id === c.preset)?.descricao}
@@ -127,19 +144,19 @@ export function ModalConfiguracoes({
         y={yCartoes}
         h={hCartao1}
         titulo="Tabuleiro"
-        nota={fixo ? 'Tesouros: proporcionais ao tabuleiro' : pers ? undefined : 'Tesouros e Kraken: só no Personalizado'}
+        nota={notaTabuleiro}
         ordem={0}
       >
         <Rotulo i={0}>Tamanho</Rotulo>
-        <Segmentado x={150} y={linha(0) + 3} w={390} h={36} tam={14} opcoes={OPCOES_TABULEIRO} valor={c.boardSize} onChange={(v) => set({ boardSize: v })} />
+        <Segmentado x={150} y={linha(0) + 3} w={390} h={36} tam={14} opcoes={OPCOES_TABULEIRO} valor={c.boardSize} onChange={(v) => mudaTabuleiro({ boardSize: v })} />
         {c.boardSize === 'custom' ? (
           <>
             <Rotulo i={1}>Colunas × linhas</Rotulo>
-            <Seletor x={232} y={linha(1) + 2} h={38} valor={c.boardCols} min={BOARD_MIN} max={BOARD_MAX} onChange={(v) => set({ boardCols: v })} />
+            <Seletor x={232} y={linha(1) + 2} h={38} valor={c.boardCols} min={BOARD_MIN} max={BOARD_MAX} onChange={(v) => mudaTabuleiro({ boardCols: v })} />
             <Texto x={364} y={linha(1) + 8} tam={20} cor="#5A3410" peso={900}>
               ×
             </Texto>
-            <Seletor x={414} y={linha(1) + 2} h={38} valor={c.boardRows} min={BOARD_MIN} max={BOARD_MAX} onChange={(v) => set({ boardRows: v })} />
+            <Seletor x={414} y={linha(1) + 2} h={38} valor={c.boardRows} min={BOARD_MIN} max={BOARD_MAX} onChange={(v) => mudaTabuleiro({ boardRows: v })} />
           </>
         ) : (
           <>
@@ -160,37 +177,42 @@ export function ModalConfiguracoes({
           tam={17}
           opcoes={[2, 3, 4].map((n) => ({ v: n, rotulo: n }))}
           valor={c.shipCount}
-          onChange={(v) => set({ shipCount: v })}
+          onChange={(v) => mudaTabuleiro({ shipCount: v })}
         />
-        <Rotulo i={3} apagado={!tesourosLivres}>
-          Tesouros por navio
-        </Rotulo>
+        <Rotulo i={3}>Tesouros por navio</Rotulo>
+        {fixo && c.treasuresManual && (
+          <button
+            type="button"
+            onClick={() => set({ treasuresManual: false })}
+            title="Voltar ao número proporcional ao tabuleiro"
+            className="link-ajuste"
+            style={{ position: 'absolute', left: 212, top: linha(3) + 10, background: 'none', border: 0, padding: 0, fontSize: 14, fontWeight: 800, color: '#9A5A1A', textDecoration: 'underline' }}
+          >
+            ↺ proporcional
+          </button>
+        )}
         <Seletor
           x={408}
           y={linha(3) + 2}
           h={40}
-          valor={tesourosLivres ? c.treasuresPerShip : g.treasures}
-          min={4}
-          max={tesourosLivres ? 10 : Math.max(10, g.treasures)}
-          disabled={!tesourosLivres}
-          onChange={(v) => set({ treasuresPerShip: v })}
+          valor={g.treasures}
+          min={fixo ? 2 : 4}
+          max={g.maxTreasures}
+          onChange={mudaTesouros}
         />
-        <Rotulo i={4} apagado={!pers}>
-          Quantidade de Kraken
-        </Rotulo>
+        <Rotulo i={4}>Quantidade de Kraken</Rotulo>
         <Segmentado
           x={430}
           y={linha(4) + 4}
           w={110}
           h={36}
           tam={17}
-          disabled={!pers}
           opcoes={[1, 2].map((n) => ({ v: n, rotulo: n }))}
-          valor={pers ? c.krakenCount : g.kraken}
-          onChange={(v) => set({ krakenCount: v })}
+          valor={g.kraken}
+          onChange={mudaKraken}
         />
         <Rotulo i={5}>Quem começa leva +1 tesouro</Rotulo>
-        <Interruptor x={470} y={linha(5) + 4} ligado={c.firstBonus} onChange={(v) => set({ firstBonus: v })} />
+        <Interruptor x={470} y={linha(5) + 4} ligado={c.firstBonus} onChange={(v) => mudaTabuleiro({ firstBonus: v })} />
       </Cartao>
 
       <Cartao x={COL.esq} y={yCartoes2} h={hCartao2} titulo="Capitão e tempo" ordem={1}>

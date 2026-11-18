@@ -4,7 +4,7 @@ import { PALAVRAS } from '@arena/words'
 import { codenomes, canStart } from './index'
 import { defaultConfig, gridFor, updateConfig } from './config'
 import { validateClue } from './clue'
-import { type CodenomesAction, type CodenomesState, CAPTAIN_WAIT_MS, tick, treasuresLeft } from './engine'
+import { type CodenomesAction, type CodenomesState, CANNON_HOLD_MS, CAPTAIN_WAIT_MS, tick, treasuresLeft } from './engine'
 
 function player(id: string, shipId: ShipId | null, now = 0): Player {
   return { id, name: id, avatar: 'papagaio', shipId, connected: true, lastSeen: now, joinedAt: now }
@@ -97,6 +97,17 @@ describe('tabuleiro', () => {
     const pers = gridFor(updateConfig(defaultConfig(), { boardSize: 'custom', boardCols: 8, boardRows: 4 }))
     expect([pers.cols, pers.rows, pers.total]).toEqual([8, 4, 32])
     for (const g of [fixo(2, 5), fixo(4, 5), fixo(2, 10), pers]) expect(g.sea).toBeGreaterThan(0)
+  })
+
+  it('tamanho fixo: tesouros ajustados à mão, sempre sobrando Mar Aberto', () => {
+    const base = updateConfig(defaultConfig(), { boardSize: 5 })
+    const g = gridFor(updateConfig(base, { treasuresPerShip: 6, treasuresManual: true }))
+    expect([g.treasures, g.first, g.sea]).toEqual([6, 7, 11])
+    const demais = gridFor(updateConfig(base, { treasuresPerShip: 40, treasuresManual: true }))
+    expect(demais.treasures).toBe(demais.maxTreasures)
+    expect(demais.sea).toBeGreaterThanOrEqual(1)
+    // de volta ao proporcional
+    expect(gridFor(updateConfig(base, { treasuresPerShip: 6, treasuresManual: false })).treasures).toBe(8)
   })
 
   it('sem bônus, quem começa tem os mesmos tesouros', () => {
@@ -318,6 +329,55 @@ describe('Kraken e vitória', () => {
     }
     expect(state.finishReason).toBe('tesouros')
     expect(state.winner).toBe(first)
+  })
+})
+
+describe('ajustes da partida', () => {
+  it('com uma palavra só, marcar outra carta troca a marca', () => {
+    let { state, ctx } = start()
+    state = clue(state, ctx, 'TESTE', 1)
+    const crew = crewOf(state, ctx)
+    state = act(state, ctx, crew[0].id, { type: 'select', card: 0 })
+    state = act(state, ctx, crew[1].id, { type: 'confirm', value: true })
+    state = act(state, ctx, crew[1].id, { type: 'select', card: 1 })
+    expect(state.turn.selection).toEqual([1])
+    expect(state.turn.confirms).toEqual([])
+  })
+
+  it('ao liberar o canhão o relógio fica parado 5 s', () => {
+    let { state, ctx } = start()
+    state = clue(state, ctx, 'TESTE', 1)
+    const antes = state.turn.deadline!
+    state = voteAll(state, ctx, own(state))
+    expect(state.turn.phase).toBe('cannon')
+    expect(state.turn.deadline).toBe(antes + CANNON_HOLD_MS)
+    expect(state.turn.holdUntil).toBe(ctx.now + CANNON_HOLD_MS)
+    // o tempo que faltava continua valendo depois da pausa
+    ctx.now = antes + CANNON_HOLD_MS - 1
+    expect(tick(state, ctx).state.turn.phase).toBe('cannon')
+  })
+
+  it('marcas do Capitão: só Capitães marcam e só eles veem', () => {
+    let { state, ctx } = start()
+    const outro = state.ships.find((s) => s.id !== state.turn.shipId)!
+    const marujo = crewOf(state, ctx)[0]
+    const [a, b] = state.cards.map((c, i) => [c.owner, i] as const).filter(([o]) => o === outro.id).map(([, i]) => i)
+    const alheia = state.cards.findIndex((c) => c.owner !== outro.id)
+    expect(codenomes.validate(state, marujo.id, { type: 'mark', card: a }, ctx)).toMatch(/Capitães/)
+    // só os tesouros do próprio navio
+    expect(codenomes.validate(state, outro.captainId!, { type: 'mark', card: alheia }, ctx)).toMatch(/seu navio/)
+    // o Capitão de outro navio também pode marcar fora da vez dele
+    state = act(state, ctx, outro.captainId!, { type: 'mark', card: a })
+    state = act(state, ctx, outro.captainId!, { type: 'mark', card: b })
+    state = act(state, ctx, outro.captainId!, { type: 'mark', card: b })
+    expect(state.marks[outro.id]).toEqual([a])
+    expect(codenomes.viewFor(state, outro.captainId, ctx).marks[outro.id]).toEqual([a])
+    expect(codenomes.viewFor(state, state.ships.find((s) => s.id === state.turn.shipId)!.captainId, ctx).marks[outro.id]).toEqual([a])
+    expect(codenomes.viewFor(state, marujo.id, ctx).marks).toEqual({})
+    // a carta revelada sai das marcas
+    state = clue(state, ctx, 'TESTE', 2)
+    state = voteAll(state, ctx, a)
+    expect(state.marks[outro.id]).toEqual([])
   })
 })
 

@@ -8,7 +8,19 @@ export const SHIP_INFO: Record<ShipId, { nome: string; cor: string; corClara: st
   ouro: { nome: 'Ouro', cor: '#C98A12', corClara: '#FFD24A', corEscura: '#7A5208' },
 }
 
-export type Personagem = 'capitao' | 'papagaio' | 'tubarao' | 'gaivota' | 'grumete' | 'macaco'
+export type Personagem =
+  | 'capitao'
+  | 'papagaio'
+  | 'tubarao'
+  | 'gaivota'
+  | 'grumete'
+  | 'macaco'
+  | 'ruiva'
+  | 'barba-branca'
+  | 'crocodilo'
+  | 'polvo'
+  | 'navegadora'
+  | 'touro'
 export const PERSONAGENS: { id: Personagem; nome: string }[] = [
   { id: 'capitao', nome: 'Capitão' },
   { id: 'papagaio', nome: 'Papagaio' },
@@ -16,6 +28,12 @@ export const PERSONAGENS: { id: Personagem; nome: string }[] = [
   { id: 'gaivota', nome: 'Gaivota' },
   { id: 'grumete', nome: 'Grumete' },
   { id: 'macaco', nome: 'Macaco' },
+  { id: 'ruiva', nome: 'Ruiva' },
+  { id: 'barba-branca', nome: 'Barba-Branca' },
+  { id: 'crocodilo', nome: 'Crocodilo' },
+  { id: 'polvo', nome: 'Polvo' },
+  { id: 'navegadora', nome: 'Navegadora' },
+  { id: 'touro', nome: 'Touro' },
 ]
 
 export type Player = {

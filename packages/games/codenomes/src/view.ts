@@ -54,6 +54,8 @@ export type CodenomesView = {
   startedAt: number
   finishedAt: number | null
   settings: CodenomesState['settings']
+  /** marcas dos Capitães (vazio para quem não é Capitão) */
+  marks: CodenomesState['marks']
   me: { role: Role; shipId: ShipId | null; seesMap: boolean }
 }
 
@@ -103,6 +105,7 @@ export function viewFor(state: CodenomesState, playerId: string | null, ctx: Gam
     startedAt: state.startedAt,
     finishedAt: state.finishedAt,
     settings: state.settings,
+    marks: role === 'capitao' && !finished ? (state.marks ?? {}) : {},
     me: { role, shipId, seesMap },
   }
 }

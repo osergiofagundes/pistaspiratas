@@ -14,7 +14,7 @@ cd ferramentas/imagem && node exportar-web.mjs
 | --- | --- | --- |
 | `fundos/` | 5 fundos de 1920×1080: início, salão, partida, vitória e derrota | fundo de cada tela |
 | `cartas/` | 7 cartas do tabuleiro: fechada, tesouro de cada navio, Mar Aberto e Kraken | `Carta` |
-| `personagens/` | 6 personagens × 4 cores de navio (`papagaio-rubi.png`…) | avatares |
+| `personagens/` | 12 personagens × 4 cores de navio (`papagaio-rubi.png`…). Os 6 da terceira leva (ruiva, barba-branca, crocodilo, polvo, navegadora, touro) saem de `lotes/lote-3.mjs`, que recolore só a bandana/casaco | avatares |
 | `personagens/vetor/` | vetores dos personagens (SVG; o arquivo do VectorCraft fica fora do git) | não vai para a web |
 | `navios/` | 4 navios e o navio afundado | painéis, Salão, fim |
 | `bandeiras/` | bandeiras grandes e bandeirinhas dos 4 navios | barra da vez, Diário |

@@ -74,18 +74,6 @@ export function Fim({ view }: { view: Visao }) {
       b.total - b.left - (a.total - a.left),
   )
 
-  // moedas caindo na vitória (posições fixas para não pularem a cada renderização)
-  const moedas = useMemo(
-    () =>
-      Array.from({ length: 22 }, (_, i) => ({
-        left: (i * 89 + 37) % 1900,
-        dur: 3.5 + ((i * 7) % 5) * 0.6,
-        delay: -((i * 13) % 40) / 10,
-        tam: 24 + ((i * 5) % 4) * 6,
-      })),
-    [],
-  )
-
   const copiar = async () => {
     const texto = resumoPartida(game)
     try {
@@ -351,13 +339,6 @@ export function Fim({ view }: { view: Visao }) {
         {souAlmirante ? 'Voltar ao salão' : 'Esperando o Almirante'}
       </Botao>
 
-      {venc && !derrota && (
-        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 30 }}>
-          {moedas.map((m, i) => (
-            <span key={i} className="moeda" style={{ left: m.left, width: m.tam, height: m.tam, animationDuration: `${m.dur}s`, animationDelay: `${m.delay}s` }} />
-          ))}
-        </div>
-      )}
       <Avisos extra={aviso} />
       {sair && (
         <ModalConfirmar

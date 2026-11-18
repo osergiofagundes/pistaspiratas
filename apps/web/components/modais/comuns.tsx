@@ -1,5 +1,6 @@
 'use client'
 import { useState, type ReactNode } from 'react'
+import { motion } from 'motion/react'
 import { PERSONAGENS, validateName, type Personagem, type ShipId } from '@arena/platform'
 import {
   Botao,
@@ -24,7 +25,17 @@ const DECO_CONFIRMAR = (w: number, h: number): Deco[] => [
   { src: 'interface/decoracoes/deco-moedas.webp', x: w - 44, y: h - 60, w: 53, h: 59 },
 ]
 
-/** Seu perfil: nome e avatar (tela 760). */
+/** nomes piratas para o botão de sortear (todos passam em validateName) */
+const NOMES_PIRATAS = [
+  'Barba Ruiva', 'Olho de Vidro', 'Perna de Pau', 'Gancho', 'Maré Alta', 'Vento Sul', 'Coral', 'Âncora',
+  'Bússola', 'Tempestade', 'Sardinha', 'Lula Gigante', 'Corsária', 'Bucaneiro', 'Cara de Sal', 'Dente de Ouro',
+  'Mão de Ferro', 'Gaivota Brava', 'Capitã Névoa', 'Marujo Feliz', 'Rato do Porão', 'Onda Brava', 'Estrela do Mar', 'Pirata Sorte',
+]
+
+const EQUIPES: ShipId[] = ['rubi', 'safira', 'esmeralda', 'ouro']
+const NOME_EQUIPE: Record<ShipId, string> = { rubi: 'Rubi', safira: 'Safira', esmeralda: 'Esmeralda', ouro: 'Ouro' }
+
+/** Seu perfil: nome e avatar, com prévia grande e as cores das 4 equipes. */
 export function ModalPerfil({
   inicial,
   ship,
@@ -38,23 +49,88 @@ export function ModalPerfil({
 }) {
   const [nome, setNome] = useState(inicial?.name ?? '')
   const [avatar, setAvatar] = useState<Personagem>(inicial?.avatar ?? 'papagaio')
+  const [cor, setCor] = useState<ShipId>(ship ?? 'rubi')
   const [erro, setErro] = useState<string | null>(null)
-  const w = 812
-  const h = 570
+  const anim = useSala((s) => s.prefs.animacoes)
+  const w = 1120
+  const h = 680
   const confirmar = () => {
     const e = validateName(nome)
     if (e) return setErro(e)
     onConfirmar({ name: nome.trim().replace(/\s+/g, ' '), avatar })
   }
+  const sortearNome = () => {
+    const outros = NOMES_PIRATAS.filter((n) => n !== nome)
+    setNome(outros[Math.floor(Math.random() * outros.length)])
+    setErro(null)
+  }
+  const info = PERSONAGENS.find((p) => p.id === avatar)
+  const COL = 6
+  const CEL = 112
+
   return (
     <Modal titulo="Seu perfil" w={w} h={h} onFechar={onFechar} decos={[DECO_ANCORA(w, h)]}>
-      <Texto x={56} y={60} titulo tam={24} cor="#5A3410">
+      {/* prévia */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 44,
+          top: 70,
+          width: 320,
+          height: 500,
+          borderRadius: 18,
+          background: 'rgba(255,248,230,.6)',
+          border: '2px solid rgba(138,74,28,.35)',
+          boxShadow: 'inset 0 2px 10px rgba(138,74,28,.15)',
+        }}
+      >
+        <motion.div
+          key={`${avatar}-${cor}`}
+          initial={anim ? { scale: 0.7, rotate: -8, opacity: 0.4 } : false}
+          animate={{ scale: 1, rotate: 0, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 360, damping: 15 }}
+          style={{ position: 'absolute', left: 50, top: 24, width: 220, height: 220 }}
+        >
+          <Escotilha avatar={avatar} ship={cor} tam={220} x={0} y={0} />
+        </motion.div>
+        <Texto x={10} y={256} w={300} centro titulo tam={30} cor="#5A3410" className="truncate">
+          {nome.trim() || 'Seu nome'}
+        </Texto>
+        <Texto x={10} y={296} w={300} centro tam={17} cor="#7A5A3A" peso={800}>
+          {info?.nome} · Navio {NOME_EQUIPE[cor]}
+        </Texto>
+        <div style={{ position: 'absolute', left: 20, right: 20, top: 334, height: 2, background: 'rgba(90,52,16,.15)' }} />
+        <Texto x={10} y={348} w={300} centro titulo tam={18} cor="#7E3A12">
+          Cores do navio
+        </Texto>
+        <div style={{ position: 'absolute', left: 22, top: 380, width: 276, display: 'flex', justifyContent: 'space-between' }}>
+          {EQUIPES.map((e) => (
+            <button
+              key={e}
+              type="button"
+              onClick={() => setCor(e)}
+              aria-label={`Ver com a cor do Navio ${NOME_EQUIPE[e]}`}
+              aria-pressed={cor === e}
+              className="avatar-opcao"
+              style={{ position: 'relative', width: 64, height: 64, background: 'none', border: 0, padding: 0, opacity: cor === e ? 1 : 0.75 }}
+            >
+              <Escotilha avatar={avatar} ship={e} tam={64} x={0} y={0} selecionado={cor === e} />
+            </button>
+          ))}
+        </div>
+        <Texto x={20} y={454} w={280} centro tam={14} cor="#7A5A3A" peso={700}>
+          A cor acompanha o navio que você escolher no salão.
+        </Texto>
+      </div>
+
+      {/* nome */}
+      <Texto x={404} y={66} titulo tam={24} cor="#5A3410">
         Como vão te chamar?
       </Texto>
       <Campo
-        x={50}
-        y={98}
-        w={w - 100}
+        x={398}
+        y={100}
+        w={600}
         h={64}
         valor={nome}
         maxLength={16}
@@ -67,43 +143,64 @@ export function ModalPerfil({
         }}
         onEnter={confirmar}
       />
+      <Botao cor="pequeno-marrom" x={1008} y={100} w={70} h={64} tam={28} onClick={sortearNome} title="Sortear um nome pirata">
+        🎲
+      </Botao>
       {erro && (
-        <Texto x={56} y={166} tam={15} cor="#B3261E">
+        <Texto x={404} y={170} tam={15} cor="#B3261E">
           {erro}
         </Texto>
       )}
-      <Texto x={56} y={192} titulo tam={24} cor="#5A3410">
+
+      {/* avatares */}
+      <Texto x={404} y={196} titulo tam={24} cor="#5A3410">
         Escolha seu avatar
       </Texto>
-      {PERSONAGENS.map((p, i) => (
-        <button
-          key={p.id}
-          type="button"
-          onClick={() => setAvatar(p.id)}
-          aria-label={p.nome}
-          aria-pressed={avatar === p.id}
-          style={{ position: 'absolute', left: 52 + i * 118, top: 226, width: 108, height: 140, background: 'none', border: 0 }}
-        >
-          <Escotilha avatar={p.id} ship={ship ?? 'rubi'} tam={104} x={2} y={0} selecionado={avatar === p.id} />
-          <span
+      {PERSONAGENS.map((p, i) => {
+        const sel = avatar === p.id
+        return (
+          <motion.button
+            key={p.id}
+            type="button"
+            onClick={() => setAvatar(p.id)}
+            aria-label={p.nome}
+            aria-pressed={sel}
+            initial={anim ? { opacity: 0, y: 14 } : false}
+            animate={{ opacity: 1, y: 0, scale: sel ? 1.06 : 1 }}
+            whileHover={{ y: -4 }}
+            transition={{ duration: 0.25, delay: anim ? 0.1 + i * 0.03 : 0 }}
             style={{
               position: 'absolute',
-              left: 0,
-              right: 0,
-              top: 110,
-              fontWeight: 800,
-              fontSize: 16,
-              color: avatar === p.id ? '#B5651D' : '#5A3410',
+              left: 398 + (i % COL) * CEL,
+              top: 234 + Math.floor(i / COL) * 150,
+              width: 104,
+              height: 140,
+              background: sel ? 'rgba(255,210,74,.22)' : 'none',
+              borderRadius: 14,
+              border: 0,
+              padding: 0,
             }}
           >
-            {p.nome}
-          </span>
-        </button>
-      ))}
-      <Texto x={0} y={390} w={w} centro tam={16} cor="#7A5A3A" peso={700}>
-        A cor do avatar acompanha o navio que você escolher no salão.
-      </Texto>
-      <BotaoImagem nome="confirmar" x={w / 2 - 100} y={440} w={200} h={80} onClick={confirmar} title="Confirmar" />
+            <Escotilha avatar={p.id} ship={cor} tam={96} x={4} y={4} selecionado={sel} />
+            <span
+              style={{
+                position: 'absolute',
+                left: -4,
+                right: -4,
+                top: 106,
+                fontWeight: 800,
+                fontSize: 15,
+                color: sel ? '#B5651D' : '#5A3410',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {p.nome}
+            </span>
+          </motion.button>
+        )
+      })}
+
+      <BotaoImagem nome="confirmar" x={w - 300} y={h - 130} w={210} h={84} onClick={confirmar} title="Confirmar" />
     </Modal>
   )
 }

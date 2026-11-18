@@ -91,6 +91,18 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
     setNumero((n) => Math.min(Math.max(1, n), Math.max(1, restantes)))
   }, [restantes])
 
+  // marcas do Capitão: o número da ordem acompanha quantas cartas ele marcou
+  const minhasMarcas = (game.me.shipId && game.marks?.[game.me.shipId]) || []
+  useEffect(() => {
+    if (souCapitaoDaVez && turno.phase === 'clue' && minhasMarcas.length > 0)
+      setNumero(Math.min(Math.max(1, minhasMarcas.length), Math.max(1, restantes)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [minhasMarcas.length])
+  const marcar_ = (card: number) => {
+    if (role !== 'capitao' || pausada) return
+    enviar({ type: 'game', action: { type: 'mark', card } })
+  }
+
   // capitães sorteados: no começo de cada partida
   const visto = useRef<number | null>(null)
   useEffect(() => {
@@ -150,13 +162,22 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
       setOverlay({ tipo: 'canhao', turno: turno.number })
     }
   }, [turno.phase, turno.number, souMarujoDaVez])
+  // o aviso do canhão some sozinho (o relógio fica parado nesse tempo)
+  const avisoCanhao = typeof overlay === 'object' && overlay?.tipo === 'canhao'
+  useEffect(() => {
+    if (!avisoCanhao) return
+    const id = setTimeout(() => setOverlay((o) => (typeof o === 'object' && o?.tipo === 'canhao' ? null : o)), SORTEIO_MS)
+    return () => clearTimeout(id)
+  }, [avisoCanhao])
 
+  // relógio parado enquanto o aviso do canhão aparece (holdUntil)
+  const agoraRelogio = Math.max(t, turno.holdUntil ?? 0)
   const restante = pausada
     ? turno.deadline !== null && view.paused
-      ? turno.deadline - view.paused.since
+      ? turno.deadline - Math.max(view.paused.since, turno.holdUntil ?? 0)
       : null
     : turno.deadline !== null
-      ? turno.deadline - t
+      ? turno.deadline - agoraRelogio
       : turno.frozen
   // música: alto-mar, mais rápida e agitada quando o relógio passa de 10 s
   useMusica('alto-mar')
@@ -329,6 +350,9 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
           players={view.players}
           mapa={mapa}
           podeVotar={souMarujoDaVez && turno.phase !== 'clue' && !pausada}
+          podeMarcar={role === 'capitao' && !pausada}
+          onMarcar={marcar_}
+          meuNavio={game.me.shipId}
           onVotar={marcar}
           destaque={destaque}
           animadas={animadas}
@@ -398,6 +422,12 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
           <Botao cor="verde" x={1270} y={976} w={230} h={80} onClick={darOrdem} disabled={pausada || !dica.trim()}>
             Dar ordem
           </Botao>
+          <Texto x={1520} y={984} w={250} tam={19} cor="#FFE08A" peso={800}>
+            {minhasMarcas.length} {minhasMarcas.length === 1 ? 'marcada' : 'marcadas'}
+          </Texto>
+          <Texto x={1520} y={1012} w={250} tam={14} cor="#E8D2A8" peso={700}>
+            Toque nos seus tesouros para marcar. Só os Capitães veem.
+          </Texto>
         </>
       )}
       {souCapitaoDaVez && turno.phase !== 'clue' && (
@@ -421,8 +451,12 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
         />
       )}
       {role === 'capitao' && !minhaVez && (
-        <Texto x={560} y={1000} w={940} tam={19} cor="#F3E6C8" peso={700}>
+        <Texto x={560} y={986} w={1180} tam={19} cor="#F3E6C8" peso={700}>
           Aguardando o Navio {navioVez.name}. Prepare a próxima ordem olhando o mapa.
+          <br />
+          <span style={{ fontSize: 16, color: '#E8D2A8' }}>
+            Toque nos tesouros do seu navio para marcar as palavras da próxima dica ({minhasMarcas.length} {minhasMarcas.length === 1 ? 'marcada' : 'marcadas'}). Só os Capitães veem.
+          </span>
         </Texto>
       )}
 
@@ -613,7 +647,19 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
           <Texto x={60} y={70} w={580} centro tam={21} cor="#5A3410" peso={700}>
             Vocês acertaram todas as palavras da ordem! Ganharam um palpite livre em qualquer carta do tabuleiro.
           </Texto>
-          <IconeNovo nome="canhao" x={310} y={176} w={80} h={80} />
+          <IconeNovo nome="canhao" x={310} y={160} w={80} h={80} />
+          <Texto x={60} y={252} w={580} centro tam={15} cor="#7A5A3A" peso={700}>
+            O relógio fica parado enquanto este aviso aparece.
+          </Texto>
+          {/* o aviso some sozinho: a barrinha mostra o tempo */}
+          <div style={{ position: 'absolute', left: 120, right: 120, top: 284, height: 8, borderRadius: 4, background: 'rgba(90,52,16,.18)', overflow: 'hidden' }}>
+            <motion.div
+              initial={{ width: '100%' }}
+              animate={{ width: '0%' }}
+              transition={{ duration: SORTEIO_MS / 1000, ease: 'linear' }}
+              style={{ height: '100%', background: 'linear-gradient(90deg, #E0A21E, #FFD24A)' }}
+            />
+          </div>
           <Botao cor="azul" x={60} y={330} w={320} h={80} tam={24} onClick={() => setOverlay(null)}>
             Disparar canhão
           </Botao>

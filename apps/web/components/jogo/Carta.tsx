@@ -1,5 +1,6 @@
 'use client'
 import { motion } from 'motion/react'
+import type { ShipId } from '@arena/platform'
 import type { CardView } from '@arena/codenomes'
 import { IMG } from '@/components/ui'
 
@@ -12,6 +13,13 @@ export type CartaProps = {
   /** posição na seleção da tripulação (1, 2, 3…) ou null se não está marcada */
   ordem: number | null
   podeVotar: boolean
+  /** navios cujos Capitães marcaram esta carta (só os Capitães recebem) */
+  marcas?: ShipId[]
+  /** a marca do meu navio está nela */
+  minhaMarca?: boolean
+  /** Capitão: clicar marca/desmarca */
+  podeMarcar?: boolean
+  onMarcar?: () => void
   destaque: boolean
   onVotar?: () => void
   animar: boolean
@@ -20,8 +28,9 @@ export type CartaProps = {
 }
 
 /** Carta do tabuleiro (Carta/tabuleiro): pergaminho fechado, tesouro com o navio, Mar Aberto ou Kraken. */
-export function Carta({ carta, w, h, mapa, ordem, podeVotar, destaque, onVotar, animar, fim }: CartaProps) {
+export function Carta({ carta, w, h, mapa, ordem, podeVotar, marcas = [], minhaMarca, podeMarcar, onMarcar, destaque, onVotar, animar, fim }: CartaProps) {
   const marcada = ordem !== null && !carta.revealed
+  const clicavel = podeVotar || (!!podeMarcar && !carta.revealed)
   const k = w / 158
   const dono = carta.owner
   const mostrarArte = carta.revealed || (mapa && dono)
@@ -34,12 +43,12 @@ export function Carta({ carta, w, h, mapa, ordem, podeVotar, destaque, onVotar, 
   return (
     <motion.button
       type="button"
-      onClick={podeVotar ? onVotar : undefined}
-      disabled={!podeVotar}
+      onClick={podeVotar ? onVotar : clicavel ? onMarcar : undefined}
+      disabled={!clicavel}
       initial={false}
       animate={{ rotateY: animar ? [90, 0] : 0, scale: marcada ? 1.04 : 1 }}
       transition={{ duration: animar ? 0.45 : 0.15 }}
-      whileHover={podeVotar ? { y: -3 } : undefined}
+      whileHover={clicavel ? { y: -3 } : undefined}
       style={{
         position: 'relative',
         width: w,
@@ -47,11 +56,17 @@ export function Carta({ carta, w, h, mapa, ordem, podeVotar, destaque, onVotar, 
         border: 0,
         padding: 0,
         background: `url(${IMG}/cartas/${arte}.webp) center / 100% 100% no-repeat`,
-        cursor: podeVotar ? 'pointer' : 'default',
+        cursor: clicavel ? 'pointer' : 'default',
         opacity: esmaecida ? 0.38 : apagada ? 0.62 : 1,
         filter: esmaecida ? 'saturate(.5)' : apagada ? 'saturate(.6) brightness(.85)' : undefined,
         borderRadius: 10 * k,
-        outline: marcada ? `${Math.max(3, 4 * k)}px solid #FFD24A` : destaque ? `${3 * k}px solid #FFF8EC` : undefined,
+        outline: marcada
+          ? `${Math.max(3, 4 * k)}px solid #FFD24A`
+          : destaque
+            ? `${3 * k}px solid #FFF8EC`
+            : minhaMarca && !carta.revealed
+              ? `${Math.max(2, 3 * k)}px dashed #FFF8EC`
+              : undefined,
         outlineOffset: -2,
         boxShadow: marcada ? '0 0 22px rgba(255,210,74,.9)' : destaque ? '0 0 16px rgba(255,248,236,.8)' : undefined,
         transformStyle: 'preserve-3d',
@@ -99,6 +114,21 @@ export function Carta({ carta, w, h, mapa, ordem, podeVotar, destaque, onVotar, 
         </span>
       )}
 
+      {marcas.length > 0 && !carta.revealed && (
+        <span style={{ position: 'absolute', right: -6, top: -12, display: 'flex', flexDirection: 'row-reverse', pointerEvents: 'none' }}>
+          {marcas.map((s, i) => (
+            <motion.img
+              key={s}
+              initial={{ scale: 0, y: -8 }}
+              animate={{ scale: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 18 }}
+              src={`${IMG}/bandeiras/bandeirinha-${s}.webp`}
+              alt=""
+              style={{ width: Math.max(22, 30 * k), height: Math.max(19, 26 * k), marginLeft: i === 0 ? 0 : -8, objectFit: 'contain', filter: 'drop-shadow(0 2px 2px rgba(0,0,0,.6))' }}
+            />
+          ))}
+        </span>
+      )}
       {marcada && (
         <motion.span
           key={ordem}
