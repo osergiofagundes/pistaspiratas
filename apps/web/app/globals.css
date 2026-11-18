@@ -202,6 +202,26 @@ button:disabled {
 .img-botao:disabled {
   background-image: var(--img-d);
 }
+
+/*
+ * Pré-carrega as imagens dos outros estados (hover, pressionado, desativado) e as
+ * posições de interruptores e caixas (--pre-1, --pre-2): sem isso o navegador só as baixa
+ * na primeira vez que são usadas, e o botão fica sem imagem até chegar.
+ * (Elemento invisível de 1 px; variável que não existe vira "none" e não baixa nada.)
+ */
+.botao::after,
+.img-botao::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  background-image: var(--img-h, none), var(--img-p, none), var(--img-d, none), var(--pre-1, none), var(--pre-2, none);
+  background-size: 1px 1px;
+}
 .img-botao:focus-visible,
 .botao:focus-visible {
   outline: 3px solid var(--amarelo);

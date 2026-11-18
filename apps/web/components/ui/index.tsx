@@ -410,6 +410,9 @@ export function Interruptor({ ligado, onChange, disabled, ...p }: Pos & { ligado
         ...pos({ w: 70, h: 38, ...p }),
         backgroundImage: `url(${IMG}/interface/controles/interruptor-${ligado ? 'ligado' : 'desligado'}.webp)`,
         opacity: disabled ? 0.6 : 1,
+        // as duas posições já carregadas (senão pisca na primeira troca)
+        ['--pre-1' as string]: `url(${IMG}/interface/controles/interruptor-ligado.webp)`,
+        ['--pre-2' as string]: `url(${IMG}/interface/controles/interruptor-desligado.webp)`,
       }}
     />
   )
@@ -424,7 +427,12 @@ export function Marcador({ marcado, onChange, disabled, ...p }: Pos & { marcado:
       disabled={disabled || !onChange}
       onClick={() => onChange?.(!marcado)}
       className="img-botao"
-      style={{ ...pos({ w: 34, h: 34, ...p }), backgroundImage: `url(${IMG}/interface/controles/caixa${marcado ? '-marcada' : ''}.webp)` }}
+      style={{
+        ...pos({ w: 34, h: 34, ...p }),
+        backgroundImage: `url(${IMG}/interface/controles/caixa${marcado ? '-marcada' : ''}.webp)`,
+        ['--pre-1' as string]: `url(${IMG}/interface/controles/caixa.webp)`,
+        ['--pre-2' as string]: `url(${IMG}/interface/controles/caixa-marcada.webp)`,
+      }}
     />
   )
 }
