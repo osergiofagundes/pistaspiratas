@@ -444,3 +444,7 @@ button:disabled {
 .segmento:not(:disabled):hover { filter: brightness(1.12); }
 .segmento:not(:disabled):active { transform: translateY(1px); }
 .campo-navio:focus { box-shadow: 0 0 0 3px rgba(240,180,76,.55), inset 0 2px 4px rgba(90,52,16,.15) !important; }
+
+/* link dos créditos no Início */
+.link-credito { transition: color .15s; }
+.link-credito:hover { color: #FFE9A0 !important; }

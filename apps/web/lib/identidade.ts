@@ -42,8 +42,8 @@ export function salvarPerfil(p: Perfil) {
 }
 
 /** Volumes de 0 a 1; mudo silencia tudo (ícone de som). */
-export type Preferencias = { efeitos: number; musica: number; mudo: boolean; animacoes: boolean; lembrete: boolean }
-export const PREFS_PADRAO: Preferencias = { efeitos: 0.8, musica: 0.5, mudo: false, animacoes: true, lembrete: true }
+export type Preferencias = { efeitos: number; musica: number; mudo: boolean; animacoes: boolean }
+export const PREFS_PADRAO: Preferencias = { efeitos: 0.8, musica: 0.5, mudo: false, animacoes: true }
 
 const limitar = (n: unknown, padrao: number) => (typeof n === 'number' && isFinite(n) ? Math.min(1, Math.max(0, n)) : padrao)
 
@@ -55,7 +55,6 @@ export function preferencias(): Preferencias {
     // a versão antiga guardava só "som: false"
     mudo: typeof salvo.mudo === 'boolean' ? salvo.mudo : salvo.som === false,
     animacoes: salvo.animacoes ?? PREFS_PADRAO.animacoes,
-    lembrete: salvo.lembrete ?? PREFS_PADRAO.lembrete,
   }
 }
 

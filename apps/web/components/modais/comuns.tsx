@@ -254,15 +254,14 @@ export function ModalPreferencias({ onFechar, onEditarPerfil }: { onFechar: () =
   const prefs = useSala((s) => s.prefs)
   const setPrefs = useSala((s) => s.setPrefs)
   const w = 700
-  const h = 640
+  const h = 564
   const volumes: { k: 'musica' | 'efeitos'; t: string; d: string; amostra?: () => void }[] = [
     { k: 'musica', t: 'Música', d: 'Trilha do porto e do alto-mar' },
     { k: 'efeitos', t: 'Efeitos sonoros', d: 'Moedas, ondas, Kraken e cliques', amostra: () => tocar('moedas') },
   ]
-  const chaves: { k: 'mudo' | 'animacoes' | 'lembrete'; t: string; d: string }[] = [
+  const chaves: { k: 'mudo' | 'animacoes'; t: string; d: string }[] = [
     { k: 'mudo', t: 'Silenciar tudo', d: 'O mesmo do ícone de som no canto da tela' },
     { k: 'animacoes', t: 'Animações', d: 'Logo balançando, navios, cartas virando' },
-    { k: 'lembrete', t: 'Lembrete do Capitão', d: 'Mostra as regras de conduta ao virar Capitão' },
   ]
   return (
     <Modal titulo="Preferências" w={w} h={h} onFechar={onFechar} decos={[DECO_ANCORA(w, h)]}>

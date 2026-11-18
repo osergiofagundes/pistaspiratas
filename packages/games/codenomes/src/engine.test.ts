@@ -4,7 +4,7 @@ import { PALAVRAS } from '@arena/words'
 import { codenomes, canStart } from './index'
 import { defaultConfig, gridFor, updateConfig } from './config'
 import { validateClue } from './clue'
-import { type CodenomesState, REVEAL_DELAY_MS, CAPTAIN_WAIT_MS, tick, treasuresLeft } from './engine'
+import { type CodenomesAction, type CodenomesState, CAPTAIN_WAIT_MS, tick, treasuresLeft } from './engine'
 
 function player(id: string, shipId: ShipId | null, now = 0): Player {
   return { id, name: id, avatar: 'papagaio', shipId, connected: true, lastSeen: now, joinedAt: now }
@@ -26,17 +26,26 @@ function start(shipCount = 2, perShip = 3, seed = 1, patch = {}) {
   return { state, ctx, players, config }
 }
 
-/** Faz todos os Marujos do navio da vez votarem e avança o relógio até revelar. */
-function voteAll(state: CodenomesState, ctx: GameContext, target: number | 'end'): CodenomesState {
+function crewOf(state: CodenomesState, ctx: GameContext) {
   const ship = state.ships.find((s) => s.id === state.turn.shipId)!
-  for (const p of Object.values(ctx.players)) {
-    if (p.shipId !== ship.id || p.id === ship.captainId) continue
-    const err = codenomes.validate(state, p.id, { type: 'vote', target }, ctx)
-    expect(err).toBeNull()
-    state = codenomes.apply(state, p.id, { type: 'vote', target }, ctx).state
+  return Object.values(ctx.players).filter((p) => p.shipId === ship.id && p.id !== ship.captainId)
+}
+
+function act(state: CodenomesState, ctx: GameContext, id: string, action: CodenomesAction): CodenomesState {
+  expect(codenomes.validate(state, id, action, ctx)).toBeNull()
+  return codenomes.apply(state, id, action, ctx).state
+}
+
+/** Um Marujo marca as cartas e todos confirmam (ou todos pedem para encerrar). */
+function voteAll(state: CodenomesState, ctx: GameContext, target: number | number[] | 'end'): CodenomesState {
+  const crew = crewOf(state, ctx)
+  if (target === 'end') {
+    for (const p of crew) state = act(state, ctx, p.id, { type: 'end', value: true })
+    return state
   }
-  ctx.now += REVEAL_DELAY_MS
-  return tick(state, ctx).state
+  for (const c of Array.isArray(target) ? target : [target]) state = act(state, ctx, crew[0].id, { type: 'select', card: c })
+  for (const p of crew) state = act(state, ctx, p.id, { type: 'confirm', value: true })
+  return state
 }
 
 function clue(state: CodenomesState, ctx: GameContext, word: string, count: number) {
@@ -78,6 +87,23 @@ describe('tabuleiro', () => {
     const config = defaultConfig()
     expect(canStart(config, [player('a', 'rubi'), player('b', 'rubi'), player('c', 'safira')])).toMatch(/Safira/)
     expect(canStart(config, [player('a', 'rubi'), player('b', 'rubi'), player('c', 'safira'), player('d', 'safira')])).toBeNull()
+  })
+
+  it('tamanho fixo: tesouros proporcionais ao tabuleiro', () => {
+    const fixo = (shipCount: number, boardSize: 5 | 10) => gridFor(updateConfig(defaultConfig(), { shipCount, boardSize }))
+    expect(fixo(2, 5)).toMatchObject({ cols: 5, rows: 5, treasures: 8, first: 9, sea: 7 })
+    expect(fixo(4, 5)).toMatchObject({ cols: 5, rows: 5, treasures: 3, first: 4 })
+    expect(fixo(2, 10)).toMatchObject({ cols: 10, rows: 10, treasures: 36 })
+    const pers = gridFor(updateConfig(defaultConfig(), { boardSize: 'custom', boardCols: 8, boardRows: 4 }))
+    expect([pers.cols, pers.rows, pers.total]).toEqual([8, 4, 32])
+    for (const g of [fixo(2, 5), fixo(4, 5), fixo(2, 10), pers]) expect(g.sea).toBeGreaterThan(0)
+  })
+
+  it('sem bônus, quem começa tem os mesmos tesouros', () => {
+    const { state } = start(2, 3, 1, { firstBonus: false })
+    for (const s of state.ships) expect(s.total).toBe(8)
+    const g = gridFor(updateConfig(defaultConfig(), { firstBonus: false }))
+    expect(g.first).toBe(g.treasures)
   })
 
   it('personalizado avisa quando há pouco Mar Aberto', () => {
@@ -144,26 +170,104 @@ describe('turno', () => {
     state = clue(state, ctx, 'TESTE', 2)
     const ship = state.ships.find((s) => s.id === state.turn.shipId)!
     const marujo = Object.values(ctx.players).find((p) => p.shipId === ship.id && p.id !== ship.captainId)!
-    expect(codenomes.validate(state, marujo.id, { type: 'vote', target: 'end' }, ctx)).toMatch(/pelo menos uma/)
-    expect(codenomes.validate(state, ship.captainId!, { type: 'vote', target: 0 }, ctx)).toMatch(/Marujos/)
+    expect(codenomes.validate(state, marujo.id, { type: 'end', value: true }, ctx)).toMatch(/pelo menos uma/)
+    expect(codenomes.validate(state, ship.captainId!, { type: 'select', card: 0 }, ctx)).toMatch(/Marujos/)
+    expect(codenomes.validate(state, marujo.id, { type: 'confirm', value: true }, ctx)).toMatch(/Marquem/)
   })
 
-  it('a maioria precisa se manter por 3 segundos', () => {
+  it('marcar uma carta não abre nada: precisa da confirmação de todos', () => {
     let { state, ctx } = start(2, 4)
     state = clue(state, ctx, 'TESTE', 2)
-    const ship = state.ships.find((s) => s.id === state.turn.shipId)!
-    const crew = Object.values(ctx.players).filter((p) => p.shipId === ship.id && p.id !== ship.captainId)
+    const crew = crewOf(state, ctx)
     const t = own(state)
-    state = codenomes.apply(state, crew[0].id, { type: 'vote', target: t }, ctx).state
-    expect(state.turn.pending).toBeNull()
-    state = codenomes.apply(state, crew[1].id, { type: 'vote', target: t }, ctx).state
-    expect(state.turn.pending?.target).toBe(t)
-    ctx.now += 1000
-    state = codenomes.apply(state, crew[1].id, { type: 'vote', target: null }, ctx).state
-    expect(state.turn.pending).toBeNull()
-    ctx.now += 5000
+    state = act(state, ctx, crew[1].id, { type: 'select', card: t })
+    expect(state.turn.selection).toEqual([t])
+    state = act(state, ctx, crew[0].id, { type: 'confirm', value: true })
+    state = act(state, ctx, crew[1].id, { type: 'confirm', value: true })
+    ctx.now += 60_000
     state = tick(state, ctx).state
     expect(state.cards[t].revealed).toBe(false)
+    state = act(state, ctx, crew[2].id, { type: 'confirm', value: true })
+    expect(state.cards[t].revealed).toBe(true)
+  })
+
+  it('mexer na seleção zera as confirmações', () => {
+    let { state, ctx } = start(2, 3)
+    state = clue(state, ctx, 'TESTE', 2)
+    const crew = crewOf(state, ctx)
+    state = act(state, ctx, crew[0].id, { type: 'select', card: own(state) })
+    state = act(state, ctx, crew[0].id, { type: 'confirm', value: true })
+    expect(state.turn.confirms).toEqual([crew[0].id])
+    state = act(state, ctx, crew[1].id, { type: 'select', card: ofType(state, 'mar') })
+    expect(state.turn.confirms).toEqual([])
+    expect(state.turn.selection).toHaveLength(2)
+  })
+
+  it('o limite de marcas é o número da ordem', () => {
+    let { state, ctx } = start(2, 3)
+    state = clue(state, ctx, 'TESTE', 2)
+    const crew = crewOf(state, ctx)
+    const livres = state.cards.map((_, i) => i)
+    state = act(state, ctx, crew[0].id, { type: 'select', card: livres[0] })
+    state = act(state, ctx, crew[0].id, { type: 'select', card: livres[1] })
+    expect(codenomes.validate(state, crew[0].id, { type: 'select', card: livres[2] }, ctx)).toMatch(/2 palavras/)
+    // desmarcar libera
+    state = act(state, ctx, crew[0].id, { type: 'select', card: livres[1] })
+    expect(state.turn.selection).toEqual([livres[0]])
+  })
+
+  it('abre na ordem marcada e para no primeiro erro', () => {
+    let { state, ctx } = start()
+    const first = state.turn.shipId
+    state = clue(state, ctx, 'TESTE', 3)
+    const a = own(state)
+    const mar = ofType(state, 'mar')
+    const b = state.cards.findIndex((c, i) => c.owner === first && !c.revealed && i !== a)
+    state = voteAll(state, ctx, [a, mar, b])
+    expect(state.cards[a].revealed).toBe(true)
+    expect(state.cards[mar].revealed).toBe(true)
+    expect(state.cards[b].revealed).toBe(false)
+    expect(state.turn.shipId).not.toBe(first)
+    expect(state.log[0].picks.map((p) => p.card)).toEqual([a, mar])
+  })
+
+  it('confirmar 1 de 3 e acertar mantém a vez com 2 palpites', () => {
+    let { state, ctx } = start()
+    const first = state.turn.shipId
+    state = clue(state, ctx, 'TESTE', 3)
+    state = voteAll(state, ctx, own(state))
+    expect(state.turn.shipId).toBe(first)
+    expect(state.turn.guessesLeft).toBe(2)
+    expect(state.turn.selection).toEqual([])
+    expect(state.turn.confirms).toEqual([])
+  })
+
+  it('encerrar a vez precisa de todos', () => {
+    let { state, ctx } = start(2, 3)
+    const first = state.turn.shipId
+    state = clue(state, ctx, 'TESTE', 3)
+    state = voteAll(state, ctx, own(state))
+    const crew = crewOf(state, ctx)
+    state = act(state, ctx, crew[0].id, { type: 'end', value: true })
+    expect(state.turn.shipId).toBe(first)
+    state = act(state, ctx, crew[1].id, { type: 'end', value: true })
+    expect(state.turn.shipId).not.toBe(first)
+    expect(state.log[0].end).toBe('encerrou')
+  })
+
+  it('quem caiu deixa de contar e os outros completam a confirmação', () => {
+    let { state, ctx, players } = start(2, 4)
+    state = clue(state, ctx, 'TESTE', 2)
+    const crew = crewOf(state, ctx)
+    const t = own(state)
+    state = act(state, ctx, crew[0].id, { type: 'select', card: t })
+    state = act(state, ctx, crew[0].id, { type: 'confirm', value: true })
+    state = act(state, ctx, crew[1].id, { type: 'confirm', value: true })
+    players[crew[2].id].connected = false
+    players[crew[2].id].lastSeen = ctx.now
+    ctx.now += 16_000
+    state = tick(state, ctx).state
+    expect(state.cards[t].revealed).toBe(true)
   })
 
   it('Tesouro de outro navio conta para ele e encerra', () => {

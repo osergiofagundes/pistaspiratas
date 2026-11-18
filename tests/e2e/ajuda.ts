@@ -10,7 +10,7 @@ export async function jogador(browser: Browser, nome: string, avatar = 'papagaio
   await ctx.addInitScript(
     ([n, a]) => {
       localStorage.setItem('arena.perfil', JSON.stringify({ name: n, avatar: a }))
-      localStorage.setItem('arena.preferencias', JSON.stringify({ mudo: true, animacoes: false, lembrete: false }))
+      localStorage.setItem('arena.preferencias', JSON.stringify({ mudo: true, animacoes: false }))
     },
     [nome, avatar],
   )

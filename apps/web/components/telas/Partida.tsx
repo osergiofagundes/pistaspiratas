@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'motion/react'
 import { SHIP_INFO, type ShipId } from '@arena/platform'
@@ -29,6 +29,9 @@ import { formatarTempo, nomeNavio, textoFase } from '@/lib/textos'
 import { useAgora } from '@/lib/useAgora'
 import { useMusica } from '@/lib/useMusica'
 import { intensidade } from '@/lib/musica'
+
+/** quanto tempo o aviso dos Capitães sorteados fica na tela */
+const SORTEIO_MS = 5000
 
 type Overlay =
   | null
@@ -60,6 +63,8 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
   const souCapitaoDaVez = role === 'capitao' && minhaVez
   const souMarujoDaVez = role === 'marujo' && minhaVez && turno.voters.includes(view.you ?? '')
   const pausada = !!view.paused
+  const primeiro = game.ships.find((s) => s.id === game.firstShip)
+  const bonusPrimeiro = !!primeiro && game.ships.some((s) => s.id !== primeiro.id && s.total < primeiro.total)
 
   const [ocultarMapa, setOcultarMapa] = useState(false)
   const [dica, setDica] = useState('')
@@ -68,7 +73,6 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
   const [destaque, setDestaque] = useState<number | null>(null)
   const [overlay, setOverlay] = useState<Overlay>(null)
   const [sorteio, setSorteio] = useState(false)
-  const [lembrete, setLembrete] = useState(false)
   const [aviso, setAviso] = useState<{ texto: string; seq: number } | null>(null)
   const [faixa, setFaixa] = useState<{ ship: ShipId; seq: number } | null>(null)
   const [tremor, setTremor] = useState(0)
@@ -95,13 +99,20 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
     if (game.log.length === 1 && !game.log[0].clue && t - game.startedAt < 20_000) {
       setSorteio(true)
     }
-    if (role === 'capitao' && prefs.lembrete) setLembrete(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.startedAt])
 
-  // eventos do servidor: animação das cartas, navio afundado, troca de Capitão, tempo esgotado
+  // o aviso dos Capitães sorteados some sozinho depois de alguns segundos
+  useEffect(() => {
+    if (!sorteio) return
+    const id = setTimeout(() => setSorteio(false), SORTEIO_MS)
+    return () => clearTimeout(id)
+  }, [sorteio])
+
+  // eventos do servidor: animação das cartas, navio afundado, troca de Capitão, tempo esgotado.
+  // Começa depois do último evento já guardado: os de partidas anteriores não contam.
   const [animadas, setAnimadas] = useState<Set<number>>(new Set())
-  const ultimoEvento = useRef(0)
+  const ultimoEvento = useRef(useSala.getState().eventos.at(-1)?.seq ?? 0)
   useEffect(() => {
     for (const ev of eventos) {
       if (ev.seq <= ultimoEvento.current) continue
@@ -140,8 +151,6 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
     }
   }, [turno.phase, turno.number, souMarujoDaVez])
 
-  const meuVoto = view.you ? turno.votes[view.you] : undefined
-  const contagem = turno.pending ? Math.max(1, Math.ceil((turno.pending.at - t) / 1000)) : null
   const restante = pausada
     ? turno.deadline !== null && view.paused
       ? turno.deadline - view.paused.since
@@ -156,11 +165,26 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
     intensidade(apertado ? 1 : 0)
     return () => intensidade(0)
   }, [apertado])
-  const votosFim = Object.values(turno.votes).filter((v) => v === 'end').length
+  // seleção compartilhada: qualquer Marujo marca; abre quando todos os presentes confirmam
+  const eu = view.you ?? ''
+  const selecao = turno.selection
+  const presentes = turno.present
+  const confirmei = turno.confirms.includes(eu)
+  const pediFim = turno.endVotes.includes(eu)
+  const confirmaram = presentes.filter((id) => turno.confirms.includes(id)).length
+  const querFim = presentes.filter((id) => turno.endVotes.includes(id)).length
 
-  const votar = (alvo: number | 'end') => {
+  const marcar = (card: number) => {
     if (!souMarujoDaVez || pausada) return
-    enviar({ type: 'game', action: { type: 'vote', target: meuVoto === alvo ? null : alvo } })
+    enviar({ type: 'game', action: { type: 'select', card } })
+  }
+  const confirmar = () => {
+    if (!souMarujoDaVez || pausada) return
+    enviar({ type: 'game', action: { type: 'confirm', value: !confirmei } })
+  }
+  const encerrar = (value = !pediFim) => {
+    if (!souMarujoDaVez || pausada) return
+    enviar({ type: 'game', action: { type: 'end', value } })
   }
 
   const darOrdem = async () => {
@@ -173,10 +197,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
   }
 
   const mapa = game.me.seesMap && !ocultarMapa
-  const centro = useMemo(() => {
-    if (turno.clue) return `${turno.clue.word} · ${turno.clue.count}`
-    return null
-  }, [turno.clue])
+  const centro = turno.clue
 
   const roleTexto =
     role === 'capitao'
@@ -202,28 +223,54 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
       </Texto>
       {centro ? (
         <motion.div
-          key={`${turno.number}-${centro}`}
+          key={`${turno.number}-${centro.word}`}
           initial={prefs.animacoes ? { scale: 1.8, opacity: 0 } : false}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 300, damping: 14 }}
-          style={{ position: 'absolute', left: 560, top: 18, width: 800, height: 66 }}
+          style={{ position: 'absolute', left: 500, top: 16, width: 690, height: 84, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}
         >
-          <Texto x={0} y={0} w={800} centro titulo tam={54} cor="#FFF8EC" contorno="#3A1D0C">
-            {centro}
-          </Texto>
+          <span
+            className="lilita contorno"
+            style={{ ['--c' as string]: '#3A1D0C', fontSize: Math.min(50, 560 / Math.max(6, centro.word.length * 0.66)), lineHeight: 1, color: '#FFF8EC', whiteSpace: 'nowrap' } as React.CSSProperties}
+          >
+            {centro.word}
+          </span>
+          <span
+            className="lilita"
+            title={`${centro.count} ${centro.count === 1 ? 'palavra' : 'palavras'}`}
+            style={{
+              flex: '0 0 auto',
+              width: 54,
+              height: 54,
+              borderRadius: '50%',
+              background: 'linear-gradient(#FFE27A, #E0A21E)',
+              border: '3px solid #6B3A17',
+              boxShadow: '0 3px 0 rgba(0,0,0,.4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 32,
+              lineHeight: 1,
+              color: '#3A1D0C',
+            }}
+          >
+            {centro.count}
+          </span>
         </motion.div>
       ) : (
-        <Texto x={560} y={32} w={800} centro titulo tam={36} cor="#F3E6C8" contorno="#3A1D0C">
-          {souCapitaoDaVez ? 'Aguardando a sua ordem…' : `Aguardando a ordem de ${navioVez.captainName || 'Capitão'}…`}
-        </Texto>
+        <div style={{ position: 'absolute', left: 500, top: 16, width: 690, height: 84, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span className="lilita contorno" style={{ ['--c' as string]: '#3A1D0C', fontSize: 34, lineHeight: 1, color: '#F3E6C8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } as React.CSSProperties}>
+            {souCapitaoDaVez ? 'Aguardando a sua ordem…' : `Aguardando a ordem de ${navioVez.captainName || 'Capitão'}…`}
+          </span>
+        </div>
       )}
       {turno.phase !== 'clue' && (
         <div
           style={{
             position: 'absolute',
-            left: 1290,
+            left: 1210,
             top: 36,
-            width: 210,
+            width: 214,
             height: 44,
             borderRadius: 22,
             background: turno.phase === 'cannon' ? '#FFD24A' : '#F3DDB0',
@@ -282,9 +329,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
           players={view.players}
           mapa={mapa}
           podeVotar={souMarujoDaVez && turno.phase !== 'clue' && !pausada}
-          meuVoto={meuVoto}
-          onVotar={votar}
-          contagem={contagem}
+          onVotar={marcar}
           destaque={destaque}
           animadas={animadas}
         />
@@ -310,11 +355,6 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
           </motion.div>
         )}
       </AnimatePresence>
-      {turno.pending?.target === 'end' && contagem !== null && (
-        <div className="lilita" style={{ position: 'absolute', left: 760, top: 470, width: 400, padding: '16px 0', textAlign: 'center', borderRadius: 16, background: 'rgba(43,26,15,.92)', border: '3px solid #FFD24A', color: '#FFF8EC', fontSize: 30, zIndex: 5 }}>
-          {turno.phase === 'cannon' ? 'Abrindo mão do canhão' : 'Encerrando a vez'} em {contagem}…
-        </div>
-      )}
 
       {/* diário */}
       <Diario view={game} players={view.players} x={1576} y={116} onDestacar={game.me.seesMap ? setDestaque : undefined} destaque={destaque} />
@@ -361,17 +401,24 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
         </>
       )}
       {souCapitaoDaVez && turno.phase !== 'clue' && (
-        <Texto x={560} y={1000} w={940} tam={19} cor="#F3E6C8" peso={700}>
+        <Texto x={560} y={986} w={1100} tam={19} cor="#F3E6C8" peso={700}>
           Ordem dada! Agora é com os Marujos. Lembre-se: o Capitão só fala pela dica.
+          <br />
+          <span style={{ fontSize: 16, color: '#E8D2A8' }}>
+            {selecao.length} {selecao.length === 1 ? 'palavra marcada' : 'palavras marcadas'} · confirmaram {confirmaram} de {presentes.length}
+          </span>
         </Texto>
       )}
       {role === 'capitao' && (
-        <>
-          <Botao cor="marrom" x={1550} y={984} w={210} h={64} tam={18} onClick={() => setOcultarMapa(!ocultarMapa)}>
-            {ocultarMapa ? 'Mostrar mapa' : 'Ocultar mapa'}
-          </Botao>
-          <IconeNovo nome={ocultarMapa ? 'olho-riscado' : 'olho'} x={1786} y={984} w={64} h={64} onClick={() => setOcultarMapa(!ocultarMapa)} title="Ocultar mapa (para transmitir a tela)" />
-        </>
+        <IconeNovo
+          nome={ocultarMapa ? 'olho-riscado' : 'olho'}
+          x={1786}
+          y={984}
+          w={64}
+          h={64}
+          onClick={() => setOcultarMapa(!ocultarMapa)}
+          title={ocultarMapa ? 'Mostrar o mapa' : 'Ocultar o mapa (para transmitir a tela)'}
+        />
       )}
       {role === 'capitao' && !minhaVez && (
         <Texto x={560} y={1000} w={940} tam={19} cor="#F3E6C8" peso={700}>
@@ -381,17 +428,74 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
 
       {souMarujoDaVez && turno.phase !== 'clue' && (
         <>
-          <Texto x={500} y={990} w={700} tam={18} cor="#F3E6C8" peso={700}>
+          <Texto x={470} y={976} w={740} tam={17} cor="#F3E6C8" peso={700}>
             {turno.phase === 'cannon'
-              ? 'Tiro livre! Votem em qualquer carta, ou abram mão do canhão.'
-              : `Toquem numa palavra para votar. Com a maioria (${turno.majority}), ela é revelada em 3 s.`}
+              ? 'Tiro livre! Marquem 1 carta qualquer e confirmem, ou abram mão do canhão.'
+              : `Marquem até ${turno.limit} ${turno.limit === 1 ? 'palavra' : 'palavras'} e confirmem. Todos precisam confirmar.`}
           </Texto>
-          <Botao cor="vermelho" x={1236} y={976} w={290} h={80} tam={24} onClick={() => votar('end')} disabled={pausada || (turno.phase === 'guessing' && turno.guesses < 1)}>
-            {turno.phase === 'cannon' ? 'Abrir mão' : 'Encerrar vez'}
-            {votosFim > 0 ? ` (${votosFim}/${turno.majority})` : ''}
+          {/* quem já confirmou */}
+          <div style={{ position: 'absolute', left: 470, top: 1006, height: 44, display: 'flex', alignItems: 'center', gap: 8 }}>
+            {presentes.map((id) => {
+              const p = view.players.find((x) => x.id === id)
+              if (!p) return null
+              const ok = turno.confirms.includes(id)
+              const fim = turno.endVotes.includes(id)
+              return (
+                <div key={id} title={`${p.name}${ok ? ' confirmou' : fim ? ' quer encerrar' : ''}`} style={{ position: 'relative', width: 40, height: 40, opacity: ok || fim ? 1 : 0.55 }}>
+                  <Avatar avatar={p.avatar} ship={p.shipId} tam={40} x={0} y={0} />
+                  {(ok || fim) && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        right: -4,
+                        bottom: -2,
+                        width: 18,
+                        height: 18,
+                        borderRadius: '50%',
+                        background: ok ? '#2E8A2A' : '#B3261E',
+                        border: '2px solid #FFF8EC',
+                        color: '#FFF',
+                        fontSize: 11,
+                        fontWeight: 900,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {ok ? '✔' : '✕'}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+            <span style={{ marginLeft: 6, fontSize: 16, fontWeight: 800, color: '#E8D2A8' }}>
+              {selecao.length > 0 ? `${selecao.length} marcada${selecao.length > 1 ? 's' : ''} · ` : ''}confirmaram {confirmaram} de {presentes.length}
+            </span>
+          </div>
+          <Botao
+            cor={confirmei ? 'marrom' : 'verde'}
+            className={!confirmei && selecao.length > 0 ? 'brilho' : undefined}
+            x={1226}
+            y={976}
+            w={330}
+            h={80}
+            tam={confirmei ? 20 : 24}
+            onClick={confirmar}
+            disabled={pausada || (!confirmei && selecao.length === 0)}
+          >
+            {confirmei ? 'Cancelar confirmação' : selecao.length > 1 ? `Confirmar ${selecao.length}` : 'Confirmar'}
           </Botao>
-          <Botao cor="azul" x={1546} y={976} w={330} h={80} tam={24} disabled={turno.phase !== 'cannon'} onClick={() => setAviso({ texto: 'Escolham uma carta para o tiro!', seq: Date.now() })}>
-            Disparar canhão
+          <Botao
+            cor={pediFim ? 'marrom' : 'vermelho'}
+            x={1572}
+            y={976}
+            w={304}
+            h={80}
+            tam={pediFim ? 19 : 22}
+            onClick={() => encerrar()}
+            disabled={pausada || (turno.phase === 'guessing' && turno.guesses < 1)}
+          >
+            {pediFim ? 'Cancelar' : turno.phase === 'cannon' ? 'Abrir mão' : 'Encerrar vez'} ({querFim}/{presentes.length})
           </Botao>
         </>
       )}
@@ -403,7 +507,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
       {!minhaVez && role !== 'capitao' && (
         <Texto x={500} y={1000} w={1000} tam={20} cor="#F3E6C8" peso={700}>
           {role === 'gaivota' ? '👀 ' : ''}Aguardando o Navio {navioVez.name}
-          {turno.phase === 'clue' ? ' receber a ordem do Capitão.' : ' escolher as palavras.'}
+          {turno.phase === 'clue' ? ' receber a ordem do Capitão.' : ` escolher as palavras (${selecao.length} marcada${selecao.length === 1 ? '' : 's'}, confirmaram ${confirmaram} de ${presentes.length}).`}
         </Texto>
       )}
       {role === 'exCapitao' && minhaVez && (
@@ -446,7 +550,6 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
               pausada
                 ? { i: 'play' as const, t: 'Retomar partida', d: 'O relógio volta a correr', f: () => enviar({ type: 'resume' }) }
                 : { i: 'pausa' as const, t: 'Pausar partida', d: 'Para o relógio de todos', f: () => enviar({ type: 'pause' }) },
-              { i: 'olho' as const, t: 'Como jogar', d: 'Regras rápidas da partida', f: () => setOverlay('ajuda') },
               { i: 'sair' as const, t: 'Sair da sala', d: me?.shipId ? `Você deixa o Navio ${nomeNavio(game, me.shipId)}` : 'Você deixa a sala', f: () => setOverlay('sair') },
               { i: 'cadeado' as const, t: 'Encerrar partida', d: 'Todos voltam ao salão', f: () => setOverlay('encerrar'), cor: '#B3261E' },
             ].map((o) => (
@@ -522,7 +625,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
             h={72}
             tam={20}
             onClick={() => {
-              votar('end')
+              encerrar(true)
               setOverlay(null)
             }}
           >
@@ -571,19 +674,19 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
             })}
           </div>
           <Texto x={0} y={214} w={900} centro tam={18} cor="#5A3410" peso={700}>
-            Começa o Navio {nomeNavio(game, game.firstShip)}, com 1 tesouro a mais.
+            Começa o Navio {nomeNavio(game, game.firstShip)}
+            {bonusPrimeiro ? ', com 1 tesouro a mais.' : '.'}
           </Texto>
+          {/* o aviso some sozinho: a barrinha mostra o tempo */}
+          <div style={{ position: 'absolute', left: 120, right: 120, top: 252, height: 8, borderRadius: 4, background: 'rgba(90,52,16,.18)', overflow: 'hidden' }}>
+            <motion.div
+              initial={{ width: '100%' }}
+              animate={{ width: '0%' }}
+              transition={{ duration: SORTEIO_MS / 1000, ease: 'linear' }}
+              style={{ height: '100%', background: 'linear-gradient(90deg, #E0A21E, #FFD24A)' }}
+            />
+          </div>
         </Modal>
-      )}
-      {!sorteio && lembrete && (
-        <ModalInfo
-          titulo="Lembrete do Capitão"
-          h={420}
-          icone={<IconeNovo nome="mapa" x={0} y={0} w={72} h={72} />}
-          texto="Você vê o mapa secreto. Só se comunique pela dica: nada de caretas, pistas extras ou comentários no Discord!"
-          botao="Combinado"
-          onFechar={() => setLembrete(false)}
-        />
       )}
       {extra}
     </Palco>

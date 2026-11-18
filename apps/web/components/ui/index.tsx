@@ -339,7 +339,7 @@ export function Escotilha({
 }
 
 export function Bandeira({ ship, ...p }: Pos & { ship: ShipId }) {
-  return <img src={`${IMG}/bandeiras/bandeira-${ship}.webp`} alt="" draggable={false} style={{ ...pos({ w: 64, h: 55, ...p }), objectFit: 'contain' }} />
+  return <img src={`${IMG}/bandeiras/bandeira-${ship}.webp`} alt="" draggable={false} className={p.className} style={{ ...pos({ w: 64, h: 55, ...p }), objectFit: 'contain' }} />
 }
 
 export function Bandeirinha({ ship, ...p }: Pos & { ship: ShipId }) {

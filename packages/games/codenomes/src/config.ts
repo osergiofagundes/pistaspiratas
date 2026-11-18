@@ -3,12 +3,25 @@ import type { ShipId } from '@arena/platform'
 
 export type Preset = 'classico' | 'rapido' | 'caotico' | 'tranquilo' | 'personalizado'
 export type Tempo = number | null // segundos; null = sem limite
+/** 'auto' escolhe pela quantidade de tesouros; número = grade quadrada; 'custom' = boardCols × boardRows */
+export type BoardSize = 'auto' | 5 | 6 | 7 | 8 | 9 | 10 | 'custom'
+
+export const BOARD_SIZES: BoardSize[] = ['auto', 5, 6, 7, 8, 9, 10, 'custom']
+export const BOARD_MIN = 4
+export const BOARD_MAX = 10
+/** fração do tabuleiro que vira tesouro quando o tamanho é fixo (o resto é Mar Aberto e Kraken) */
+const TESOUROS_NO_TABULEIRO = 0.75
 
 export type CodenomesConfig = {
   preset: Preset
   shipCount: number // 2 a 4
   treasuresPerShip: number // 4 a 10 (Personalizado)
   krakenCount: number // 1 ou 2 (Personalizado)
+  boardSize: BoardSize
+  boardCols: number // 4 a 10 (boardSize 'custom')
+  boardRows: number // 4 a 10 (boardSize 'custom')
+  /** quem começa leva 1 tesouro a mais */
+  firstBonus: boolean
   cannon: boolean
   captainMode: 'sorteio' | 'escolha'
   captainRotation: 'manter' | 'trocar'
@@ -47,6 +60,10 @@ export function defaultConfig(): CodenomesConfig {
     shipCount: 2,
     treasuresPerShip: 8,
     krakenCount: 1,
+    boardSize: 'auto',
+    boardCols: 6,
+    boardRows: 6,
+    firstBonus: true,
     cannon: true,
     captainMode: 'sorteio',
     captainRotation: 'trocar',
@@ -80,6 +97,10 @@ export function updateConfig(current: CodenomesConfig, patch: Partial<CodenomesC
     if (patch.treasuresPerShip !== undefined) c.treasuresPerShip = clamp(patch.treasuresPerShip, 4, 10)
     if (patch.krakenCount !== undefined) c.krakenCount = clamp(patch.krakenCount, 1, 2)
   }
+  if (patch.boardSize !== undefined && BOARD_SIZES.includes(patch.boardSize)) c.boardSize = patch.boardSize
+  if (patch.boardCols !== undefined) c.boardCols = clamp(patch.boardCols, BOARD_MIN, BOARD_MAX)
+  if (patch.boardRows !== undefined) c.boardRows = clamp(patch.boardRows, BOARD_MIN, BOARD_MAX)
+  if (patch.firstBonus !== undefined) c.firstBonus = !!patch.firstBonus
   if (patch.cannon !== undefined) c.cannon = !!patch.cannon
   if (patch.captainMode === 'sorteio' || patch.captainMode === 'escolha') c.captainMode = patch.captainMode
   if (patch.captainRotation === 'manter' || patch.captainRotation === 'trocar') c.captainRotation = patch.captainRotation
@@ -116,13 +137,25 @@ export type GridInfo = {
   seaWarning: boolean
 }
 
+/** Colunas e linhas de um tamanho fixo (null no modo automático). */
+export function fixedBoard(config: CodenomesConfig): [number, number] | null {
+  const b = config.boardSize ?? 'auto'
+  if (b === 'auto') return null
+  if (b === 'custom') return [config.boardCols ?? 6, config.boardRows ?? 6]
+  return [b, b]
+}
+
 /**
- * Tamanho do tabuleiro. Escolhe a menor grade de 5 a 7 colunas (quase quadrada)
- * que comporte os Tesouros e Krakens deixando a fração mínima de Mar Aberto do preset.
- * Com 8 tesouros e Mar mínimo de 20%, reproduz o Clássico: 5×5, 6×6 e 7×7.
+ * Tamanho do tabuleiro.
+ * - Automático: escolhe a menor grade de 5 a 7 colunas (quase quadrada) que comporte os
+ *   Tesouros e Krakens deixando a fração mínima de Mar Aberto do preset. Com 8 tesouros e
+ *   Mar mínimo de 20%, reproduz o Clássico: 5×5, 6×6 e 7×7.
+ * - Tamanho fixo: os tesouros são proporcionais ao tabuleiro (cerca de 75% das casas,
+ *   divididos entre os navios); o resto é Mar Aberto e Kraken.
  */
 export function gridFor(config: CodenomesConfig): GridInfo {
   const ships = config.shipCount
+  const bonus = config.firstBonus === false ? 0 : 1
   let treasures: number, kraken: number, seaMin: number
   if (config.preset === 'personalizado') {
     treasures = config.treasuresPerShip
@@ -134,7 +167,15 @@ export function gridFor(config: CodenomesConfig): GridInfo {
     kraken = v.kraken(ships)
     seaMin = v.seaMin
   }
-  const needed = treasures * ships + 1 + kraken
+  const fixed = fixedBoard(config)
+  if (fixed) {
+    const [cols, rows] = fixed
+    const total = cols * rows
+    treasures = Math.max(2, Math.floor((total * TESOUROS_NO_TABULEIRO - kraken - bonus) / ships))
+    const sea = total - treasures * ships - bonus - kraken
+    return { cols, rows, total, treasures, first: treasures + bonus, kraken, sea, seaWarning: sea / total < 0.2 }
+  }
+  const needed = treasures * ships + bonus + kraken
   const candidates: [number, number][] = []
   for (let c = 5; c <= 7; c++) for (const r of [c - 1, c]) candidates.push([c, r])
   candidates.sort((a, b) => a[0] * a[1] - b[0] * b[1] || a[0] - b[0])
@@ -154,7 +195,7 @@ export function gridFor(config: CodenomesConfig): GridInfo {
     rows,
     total,
     treasures,
-    first: treasures + 1,
+    first: treasures + bonus,
     kraken,
     sea,
     seaWarning: sea / total < 0.2,

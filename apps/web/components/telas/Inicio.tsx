@@ -14,7 +14,6 @@ import {
   Palco,
   Placa,
   Texto,
-  IMG,
 } from '@/components/ui'
 import { BotaoPreferencias, ModalComoJogar, ModalInfo, ModalPerfil } from '@/components/modais/comuns'
 import { criarSala, infoSala } from '@/lib/api'
@@ -108,20 +107,25 @@ export function Inicio({ erroInicial }: { erroInicial?: string | null }) {
           </Texto>
         </div>
       </Entrar>
-      {[
-        { icone: `${IMG}/navios/navio-rubi.webp`, t: '2 a 4 navios', x: 200 },
-        { icone: `${IMG}/personagens/papagaio-rubi.webp`, t: 'até 24 piratas', x: 430 },
-        { icone: `${IMG}/interface/icones/ampulheta.webp`, t: '~15 min', x: 696 },
-      ].map((c, i) => (
-        <Entrar key={c.t} atraso={0.45 + i * 0.12}>
-          <div className="pilula-escura" style={{ position: 'absolute', left: c.x, top: 790, height: 56, padding: '0 22px 0 60px', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
-            <img src={c.icone} alt="" style={{ position: 'absolute', left: 8, top: 6, width: 44, height: 44, objectFit: 'contain' }} />
+      {/* créditos */}
+      <Entrar atraso={0.45}>
+        <div style={{ position: 'absolute', left: 190, top: 790, width: 724, display: 'flex', justifyContent: 'center' }}>
+          <div className="pilula-escura" style={{ position: 'relative', height: 56, padding: '0 26px', display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
             <span className="lilita" style={{ fontSize: 20 }}>
-              {c.t}
+              Desenvolvido por Sérgio Fagundes ·
             </span>
+            <a
+              href="https://www.linkedin.com/in/sergiofagundes/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="lilita link-credito"
+              style={{ fontSize: 20, color: '#FFD24A', textDecoration: 'underline', textUnderlineOffset: 4 }}
+            >
+              LinkedIn
+            </a>
           </div>
-        </Entrar>
-      ))}
+        </div>
+      </Entrar>
 
       {/* painel Jogar agora */}
       <Entrar atraso={0.2} de="direita">

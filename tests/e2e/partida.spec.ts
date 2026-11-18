@@ -39,11 +39,15 @@ test('partida completa: salão, ordem, votação, canhão, Kraken, fim e volta a
   await expect(cap.getByText(/está no tabuleiro/)).toBeVisible()
   await cap.getByPlaceholder('Digite a dica (uma palavra)').fill('Zarabatana')
   await cap.getByRole('button', { name: 'Dar ordem' }).click()
-  await expect(marujo.getByText('ZARABATANA · 1').first()).toBeVisible()
+  await expect(marujo.getByText('ZARABATANA', { exact: true }).first()).toBeVisible()
 
-  // o Marujo clica num tesouro do navio: contagem de 3 s e revelação
+  // o Marujo marca um tesouro do navio: nada abre até a tripulação confirmar
   const alvo = vCap.cards.findIndex((c: any) => c.owner === ship.id)
   await marujo.getByRole('button', { name: vCap.cards[alvo].word, exact: true }).click()
+  await expect.poll(async () => (await view(ana)).game.turn.selection).toEqual([alvo])
+  await marujo.waitForTimeout(3500)
+  expect((await view(ana)).game.cards[alvo].revealed).toBe(false)
+  await marujo.getByRole('button', { name: 'Confirmar', exact: true }).click()
   await expect.poll(async () => (await view(ana)).game.cards[alvo].revealed, { timeout: 8000 }).toBe(true)
 
   // Tiro de Canhão liberado; o tiro no Kraken afunda o navio e, com 2 navios, o outro vence
@@ -51,8 +55,11 @@ test('partida completa: salão, ordem, votação, canhão, Kraken, fim e volta a
   await marujo.getByRole('button', { name: 'Disparar canhão' }).last().click()
   const kraken = vCap.cards.findIndex((c: any) => c.owner === 'kraken')
   await marujo.getByRole('button', { name: vCap.cards[kraken].word, exact: true }).click()
+  await marujo.getByRole('button', { name: 'Confirmar', exact: true }).click()
   await expect.poll(async () => (await view(ana)).phase, { timeout: 8000 }).toBe('finished')
-  await expect(ana.getByText(/Vitória do Navio/)).toBeVisible()
+  await expect(ana.getByText(/^(Vitória|Derrota)/).first()).toBeVisible()
+  await expect(ana.getByText('Placar')).toBeVisible()
+  await ana.getByRole('button', { name: 'Ver mapa e diário' }).click()
   await expect(ana.getByText('Diário completo')).toBeVisible()
 
   // copiar resumo e voltar ao salão
@@ -65,6 +72,13 @@ test('partida completa: salão, ordem, votação, canhão, Kraken, fim e volta a
   v = await view(leo)
   expect(v.code).toBe(code)
   expect(v.players.filter((p: any) => p.shipId).length).toBe(4)
+
+  // nova partida: o "Navio afundado!" da partida anterior não reaparece,
+  // e o aviso dos Capitães sorteados some sozinho
+  await act(ana, { type: 'start' })
+  for (const p of ps) await expect(p.getByText('Capitães sorteados')).toBeVisible()
+  await expect(ana.getByText('Capitães sorteados')).toBeHidden({ timeout: 8000 })
+  for (const p of ps) await expect(p.getByText('Navio afundado!')).toHaveCount(0)
 })
 
 test('poderes do Almirante: configurar, expulsar, pausar, passar o cargo e encerrar', async ({ browser }) => {

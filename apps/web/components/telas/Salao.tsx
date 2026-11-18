@@ -23,7 +23,7 @@ import {
 } from '@/components/ui'
 import { Avisos } from '@/components/ui/Avisos'
 import { BotaoPreferencias, ModalComoJogar, ModalConfirmar, ModalPerfil } from '@/components/modais/comuns'
-import { ModalConfiguracoes, rotuloTempo } from '@/components/modais/Configuracoes'
+import { ModalConfiguracoes, rotuloTabuleiro, rotuloTempo } from '@/components/modais/Configuracoes'
 import { salvarPerfil } from '@/lib/identidade'
 import { useSala, type Visao } from '@/lib/sala'
 import { useMusica } from '@/lib/useMusica'
@@ -258,13 +258,14 @@ export function Salao({ view }: { view: Visao }) {
       {[
         ['Preset', <Pilula key="p" x={0} y={0} w={130}>{PRESETS.find((p) => p.id === view.config.preset)?.nome}</Pilula>],
         ['Navios', <Pilula key="n" x={0} y={0} w={130}>{view.config.shipCount} navios</Pilula>],
+        ['Tabuleiro', <Pilula key="tb" x={0} y={0} w={130}>{rotuloTabuleiro(view.config)}</Pilula>],
         ['Tiro de Canhão', <Interruptor key="c" x={66} y={0} ligado={view.config.cannon} w={64} h={34} />],
         ['Escolha do Capitão', <Pilula key="e" x={0} y={0} w={130}>{escolha ? 'O navio escolhe' : 'Sorteio'}</Pilula>],
         ['Tempo do Capitão', <Pilula key="t1" x={0} y={0} w={130}>{rotuloTempo(view.config.captainTime)}</Pilula>],
         ['Tempo dos Marujos', <Pilula key="t2" x={0} y={0} w={130}>{rotuloTempo(view.config.crewTime)}</Pilula>],
         ['Rodízio de Capitão', <Interruptor key="r" x={66} y={0} ligado={view.config.captainRotation === 'trocar'} w={64} h={34} />],
       ].map(([rot, el], i) => (
-        <div key={i} style={{ position: 'absolute', left: 1476, top: 488 + i * 42, width: 376, height: 38 }}>
+        <div key={i} style={{ position: 'absolute', left: 1476, top: 484 + i * 38, width: 376, height: 36 }}>
           <Texto x={0} y={8} tam={17} cor="#5A3410">
             {rot}
           </Texto>

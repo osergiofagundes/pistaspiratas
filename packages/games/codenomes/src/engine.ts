@@ -13,14 +13,11 @@ import { type Card, type Owner, generateBoard } from './board'
 import { validateClue } from './clue'
 import { type CodenomesConfig, shipName } from './config'
 
-/** Contagem antes de revelar a palavra votada pela maioria (3.4). */
-export const REVEAL_DELAY_MS = 3000
 /** Quanto o relógio espera um Capitão que caiu antes de sortear outro (6.5). */
 export const CAPTAIN_WAIT_MS = 60_000
 /** Uma queda curta (recarregar a página) não tira o jogador da contagem. */
 export const PRESENCE_GRACE_MS = 15_000
 
-export type Vote = number | 'end'
 export type TurnPhase = 'clue' | 'guessing' | 'cannon'
 
 export type ShipState = {
@@ -42,8 +39,12 @@ export type Turn = {
   guessesLeft: number
   correct: number
   guesses: number
-  votes: Record<string, Vote>
-  pending: { target: Vote; at: number } | null
+  /** cartas marcadas pela tripulação, na ordem em que foram marcadas */
+  selection: number[]
+  /** Marujos que confirmaram a seleção atual (abre quando todos os presentes confirmam) */
+  confirms: string[]
+  /** Marujos que querem encerrar a vez (ou abrir mão do canhão) */
+  endVotes: string[]
   deadline: number | null
   /** tempo que faltava quando o relógio parou porque o Capitão caiu */
   frozen: number | null
@@ -95,7 +96,11 @@ export type CodenomesState = {
   settings: { cannon: boolean; captainTime: number | null; crewTime: number | null }
 }
 
-export type CodenomesAction = { type: 'giveClue'; word: string; count: number } | { type: 'vote'; target: Vote | null }
+export type CodenomesAction =
+  | { type: 'giveClue'; word: string; count: number }
+  | { type: 'select'; card: number }
+  | { type: 'confirm'; value: boolean }
+  | { type: 'end'; value: boolean }
 
 export type CodenomesMemory = {
   recentWords: string[][]
@@ -126,12 +131,9 @@ export function eligibleVoters(state: CodenomesState, ctx: GameContext, id: Ship
   return members(ctx, id).filter((p) => p.id !== ship.captainId && !ship.benched.includes(p.id))
 }
 
-function presentVoters(state: CodenomesState, ctx: GameContext, id: ShipId): Player[] {
+/** Marujos do navio que estão presentes: todos eles precisam confirmar. */
+export function presentVoters(state: CodenomesState, ctx: GameContext, id: ShipId): Player[] {
   return eligibleVoters(state, ctx, id).filter((p) => present(p, ctx.now))
-}
-
-export function majority(n: number): number {
-  return Math.floor(n / 2) + 1
 }
 
 function current(state: CodenomesState): LogEntry {
@@ -215,8 +217,9 @@ function newTurn(number: number, shipId: ShipId, captainTime: number | null, now
     guessesLeft: 0,
     correct: 0,
     guesses: 0,
-    votes: {},
-    pending: null,
+    selection: [],
+    confirms: [],
+    endVotes: [],
     deadline: deadlineFor(captainTime, now),
     frozen: null,
     captainAwaySince: null,
@@ -250,18 +253,28 @@ export function validate(state: CodenomesState, playerId: string, action: Codeno
       const hidden = state.cards.filter((c) => !c.revealed).map((c) => c.word)
       return validateClue(String(action.word ?? ''), Number(action.count), hidden, treasuresLeft(state, ship.id))
     }
-    case 'vote': {
+    case 'select':
+    case 'confirm':
+    case 'end': {
       if (turn.phase === 'clue') return 'Esperem a ordem do Capitão.'
       const voter = eligibleVoters(state, ctx, ship.id).some((p) => p.id === playerId)
-      if (!voter) return 'Só os Marujos do navio da vez votam.'
-      const t = action.target
-      if (t === null) return null
-      if (t === 'end') {
-        if (turn.phase === 'guessing' && turn.guesses < 1) return 'Escolham pelo menos uma palavra antes de encerrar.'
+      if (!voter) return 'Só os Marujos do navio da vez escolhem as palavras.'
+      if (action.type === 'select') {
+        const t = action.card
+        if (typeof t !== 'number' || !Number.isInteger(t) || t < 0 || t >= state.cards.length) return 'Carta inválida.'
+        if (state.cards[t].revealed) return 'Essa carta já foi revelada.'
+        const limit = selectionLimit(state)
+        if (!turn.selection.includes(t) && turn.selection.length >= limit)
+          return limit === 1
+            ? 'Vocês já marcaram uma palavra. Desmarquem para trocar.'
+            : `Vocês já marcaram ${limit} palavras. Desmarquem uma para trocar.`
         return null
       }
-      if (typeof t !== 'number' || !Number.isInteger(t) || t < 0 || t >= state.cards.length) return 'Carta inválida.'
-      if (state.cards[t].revealed) return 'Essa carta já foi revelada.'
+      if (action.type === 'confirm') {
+        if (action.value && turn.selection.length === 0) return 'Marquem pelo menos uma palavra antes de confirmar.'
+        return null
+      }
+      if (action.value && turn.phase === 'guessing' && turn.guesses < 1) return 'Escolham pelo menos uma palavra antes de encerrar.'
       return null
     }
   }
@@ -284,46 +297,71 @@ export function apply(state: CodenomesState, playerId: string, action: Codenomes
     s.turn.frozen = null
     s.turn.captainAwaySince = null
     current(s).clue = { word, count: action.count }
-  } else if (action.type === 'vote') {
-    if (action.target === null) delete s.turn.votes[playerId]
-    else s.turn.votes[playerId] = action.target
-    recomputePending(d)
-    // navio com um Marujo só também espera os 3 s; a revelação acontece no tick
+  } else if (action.type === 'select') {
+    const t = s.turn
+    t.selection = t.selection.includes(action.card) ? t.selection.filter((c) => c !== action.card) : [...t.selection, action.card]
+    // mudou a seleção: todo mundo confirma de novo
+    t.confirms = []
+    t.endVotes = []
+  } else if (action.type === 'confirm') {
+    s.turn.confirms = toggle(s.turn.confirms, playerId, action.value)
+    if (action.value) s.turn.endVotes = s.turn.endVotes.filter((id) => id !== playerId)
+    checkUnanimity(d)
+  } else if (action.type === 'end') {
+    s.turn.endVotes = toggle(s.turn.endVotes, playerId, action.value)
+    if (action.value) s.turn.confirms = s.turn.confirms.filter((id) => id !== playerId)
+    checkUnanimity(d)
   }
   return { state: s, events: d.events, changed: true }
 }
 
-function recomputePending(d: Draft): boolean {
-  const { s, ctx } = d
-  const turn = s.turn
-  if (turn.phase === 'clue') {
-    const had = turn.pending !== null
-    turn.pending = null
-    return had
-  }
-  const voters = presentVoters(s, ctx, turn.shipId)
-  const need = majority(voters.length)
-  const counts = new Map<Vote, number>()
-  for (const v of voters) {
-    const t = turn.votes[v.id]
-    if (t === undefined) continue
-    counts.set(t, (counts.get(t) ?? 0) + 1)
-  }
-  let winner: Vote | null = null
-  if (voters.length > 0) for (const [t, n] of counts) if (n >= need) winner = t
-  const before = JSON.stringify(turn.pending)
-  if (winner === null) turn.pending = null
-  else if (!turn.pending || turn.pending.target !== winner) turn.pending = { target: winner, at: ctx.now + REVEAL_DELAY_MS }
-  return JSON.stringify(turn.pending) !== before
+function toggle(list: string[], id: string, on: boolean): string[] {
+  const rest = list.filter((x) => x !== id)
+  return on ? [...rest, id] : rest
 }
 
-function executePending(d: Draft) {
-  const { s } = d
-  const target = s.turn.pending!.target
-  s.turn.pending = null
-  s.turn.votes = {}
-  if (target === 'end') endTurn(d, s.turn.phase === 'cannon' ? 'semCanhao' : 'encerrou')
-  else reveal(d, target)
+/** Quantas cartas a tripulação pode marcar de uma vez. */
+export function selectionLimit(state: CodenomesState): number {
+  return state.turn.phase === 'cannon' ? 1 : Math.max(1, state.turn.guessesLeft)
+}
+
+function clearSelection(turn: Turn) {
+  turn.selection = []
+  turn.confirms = []
+  turn.endVotes = []
+}
+
+/**
+ * Todos os Marujos presentes confirmaram: abre as cartas marcadas na ordem,
+ * parando quando a vez acaba. Todos pediram para encerrar: encerra a vez.
+ */
+function checkUnanimity(d: Draft): boolean {
+  const { s, ctx } = d
+  const turn = s.turn
+  if (turn.phase === 'clue' || s.finishReason) return false
+  const voters = presentVoters(s, ctx, turn.shipId)
+  if (voters.length === 0) return false
+  const all = (list: string[]) => voters.every((v) => list.includes(v.id))
+  if (turn.selection.length > 0 && all(turn.confirms)) {
+    const cards = [...turn.selection]
+    const number = turn.number
+    clearSelection(turn)
+    for (const c of cards) {
+      if (s.finishReason || s.turn.number !== number) break
+      const wasCannon = s.turn.phase === 'cannon'
+      reveal(d, c)
+      // acertaram tudo e liberou o canhão: o tiro é escolhido à parte
+      if (!wasCannon && s.turn.phase === 'cannon') break
+    }
+    return true
+  }
+  if (all(turn.endVotes)) {
+    const phase = turn.phase
+    clearSelection(turn)
+    endTurn(d, phase === 'cannon' ? 'semCanhao' : 'encerrou')
+    return true
+  }
+  return false
 }
 
 function reveal(d: Draft, index: number) {
@@ -359,8 +397,7 @@ function reveal(d: Draft, index: number) {
   if (turn.guessesLeft <= 0) {
     if (s.settings.cannon) {
       turn.phase = 'cannon'
-      turn.votes = {}
-      turn.pending = null
+      clearSelection(turn)
     } else endTurn(d, 'todos')
   }
 }
@@ -371,8 +408,7 @@ function finish(d: Draft, winner: ShipId | null, reason: 'tesouros' | 'sobrevive
   s.finishReason = reason
   s.finishedAt = ctx.now
   s.turn.deadline = null
-  s.turn.pending = null
-  s.turn.votes = {}
+  clearSelection(s.turn)
   const entry = current(s)
   if (!entry.end) entry.end = reason === 'encerrada' ? 'encerrada' : 'vitoria'
   if (winner) entry.notes.push(`O Navio ${shipOf(s, winner).name} venceu!`)
@@ -485,10 +521,16 @@ export function tick(state: CodenomesState, ctx: GameContext): StepResult<Codeno
     }
   }
 
-  if (recomputePending(d)) changed = true
-  if (s.turn.pending && now >= s.turn.pending.at) {
-    executePending(d)
-    changed = true
+  // quem deixou de ser Marujo da vez sai das listas; quem caiu deixa de contar,
+  // então os que ficaram podem ter completado a confirmação
+  if (s.turn.phase !== 'clue') {
+    const ids = new Set(eligibleVoters(s, ctx, s.turn.shipId).map((p) => p.id))
+    if (s.turn.confirms.some((id) => !ids.has(id)) || s.turn.endVotes.some((id) => !ids.has(id))) {
+      s.turn.confirms = s.turn.confirms.filter((id) => ids.has(id))
+      s.turn.endVotes = s.turn.endVotes.filter((id) => ids.has(id))
+      changed = true
+    }
+    if (checkUnanimity(d)) changed = true
   }
 
   if (!s.finishReason && s.turn.deadline !== null && now >= s.turn.deadline) {
@@ -505,7 +547,6 @@ export function pause(state: CodenomesState, ctx: GameContext, paused: boolean, 
   const s = structuredClone(state)
   if (paused && s.paused === null) {
     s.paused = ctx.now
-    s.turn.pending = null
     current(s).notes.push(`Partida pausada por ${byName}`)
   } else if (!paused && s.paused !== null) {
     const delta = ctx.now - s.paused

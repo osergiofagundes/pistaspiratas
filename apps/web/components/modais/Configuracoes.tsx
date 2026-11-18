@@ -2,7 +2,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import { SHIP_IDS, SHIP_INFO } from '@arena/platform'
-import { type CodenomesConfig, PRESETS, TEMPOS, gridFor, updateConfig } from '@arena/codenomes'
+import { BOARD_MAX, BOARD_MIN, type BoardSize, type CodenomesConfig, PRESETS, TEMPOS, fixedBoard, gridFor, updateConfig } from '@arena/codenomes'
 import { lerPalavrasPersonalizadas } from '@arena/words'
 import { Aviso, Botao, DECO_ANCORA, Interruptor, Marcador, Modal, Segmentado, Seletor, Texto } from '@/components/ui'
 import { useSala } from '@/lib/sala'
@@ -11,17 +11,29 @@ export function rotuloTempo(t: number | null) {
   return t === null ? 'Sem limite' : `${t} s`
 }
 
+/** "5×5", "8×6" ou "Automático" */
+export function rotuloTabuleiro(c: CodenomesConfig) {
+  const f = fixedBoard(c)
+  return f ? `${f[0]}×${f[1]}` : 'Automático'
+}
+
 const OPCOES_TEMPO = TEMPOS.map((t) => ({
   v: t,
   rotulo: t === null ? <span style={{ fontSize: 26, lineHeight: 1, fontFamily: 'system-ui, sans-serif', fontWeight: 800 }} title="Sem limite">∞</span> : `${t}s`,
 }))
 
+const OPCOES_TABULEIRO: { v: BoardSize; rotulo: ReactNode }[] = [
+  { v: 'auto', rotulo: 'Auto' },
+  ...([5, 6, 7, 8, 9, 10] as const).map((n) => ({ v: n as BoardSize, rotulo: `${n}` })),
+  { v: 'custom', rotulo: 'Pers.' },
+]
+
 const W = 1240
-const H = 920
+const H = 950
 /** colunas dos cartões */
 const COL = { esq: 50, dir: 630, w: 560 }
 /** topo de cada linha dentro do cartão */
-const linha = (i: number) => 56 + i * 50
+const linha = (i: number) => 54 + i * 46
 
 /** Cartão de pergaminho claro que agrupa as opções; entra com um leve atraso. */
 function Cartao({ x, y, h, titulo, nota, ordem, children }: { x: number; y: number; h: number; titulo: string; nota?: string; ordem: number; children: ReactNode }) {
@@ -58,7 +70,7 @@ function Cartao({ x, y, h, titulo, nota, ordem, children }: { x: number; y: numb
 
 function Rotulo({ i, children, apagado }: { i: number; children: ReactNode; apagado?: boolean }) {
   return (
-    <Texto x={20} y={linha(i) + 10} tam={19} cor={apagado ? '#9A7A5A' : '#5A3410'} peso={800}>
+    <Texto x={20} y={linha(i) + 9} tam={18} cor={apagado ? '#9A7A5A' : '#5A3410'} peso={800}>
       {children}
     </Texto>
   )
@@ -80,11 +92,15 @@ export function ModalConfiguracoes({
   const g = gridFor(c)
   const set = (patch: Partial<CodenomesConfig>) => setC((atual) => updateConfig(atual, patch))
   const pers = c.preset === 'personalizado'
+  const fixo = fixedBoard(c) !== null
+  // com tamanho fixo os tesouros saem do tabuleiro; no automático, só o Personalizado ajusta
+  const tesourosLivres = pers && !fixo
   const categoria = (k: 'geral' | 'mar', v: boolean) => set({ categories: v ? [...c.categories, k] : c.categories.filter((x) => x !== k) })
 
-  const yCartoes = 168
-  const hCartao = 266
-  const yCartoes2 = yCartoes + hCartao + 16
+  const yCartoes = 166
+  const hCartao1 = linha(6) + 8
+  const hCartao2 = linha(4) + 8
+  const yCartoes2 = yCartoes + hCartao1 + 14
 
   return (
     <Modal titulo="Configurações da sala" w={W} h={H} onFechar={onFechar} decos={[DECO_ANCORA(W, H)]} fecharNoFundo={false}>
@@ -106,47 +122,84 @@ export function ModalConfiguracoes({
         {PRESETS.find((p) => p.id === c.preset)?.descricao}
       </Texto>
 
-      <Cartao x={COL.esq} y={yCartoes} h={hCartao} titulo="Navios e tabuleiro" nota={pers ? undefined : 'Tesouros e Kraken: só no Personalizado'} ordem={0}>
-        <Rotulo i={0}>Número de navios</Rotulo>
+      <Cartao
+        x={COL.esq}
+        y={yCartoes}
+        h={hCartao1}
+        titulo="Tabuleiro"
+        nota={fixo ? 'Tesouros: proporcionais ao tabuleiro' : pers ? undefined : 'Tesouros e Kraken: só no Personalizado'}
+        ordem={0}
+      >
+        <Rotulo i={0}>Tamanho</Rotulo>
+        <Segmentado x={150} y={linha(0) + 3} w={390} h={36} tam={14} opcoes={OPCOES_TABULEIRO} valor={c.boardSize} onChange={(v) => set({ boardSize: v })} />
+        {c.boardSize === 'custom' ? (
+          <>
+            <Rotulo i={1}>Colunas × linhas</Rotulo>
+            <Seletor x={232} y={linha(1) + 2} h={38} valor={c.boardCols} min={BOARD_MIN} max={BOARD_MAX} onChange={(v) => set({ boardCols: v })} />
+            <Texto x={364} y={linha(1) + 8} tam={20} cor="#5A3410" peso={900}>
+              ×
+            </Texto>
+            <Seletor x={414} y={linha(1) + 2} h={38} valor={c.boardRows} min={BOARD_MIN} max={BOARD_MAX} onChange={(v) => set({ boardRows: v })} />
+          </>
+        ) : (
+          <>
+            <Rotulo i={1} apagado>
+              Grade
+            </Rotulo>
+            <Texto x={250} y={linha(1) + 10} w={290} tam={17} cor="#7A5A3A" peso={800} className="text-right">
+              {g.cols}×{g.rows} · {g.total} cartas{fixo ? '' : ' (pelo número de navios)'}
+            </Texto>
+          </>
+        )}
+        <Rotulo i={2}>Número de navios</Rotulo>
         <Segmentado
-          x={360}
-          y={linha(0) + 3}
-          w={180}
-          h={38}
+          x={380}
+          y={linha(2) + 4}
+          w={160}
+          h={36}
           tam={17}
           opcoes={[2, 3, 4].map((n) => ({ v: n, rotulo: n }))}
           valor={c.shipCount}
           onChange={(v) => set({ shipCount: v })}
         />
-        <Rotulo i={1} apagado={!pers}>
+        <Rotulo i={3} apagado={!tesourosLivres}>
           Tesouros por navio
         </Rotulo>
-        <Seletor x={395} y={linha(1)} h={44} valor={pers ? c.treasuresPerShip : g.treasures} min={4} max={10} disabled={!pers} onChange={(v) => set({ treasuresPerShip: v })} />
-        <Rotulo i={2} apagado={!pers}>
+        <Seletor
+          x={408}
+          y={linha(3) + 2}
+          h={40}
+          valor={tesourosLivres ? c.treasuresPerShip : g.treasures}
+          min={4}
+          max={tesourosLivres ? 10 : Math.max(10, g.treasures)}
+          disabled={!tesourosLivres}
+          onChange={(v) => set({ treasuresPerShip: v })}
+        />
+        <Rotulo i={4} apagado={!pers}>
           Quantidade de Kraken
         </Rotulo>
         <Segmentado
-          x={420}
-          y={linha(2) + 3}
-          w={120}
-          h={38}
+          x={430}
+          y={linha(4) + 4}
+          w={110}
+          h={36}
           tam={17}
           disabled={!pers}
           opcoes={[1, 2].map((n) => ({ v: n, rotulo: n }))}
           valor={pers ? c.krakenCount : g.kraken}
           onChange={(v) => set({ krakenCount: v })}
         />
-        <Rotulo i={3}>Tiro de Canhão</Rotulo>
-        <Interruptor x={470} y={linha(3) + 3} ligado={c.cannon} onChange={(v) => set({ cannon: v })} />
+        <Rotulo i={5}>Quem começa leva +1 tesouro</Rotulo>
+        <Interruptor x={470} y={linha(5) + 4} ligado={c.firstBonus} onChange={(v) => set({ firstBonus: v })} />
       </Cartao>
 
-      <Cartao x={COL.esq} y={yCartoes2} h={hCartao} titulo="Capitão e tempo" ordem={1}>
+      <Cartao x={COL.esq} y={yCartoes2} h={hCartao2} titulo="Capitão e tempo" ordem={1}>
         <Rotulo i={0}>Escolha do Capitão</Rotulo>
         <Segmentado
           x={250}
-          y={linha(0) + 3}
+          y={linha(0) + 4}
           w={290}
-          h={38}
+          h={36}
           opcoes={[
             { v: 'sorteio' as const, rotulo: 'Sorteio' },
             { v: 'escolha' as const, rotulo: 'O navio escolhe' },
@@ -155,19 +208,21 @@ export function ModalConfiguracoes({
           onChange={(v) => set({ captainMode: v })}
         />
         <Rotulo i={1}>Rodízio de Capitão</Rotulo>
-        <Interruptor x={470} y={linha(1) + 3} ligado={c.captainRotation === 'trocar'} onChange={(v) => set({ captainRotation: v ? 'trocar' : 'manter' })} />
+        <Interruptor x={470} y={linha(1) + 4} ligado={c.captainRotation === 'trocar'} onChange={(v) => set({ captainRotation: v ? 'trocar' : 'manter' })} />
         <Rotulo i={2}>Tempo do Capitão</Rotulo>
-        <Segmentado x={250} y={linha(2) + 3} w={290} h={38} opcoes={OPCOES_TEMPO} valor={c.captainTime} onChange={(v) => set({ captainTime: v })} />
+        <Segmentado x={250} y={linha(2) + 4} w={290} h={36} opcoes={OPCOES_TEMPO} valor={c.captainTime} onChange={(v) => set({ captainTime: v })} />
         <Rotulo i={3}>Tempo dos Marujos</Rotulo>
-        <Segmentado x={250} y={linha(3) + 3} w={290} h={38} opcoes={OPCOES_TEMPO} valor={c.crewTime} onChange={(v) => set({ crewTime: v })} />
+        <Segmentado x={250} y={linha(3) + 4} w={290} h={36} opcoes={OPCOES_TEMPO} valor={c.crewTime} onChange={(v) => set({ crewTime: v })} />
       </Cartao>
 
-      <Cartao x={COL.dir} y={yCartoes} h={hCartao} titulo="Sala" ordem={2}>
+      <Cartao x={COL.dir} y={yCartoes} h={hCartao1} titulo="Sala e regras" ordem={2}>
         <Rotulo i={0}>Tamanho máximo</Rotulo>
-        <Seletor x={395} y={linha(0)} h={44} valor={c.maxPlayers} min={4} max={24} onChange={(v) => set({ maxPlayers: v })} />
+        <Seletor x={408} y={linha(0) + 2} h={40} valor={c.maxPlayers} min={4} max={24} onChange={(v) => set({ maxPlayers: v })} />
         <Rotulo i={1}>Espectadores</Rotulo>
-        <Interruptor x={470} y={linha(1) + 3} ligado={c.allowSpectators} onChange={(v) => set({ allowSpectators: v })} />
-        <Rotulo i={2}>Nomes dos navios</Rotulo>
+        <Interruptor x={470} y={linha(1) + 4} ligado={c.allowSpectators} onChange={(v) => set({ allowSpectators: v })} />
+        <Rotulo i={2}>Tiro de Canhão</Rotulo>
+        <Interruptor x={470} y={linha(2) + 4} ligado={c.cannon} onChange={(v) => set({ cannon: v })} />
+        <Rotulo i={3}>Nomes dos navios</Rotulo>
         {SHIP_IDS.slice(0, c.shipCount).map((id, i) => (
           <input
             key={id}
@@ -180,7 +235,7 @@ export function ModalConfiguracoes({
             style={{
               position: 'absolute',
               left: 220 + (i % 2) * 164,
-              top: linha(2) + 4 + Math.floor(i / 2) * 44,
+              top: linha(3) + 4 + Math.floor(i / 2) * 44,
               width: 156,
               height: 36,
               borderRadius: 9,
@@ -197,13 +252,13 @@ export function ModalConfiguracoes({
         ))}
       </Cartao>
 
-      <Cartao x={COL.dir} y={yCartoes2} h={hCartao} titulo="Palavras" ordem={3}>
-        <Marcador x={150} y={18} marcado={c.categories.includes('geral')} onChange={(v) => categoria('geral', v)} />
-        <Texto x={192} y={24} tam={17} cor="#5A3410" peso={800}>
+      <Cartao x={COL.dir} y={yCartoes2} h={hCartao2} titulo="Palavras" ordem={3}>
+        <Marcador x={150} y={16} marcado={c.categories.includes('geral')} onChange={(v) => categoria('geral', v)} />
+        <Texto x={192} y={22} tam={17} cor="#5A3410" peso={800}>
           Geral
         </Texto>
-        <Marcador x={290} y={18} marcado={c.categories.includes('mar')} onChange={(v) => categoria('mar', v)} />
-        <Texto x={332} y={24} tam={17} cor="#5A3410" peso={800}>
+        <Marcador x={290} y={16} marcado={c.categories.includes('mar')} onChange={(v) => categoria('mar', v)} />
+        <Texto x={332} y={22} tam={17} cor="#5A3410" peso={800}>
           Mar e Pirataria
         </Texto>
         <textarea
@@ -214,9 +269,9 @@ export function ModalConfiguracoes({
           style={{
             position: 'absolute',
             left: 20,
-            top: 64,
+            top: 60,
             width: COL.w - 40,
-            height: 118,
+            height: 104,
             resize: 'none',
             borderRadius: 10,
             border: '3px solid #8A4A1C',
@@ -229,27 +284,31 @@ export function ModalConfiguracoes({
             boxShadow: 'inset 0 2px 6px rgba(90,52,16,.25)',
           }}
         />
-        <Marcador x={20} y={200} marcado={c.onlyCustom} onChange={(v) => set({ onlyCustom: v })} />
-        <Texto x={62} y={206} tam={16} cor="#5A3410" peso={800}>
+        <Marcador x={20} y={178} marcado={c.onlyCustom} onChange={(v) => set({ onlyCustom: v })} />
+        <Texto x={62} y={184} tam={16} cor="#5A3410" peso={800}>
           Usar só as personalizadas
         </Texto>
-        <Texto x={300} y={207} w={240} tam={15} cor={lidas.recusadas ? '#9A5A1A' : '#2A7A2A'} peso={800} className="text-right">
+        <Texto x={300} y={185} w={240} tam={15} cor={lidas.recusadas ? '#9A5A1A' : '#2A7A2A'} peso={800} className="text-right">
           {lidas.aceitas.length} aceitas{lidas.recusadas ? ` · ${lidas.recusadas} recusadas` : ''}
         </Texto>
       </Cartao>
 
       <Aviso
         x={COL.esq}
-        y={yCartoes2 + hCartao + 18}
+        y={yCartoes2 + hCartao2 + 16}
         w={W - COL.esq * 2}
         style={{ textAlign: 'center' }}
-        texto={`Tabuleiro ${g.cols}×${g.rows}: ${g.first} tesouros para quem começa, ${g.treasures} para os outros, ${g.sea} de Mar Aberto e ${g.kraken} Kraken.`}
+        texto={
+          `Tabuleiro ${g.cols}×${g.rows}: ` +
+          (g.first > g.treasures ? `${g.first} tesouros para quem começa, ${g.treasures} para os outros` : `${g.treasures} tesouros por navio`) +
+          `, ${g.sea} de Mar Aberto e ${g.kraken} Kraken.`
+        }
       />
 
-      <Botao cor="marrom" x={W / 2 - 210} y={H - 112} w={190} h={70} onClick={onFechar}>
+      <Botao cor="marrom" x={W / 2 - 210} y={H - 108} w={190} h={68} onClick={onFechar}>
         Cancelar
       </Botao>
-      <Botao cor="verde" x={W / 2 + 10} y={H - 118} w={200} h={80} onClick={() => onSalvar({ ...c, customWords: lidas.aceitas })}>
+      <Botao cor="verde" x={W / 2 + 10} y={H - 114} w={200} h={78} onClick={() => onSalvar({ ...c, customWords: lidas.aceitas })}>
         Salvar
       </Botao>
     </Modal>

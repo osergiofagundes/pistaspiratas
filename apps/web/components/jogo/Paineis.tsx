@@ -57,9 +57,7 @@ export function Tabuleiro({
   h = 836,
   mapa,
   podeVotar,
-  meuVoto,
   onVotar,
-  contagem,
   destaque,
   animadas,
   fim,
@@ -72,9 +70,7 @@ export function Tabuleiro({
   h?: number
   mapa: boolean
   podeVotar: boolean
-  meuVoto: number | 'end' | undefined
   onVotar: (i: number) => void
-  contagem: number | null
   destaque: number | null
   animadas: Set<number>
   fim?: boolean
@@ -88,14 +84,7 @@ export function Tabuleiro({
   const gridH = view.rows * ch + (view.rows - 1) * gy
   const ox = x + (w - gridW) / 2
   const oy = y + (h - gridH) / 2
-  const votosPorCarta = new Map<number, Player[]>()
-  for (const [pid, t] of Object.entries(view.turn.votes)) {
-    if (typeof t !== 'number') continue
-    const p = players.find((pl) => pl.id === pid)
-    if (!p) continue
-    votosPorCarta.set(t, [...(votosPorCarta.get(t) ?? []), p])
-  }
-  const alvo = view.turn.pending?.target
+  const selecao = view.turn.selection ?? []
   return (
     <>
       <div style={{ position: 'absolute', left: x, top: y, width: w, height: h, borderRadius: 20, background: 'rgba(27,16,9,.78)' }} />
@@ -109,9 +98,7 @@ export function Tabuleiro({
               w={cw}
               h={ch}
               mapa={mapa}
-              votos={votosPorCarta.get(i) ?? []}
-              meuVoto={meuVoto === i}
-              contagem={alvo === i ? contagem : null}
+              ordem={selecao.includes(i) ? selecao.indexOf(i) + 1 : null}
               podeVotar={podeVotar && !c.revealed}
               destaque={destaque !== null && c.turn === destaque}
               onVotar={() => onVotar(i)}

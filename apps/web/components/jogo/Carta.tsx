@@ -1,8 +1,7 @@
 'use client'
 import { motion } from 'motion/react'
-import type { Player } from '@arena/platform'
 import type { CardView } from '@arena/codenomes'
-import { avatarSrc, IMG } from '@/components/ui'
+import { IMG } from '@/components/ui'
 
 export type CartaProps = {
   carta: CardView
@@ -10,9 +9,8 @@ export type CartaProps = {
   h: number
   /** Capitão vendo o mapa (com "Ocultar mapa" desligado) */
   mapa: boolean
-  votos: Player[]
-  meuVoto: boolean
-  contagem: number | null
+  /** posição na seleção da tripulação (1, 2, 3…) ou null se não está marcada */
+  ordem: number | null
   podeVotar: boolean
   destaque: boolean
   onVotar?: () => void
@@ -22,7 +20,8 @@ export type CartaProps = {
 }
 
 /** Carta do tabuleiro (Carta/tabuleiro): pergaminho fechado, tesouro com o navio, Mar Aberto ou Kraken. */
-export function Carta({ carta, w, h, mapa, votos, meuVoto, contagem, podeVotar, destaque, onVotar, animar, fim }: CartaProps) {
+export function Carta({ carta, w, h, mapa, ordem, podeVotar, destaque, onVotar, animar, fim }: CartaProps) {
+  const marcada = ordem !== null && !carta.revealed
   const k = w / 158
   const dono = carta.owner
   const mostrarArte = carta.revealed || (mapa && dono)
@@ -38,7 +37,7 @@ export function Carta({ carta, w, h, mapa, votos, meuVoto, contagem, podeVotar, 
       onClick={podeVotar ? onVotar : undefined}
       disabled={!podeVotar}
       initial={false}
-      animate={{ rotateY: animar ? [90, 0] : 0, scale: meuVoto ? 1.03 : 1 }}
+      animate={{ rotateY: animar ? [90, 0] : 0, scale: marcada ? 1.04 : 1 }}
       transition={{ duration: animar ? 0.45 : 0.15 }}
       whileHover={podeVotar ? { y: -3 } : undefined}
       style={{
@@ -52,9 +51,9 @@ export function Carta({ carta, w, h, mapa, votos, meuVoto, contagem, podeVotar, 
         opacity: esmaecida ? 0.38 : apagada ? 0.62 : 1,
         filter: esmaecida ? 'saturate(.5)' : apagada ? 'saturate(.6) brightness(.85)' : undefined,
         borderRadius: 10 * k,
-        outline: meuVoto ? `${3 * k}px solid #FFD24A` : destaque ? `${3 * k}px solid #FFF8EC` : undefined,
+        outline: marcada ? `${Math.max(3, 4 * k)}px solid #FFD24A` : destaque ? `${3 * k}px solid #FFF8EC` : undefined,
         outlineOffset: -2,
-        boxShadow: meuVoto ? '0 0 18px rgba(255,210,74,.75)' : destaque ? '0 0 16px rgba(255,248,236,.8)' : undefined,
+        boxShadow: marcada ? '0 0 22px rgba(255,210,74,.9)' : destaque ? '0 0 16px rgba(255,248,236,.8)' : undefined,
         transformStyle: 'preserve-3d',
       }}
       aria-label={carta.word}
@@ -100,52 +99,33 @@ export function Carta({ carta, w, h, mapa, votos, meuVoto, contagem, podeVotar, 
         </span>
       )}
 
-      {votos.length > 0 && !carta.revealed && (
-        <span style={{ position: 'absolute', right: -6, top: -10, display: 'flex', flexDirection: 'row-reverse' }}>
-          {votos.slice(0, 5).map((p, i) => (
-            <motion.img
-              key={p.id}
-              initial={{ scale: 0, y: -10 }}
-              animate={{ scale: 1, y: 0 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-              src={avatarSrc(p.avatar, p.shipId)}
-              alt={p.name}
-              title={p.name}
-              style={{ width: 30, height: 30, marginLeft: i === 0 ? 0 : -8, filter: 'drop-shadow(0 2px 2px rgba(0,0,0,.5))' }}
-            />
-          ))}
-        </span>
+      {marcada && (
+        <motion.span
+          key={ordem}
+          initial={{ scale: 0, rotate: -30 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 16 }}
+          className="lilita"
+          style={{
+            position: 'absolute',
+            left: -8,
+            top: -10,
+            width: Math.max(26, 34 * k),
+            height: Math.max(26, 34 * k),
+            borderRadius: '50%',
+            background: 'linear-gradient(#FFE27A, #E0A21E)',
+            border: '2px solid #6B3A17',
+            color: '#3A1D0C',
+            fontSize: Math.max(15, 20 * k),
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 2px 6px rgba(0,0,0,.5)',
+          }}
+        >
+          {ordem}
+        </motion.span>
       )}
-      {contagem !== null && !carta.revealed && <Contagem valor={contagem} />}
     </motion.button>
-  )
-}
-
-export function Contagem({ valor, cor = '#C2362B' }: { valor: number; cor?: string }) {
-  return (
-    <motion.span
-      key={valor}
-      initial={{ scale: 1.5 }}
-      animate={{ scale: 1 }}
-      className="lilita"
-      style={{
-        position: 'absolute',
-        left: -8,
-        top: -10,
-        width: 32,
-        height: 32,
-        borderRadius: '50%',
-        background: cor,
-        border: '2px solid #FFF8EC',
-        color: '#FFF8EC',
-        fontSize: 19,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        boxShadow: '0 2px 6px rgba(0,0,0,.5)',
-      }}
-    >
-      {valor}
-    </motion.span>
   )
 }

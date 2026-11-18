@@ -5,7 +5,8 @@ import {
   type LogEntry,
   type Turn,
   eligibleVoters,
-  majority,
+  presentVoters,
+  selectionLimit,
   treasuresLeft,
 } from './engine'
 
@@ -38,7 +39,14 @@ export type CodenomesView = {
   ships: ShipView[]
   turnOrder: ShipId[]
   firstShip: ShipId
-  turn: Omit<Turn, 'frozen'> & { voters: string[]; majority: number; frozen: number | null }
+  turn: Omit<Turn, 'frozen'> & {
+    voters: string[]
+    /** Marujos presentes: todos precisam confirmar */
+    present: string[]
+    /** quantas cartas dá para marcar agora */
+    limit: number
+    frozen: number | null
+  }
   log: LogEntry[]
   winner: ShipId | null
   finishReason: CodenomesState['finishReason']
@@ -64,7 +72,7 @@ export function viewFor(state: CodenomesState, playerId: string | null, ctx: Gam
   const finished = !!state.finishReason
   const seesMap = role === 'capitao' || finished
   const voters = finished ? [] : eligibleVoters(state, ctx, state.turn.shipId)
-  const presentCount = voters.filter((p) => p.connected || ctx.now - p.lastSeen < 15_000).length
+  const present = finished ? [] : presentVoters(state, ctx, state.turn.shipId)
   return {
     cols: state.cols,
     rows: state.rows,
@@ -87,7 +95,7 @@ export function viewFor(state: CodenomesState, playerId: string | null, ctx: Gam
     })),
     turnOrder: state.turnOrder,
     firstShip: state.firstShip,
-    turn: { ...state.turn, voters: voters.map((v) => v.id), majority: majority(presentCount) },
+    turn: { ...state.turn, voters: voters.map((v) => v.id), present: present.map((v) => v.id), limit: selectionLimit(state) },
     log: state.log,
     winner: state.winner,
     finishReason: state.finishReason,
