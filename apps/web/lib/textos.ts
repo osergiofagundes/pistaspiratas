@@ -1,11 +1,19 @@
 import { SHIP_INFO, type ShipId } from '@arena/platform'
 import type { CodenomesView, LogEntry, Owner } from '@arena/codenomes'
+import type { Categoria } from '@arena/words'
 import { traduzNavio, type Dicionario } from './i18n'
 
 /** Nome do navio na partida; os nomes padrão (Rubi, Safira…) saem no idioma escolhido. */
 export function nomeNavio(view: CodenomesView | null, id: ShipId, t: Dicionario): string {
   const nome = view?.ships.find((s) => s.id === id)?.name
   return nome ? traduzNavio(t, nome, id) : t.navios[id]
+}
+
+/** Categorias escolhidas em poucas palavras: até `max` nomes e "+N" para o resto. */
+export function resumoCategorias(cats: Categoria[], t: Dicionario, max = 2): string {
+  if (!cats.length) return '—'
+  const nomes = cats.map((c) => t.categorias[c])
+  return nomes.length <= max ? nomes.join(' + ') : `${nomes.slice(0, max).join(' + ')} +${nomes.length - max}`
 }
 
 /** Nome do navio no salão: o que o Almirante deu ou o padrão traduzido. */

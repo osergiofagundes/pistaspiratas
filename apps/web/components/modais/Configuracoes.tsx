@@ -7,7 +7,8 @@ import { lerPalavrasPersonalizadas } from '@arena/words'
 import { Botao, DECO_ANCORA, IMG, Interruptor, Marcador, Modal, Segmentado, Seletor, Texto, usePalco } from '@/components/ui'
 import { useSala } from '@/lib/sala'
 import { IDIOMAS, useT, type Dicionario } from '@/lib/i18n'
-import { nomeNavioConfig } from '@/lib/textos'
+import { nomeNavioConfig, resumoCategorias } from '@/lib/textos'
+import { EscolherCategorias } from './Categorias'
 
 function opcoesTempo(t: Dicionario) {
   return TEMPOS.map((v) => ({
@@ -216,7 +217,7 @@ export function ModalConfiguracoes({
     else mudaTabuleiro({ preset: 'personalizado', treasuresPerShip: g.treasures, krakenCount: v })
   }
   const notaTabuleiro = fixo ? (c.treasuresManual ? k.notaManual : k.notaProporcional) : pers ? undefined : k.notaVira
-  const categoria = (k: 'geral' | 'mar', v: boolean) => set({ categories: v ? [...c.categories, k] : c.categories.filter((x) => x !== k) })
+  const [escolhendo, setEscolhendo] = useState(false)
 
   const hCartao1 = linha(6) + 8
   const hCartao2 = linha(4) + 8
@@ -259,11 +260,13 @@ export function ModalConfiguracoes({
   const salvar = () => onSalvar({ ...c, customWords: lidas.aceitas })
 
   return (
+    <>
     <Modal
       titulo={k.titulo}
       w={L.W}
       h={L.H}
-      onFechar={onFechar}
+      // com a escolha de categorias aberta, o Esc fecha só ela
+      onFechar={escolhendo ? undefined : onFechar}
       decos={cp ? [] : [DECO_ANCORA(W, H)]}
       fecharNoFundo={false}
       rodape={
@@ -439,14 +442,18 @@ export function ModalConfiguracoes({
       </Cartao>
 
       <Cartao x={L.pal.x} y={L.pal.y} h={hCartao2} titulo={k.palavras} ordem={3}>
-        <Marcador x={150} y={16} marcado={c.categories.includes('geral')} onChange={(v) => categoria('geral', v)} />
-        <Texto x={192} y={22} tam={17} cor="#5A3410" peso={800}>
-          {t.categorias.geral}
-        </Texto>
-        <Marcador x={290} y={16} marcado={c.categories.includes('mar')} onChange={(v) => categoria('mar', v)} />
-        <Texto x={332} y={22} w={220} tam={17} cor="#5A3410" peso={800}>
-          {t.categorias.mar}
-        </Texto>
+        {/* várias categorias ao mesmo tempo, misturadas em partes iguais */}
+        <button
+          type="button"
+          className="botao-categorias"
+          onClick={() => setEscolhendo(true)}
+          title={k.escolherCategorias}
+          aria-label={`${k.escolherCategorias}: ${resumoCategorias(c.categories, t, 99)}`}
+          style={{ position: 'absolute', left: 150, top: 12, width: COL.w - 170, height: 38, opacity: c.onlyCustom ? 0.6 : 1 }}
+        >
+          <span className="resumo">{resumoCategorias(c.categories, t)}</span>
+          <span className="seta">{k.escolher} ›</span>
+        </button>
         {/* idioma das palavras do tabuleiro (e da regra de plural das dicas) */}
         <Texto x={20} y={66} tam={17} cor="#5A3410" peso={800}>
           {k.idiomaPalavras}
@@ -518,5 +525,18 @@ export function ModalConfiguracoes({
         </>
       )}
     </Modal>
+    {escolhendo && (
+      <EscolherCategorias
+        inicial={c.categories}
+        idioma={c.wordLanguage ?? 'pt'}
+        podeVazio={c.onlyCustom}
+        onPronto={(cats) => {
+          set({ categories: cats })
+          setEscolhendo(false)
+        }}
+        onFechar={() => setEscolhendo(false)}
+      />
+    )}
+    </>
   )
 }

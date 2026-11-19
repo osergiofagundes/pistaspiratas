@@ -1,16 +1,29 @@
 import { describe, expect, it } from 'vitest'
-import { IDIOMAS_PALAVRAS, PALAVRAS, normalizar, raiz } from './index'
+import { CATEGORIAS, CATEGORIA_IDS, IDIOMAS_PALAVRAS, PALAVRAS, ehCategoria, normalizar, raiz } from './index'
 
 describe('listas de palavras', () => {
+  it('toda categoria existe em todos os idiomas', () => {
+    expect(CATEGORIAS.map((c) => c.id)).toEqual([...CATEGORIA_IDS])
+    for (const idioma of IDIOMAS_PALAVRAS) expect(Object.keys(PALAVRAS[idioma]).sort()).toEqual([...CATEGORIA_IDS].sort())
+  })
+
+  it('ehCategoria', () => {
+    expect(ehCategoria('filmes')).toBe(true)
+    expect(ehCategoria('xx')).toBe(false)
+    expect(ehCategoria(3)).toBe(false)
+  })
+
   for (const idioma of IDIOMAS_PALAVRAS) {
-    it(`${idioma}: listas grandes, sem repetidas e só com letras e hífen`, () => {
-      const { geral, mar } = PALAVRAS[idioma]
-      expect(geral.length).toBeGreaterThanOrEqual(400)
-      expect(mar.length).toBeGreaterThanOrEqual(80)
-      const todas = [...geral, ...mar].map(normalizar)
-      expect(new Set(todas).size).toBe(todas.length)
-      for (const n of todas) expect(n).toMatch(/^[a-z]+(-[a-z]+)*$/)
-    })
+    for (const cat of CATEGORIA_IDS) {
+      it(`${idioma}/${cat}: lista grande, sem repetidas e só com letras e hífen`, () => {
+        const lista = PALAVRAS[idioma][cat]
+        // uma categoria sozinha precisa encher o maior tabuleiro (10×10), sem repetir raiz
+        expect(lista.length).toBeGreaterThanOrEqual(cat === 'geral' ? 400 : cat === 'mar' ? 80 : 110)
+        const normais = lista.map(normalizar)
+        for (const n of normais) expect(n).toMatch(/^[a-z]+(-[a-z]+)*$/)
+        expect(new Set(normais.map((n) => raiz(n, idioma))).size).toBeGreaterThanOrEqual(cat === 'mar' ? 80 : 100)
+      })
+    }
   }
 })
 

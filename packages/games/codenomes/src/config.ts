@@ -1,4 +1,4 @@
-import { ehIdioma, type Categoria, type Idioma } from '@arena/words'
+import { ehCategoria, ehIdioma, type Categoria, type Idioma } from '@arena/words'
 import type { ShipId } from '@arena/platform'
 
 export type Preset = 'classico' | 'rapido' | 'caotico' | 'tranquilo' | 'personalizado'
@@ -115,7 +115,7 @@ export function updateConfig(current: CodenomesConfig, patch: Partial<CodenomesC
   if (patch.captainTime !== undefined && TEMPOS.includes(patch.captainTime)) c.captainTime = patch.captainTime
   if (patch.crewTime !== undefined && TEMPOS.includes(patch.crewTime)) c.crewTime = patch.crewTime
   if (patch.categories) {
-    const cats = patch.categories.filter((x) => x === 'geral' || x === 'mar')
+    const cats = patch.categories.filter(ehCategoria)
     c.categories = [...new Set(cats)]
   }
   if (ehIdioma(patch.wordLanguage)) c.wordLanguage = patch.wordLanguage

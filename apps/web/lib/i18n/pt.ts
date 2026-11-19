@@ -1,5 +1,6 @@
 import type { Personagem, ShipId } from '@arena/platform'
 import type { EndReason, Preset } from '@arena/codenomes'
+import type { Categoria } from '@arena/words'
 import { MENSAGENS_PT, type ChaveMensagem } from './mensagens'
 
 const plural = (n: number, um: string, varios: string) => (n === 1 ? um : varios)
@@ -57,7 +58,11 @@ export const pt = {
     tranquilo: { nome: 'Tranquilo', descricao: 'Sem relógio, para iniciantes' },
     personalizado: { nome: 'Personalizado', descricao: 'Ajuste tudo' },
   } satisfies Record<Preset, { nome: string; descricao: string }>,
-  categorias: { geral: 'Geral', mar: 'Mar e Pirataria' },
+  categorias: {
+    geral: 'Geral', mar: 'Mar e Pirataria', brasil: 'Brasil', pop: 'Cultura pop', infantil: 'Infantil', filmes: 'Filmes',
+    series: 'Séries', desenhos: 'Desenhos', animais: 'Animais', comidas: 'Comidas', esportes: 'Esportes', profissoes: 'Profissões',
+    games: 'Games', musica: 'Música', fantasia: 'Fantasia e Mitologia', ciencia: 'Ciência e Espaço', lugares: 'Lugares do mundo',
+  } satisfies Record<Categoria, string>,
 
   idioma: {
     titulo: 'Idioma',
@@ -250,6 +255,16 @@ export const pt = {
     extra: 'Extra de quem começar',
     marAberto: 'Mar Aberto',
     kraken: 'Kraken',
+    escolherCategorias: 'Categorias de palavras',
+    escolher: 'Escolher',
+    notaMistura: 'Escolha quantas quiser: elas se misturam em partes iguais no tabuleiro.',
+    todas: 'Todas',
+    limpar: 'Limpar',
+    pronto: 'Pronto',
+    nSelecionadas: (n: number) => (n === 0 ? 'Nenhuma escolhida' : n === 1 ? '1 escolhida' : `${n} escolhidas`),
+    exemplos: 'Exemplos',
+    outrosExemplos: 'Sortear outras',
+    semExemplos: 'Marque uma categoria para ver exemplos das palavras.',
   },
 
   partida: {

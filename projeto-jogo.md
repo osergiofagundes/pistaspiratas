@@ -140,7 +140,7 @@ Só o Almirante (dono da sala) altera as configurações, e apenas no salão, an
 | Rodízio de Capitão | Manter ou trocar a cada partida | Trocar |
 | Tempo do Capitão | Sem limite, 60, 90, 120 ou 180 s | 90 s |
 | Tempo dos Marujos | Sem limite, 60, 90, 120 ou 180 s | 120 s |
-| Categorias de palavras | Uma ou mais (seção 9) | Geral |
+| Categorias de palavras | Uma ou mais, misturadas em partes iguais (seção 9) | Geral |
 | Palavras personalizadas | Lista colada pelo dono | Vazia |
 | Usar só palavras personalizadas | Sim ou não | Não |
 | Espectadores | Permitir ou não | Permitir |
@@ -270,27 +270,39 @@ Resultado: 3 de 3 + canhão, vez encerrada
 
 ## 9. Palavras e validação de dicas
 
-O MVP sai com pelo menos 500 palavras em português do Brasil, divididas em categorias, e o dono da sala pode acrescentar palavras próprias.
+O jogo tem 17 categorias de palavras, cada uma nos 6 idiomas (pt, en, es, fr, de e it), e o dono da sala pode acrescentar palavras próprias.
 
 ### 9.1 Categorias
 
-| Categoria | Meta no MVP | Exemplos |
+| Categoria | Tamanho | Exemplos |
 | --- | --- | --- |
-| Geral | 400 | Banco, Chave, Leão, Ponte, Relógio |
-| Mar e Pirataria (temática) | 100 | Âncora, Baú, Ilha, Papagaio, Mapa |
-| Brasil | Fase 2 | Feijoada, Carnaval, Ipê, Samba |
-| Cultura pop | Fase 2 | Super-herói, Videogame, Novela |
-| Infantil | Fase 2 | Bola, Gato, Bolo, Pipa |
+| Geral | ~1000 | Banco, Chave, Leão, Ponte, Relógio |
+| Mar e Pirataria | ~120 | Âncora, Baú, Ilha, Papagaio, Mapa |
+| Brasil | ~130 | Feijoada, Carnaval, Ipê, Samba |
+| Cultura pop | ~130 | Meme, Cosplay, Spoiler, Selfie |
+| Infantil | ~130 | Bola, Gato, Bolo, Pipa |
+| Filmes | ~125 | Pipoca, Diretor, Oscar, Vilão |
+| Séries | ~120 | Episódio, Temporada, Spoiler, Final |
+| Desenhos | ~125 | Mascote, Varinha, Bigorna, Gibi |
+| Animais | ~130 | Capivara, Tucano, Polvo, Girafa |
+| Comidas | ~130 | Lasanha, Manga, Pudim, Coxinha |
+| Esportes | ~125 | Pênalti, Raquete, Pódio, Skate |
+| Profissões | ~125 | Bombeiro, Dentista, Piloto, Padeiro |
+| Games | ~125 | Joystick, Chefão, Fase, Pixel |
+| Música | ~120 | Guitarra, Refrão, Maestro, Vinil |
+| Fantasia e Mitologia | ~125 | Dragão, Elfo, Grimório, Oráculo |
+| Ciência e Espaço | ~125 | Átomo, Galáxia, Cometa, Ímã |
+| Lugares do mundo | ~125 | Paris, Egito, Saara, Fiorde |
 
-**Critérios para as palavras:** uma palavra só (hífen permitido), de 3 a 12 letras, de preferência substantivos concretos com mais de um sentido (Banco, Manga, Pena). Ficam de fora nomes próprios de pessoas, palavras ofensivas e palavras muito raras. As palavras são guardadas com uma forma normalizada (minúsculas e sem acento) para comparação.
+**Critérios para as palavras:** uma palavra só (hífen permitido), de 3 a 12 letras, de preferência substantivos concretos com mais de um sentido (Banco, Manga, Pena). As categorias temáticas usam palavras do tema, sem títulos de obras nem marcas (Filmes tem Pipoca e Vilão, não nomes de filmes). Ficam de fora nomes próprios de pessoas, palavras ofensivas e palavras muito raras; Lugares do mundo aceita nomes geográficos. Cada categoria tem pelo menos 100 palavras de raízes diferentes, para encher sozinha o tabuleiro 10×10. Uma palavra pode estar em duas categorias (Vilão em Filmes e Desenhos). As palavras são guardadas com uma forma normalizada (minúsculas e sem acento) para comparação.
 
-**Sorteio:** o tabuleiro evita palavras da mesma raiz (Navio e Navios) e palavras usadas nas últimas 3 partidas da mesma sala.
+**Sorteio:** com várias categorias escolhidas, cada uma entra com a mesma quantidade de cartas (3 categorias num 6×6 dão 12 de cada); as palavras personalizadas contam como mais uma parte. Uma parte que acaba (poucas personalizadas) é completada pelas outras. O tabuleiro evita a mesma palavra, palavras da mesma raiz (Navio e Navios) e palavras usadas nas últimas 3 partidas da mesma sala.
 
 ### 9.2 Palavras personalizadas
 
 - Um campo de texto no salão aceita até 300 palavras, separadas por vírgula ou quebra de linha.
 - Cada palavra precisa ter de 2 a 20 caracteres. O sistema remove duplicadas e mostra quantas foram aceitas.
-- Elas se misturam às categorias escolhidas. Com "Usar só palavras personalizadas", é preciso ter pelo menos o número de casas do tabuleiro.
+- Elas se misturam às categorias escolhidas, como uma parte a mais do sorteio. Com "Usar só palavras personalizadas", é preciso ter pelo menos o número de casas do tabuleiro.
 - A lista vale só para a sala e não é salva no servidor depois que a sala expira.
 
 ### 9.3 Validação automática da dica
@@ -469,7 +481,7 @@ O MVP é uma partida completa de Pistas Piratas com 2 a 4 navios, jogada por lin
 
 1. **Fundação:** monorepo, interface `GameDefinition`, motor do Pistas Piratas com testes e banco de palavras. Ainda sem tela; dá para simular partidas inteiras nos testes.
 2. **MVP jogável:** servidor das salas, telas, conexão em tempo real e o checklist acima. Termina com uma partida de verdade entre amigos pelo Discord.
-3. **Polimento:** sons, animações, tutorial interativo de 1 minuto, "Copiar resumo", categorias Brasil, Cultura pop e Infantil.
+3. **Polimento:** sons, animações, tutorial interativo de 1 minuto, "Copiar resumo", categorias Brasil, Cultura pop e Infantil (feito em 19/11/2026, junto com outras 12 categorias).
 4. **Plataforma:** tela inicial com vários jogos. Jogo da velha e forca entram primeiro, porque são simples e testam se a interface `GameDefinition` serve para outros jogos. Depois vem o xadrez.
 5. **Futuro:** conta opcional com estatísticas, salas públicas, outros idiomas e, talvez, monetização (avatares ou pacotes de palavras).
 

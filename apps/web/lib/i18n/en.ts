@@ -54,7 +54,11 @@ export const en: Dicionario = {
     tranquilo: { nome: 'Relaxed', descricao: 'No clock, for beginners' },
     personalizado: { nome: 'Custom', descricao: 'Tweak everything' },
   },
-  categorias: { geral: 'General', mar: 'Sea and Piracy' },
+  categorias: {
+    geral: 'General', mar: 'Sea and Piracy', brasil: 'Brazil', pop: 'Pop culture', infantil: 'Kids', filmes: 'Movies',
+    series: 'TV shows', desenhos: 'Cartoons', animais: 'Animals', comidas: 'Food', esportes: 'Sports', profissoes: 'Jobs',
+    games: 'Games', musica: 'Music', fantasia: 'Fantasy and Myth', ciencia: 'Science and Space', lugares: 'World places',
+  },
 
   idioma: {
     titulo: 'Language',
@@ -247,6 +251,16 @@ export const en: Dicionario = {
     extra: 'Extra for the first ship',
     marAberto: 'Open Sea',
     kraken: 'Kraken',
+    escolherCategorias: 'Word categories',
+    escolher: 'Choose',
+    notaMistura: 'Pick as many as you like: they mix in equal parts on the board.',
+    todas: 'All',
+    limpar: 'Clear',
+    pronto: 'Done',
+    nSelecionadas: (n) => (n === 0 ? 'None selected' : `${n} selected`),
+    exemplos: 'Examples',
+    outrosExemplos: 'Show others',
+    semExemplos: 'Pick a category to see example words.',
   },
 
   partida: {

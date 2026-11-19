@@ -26,7 +26,7 @@ import { Avisos } from '@/components/ui/Avisos'
 import { BotaoIdioma, BotaoMenu, BotaoPreferencias, BotaoSom, BotaoTexto, ICONE_CONFIRMAR, ModalComoJogar, ModalConfirmar, ModalPerfil } from '@/components/modais/comuns'
 import { DECO_ANCORA, Modal } from '@/components/ui'
 import { infoIdioma, traduzirMensagem, useT, type Dicionario } from '@/lib/i18n'
-import { nomeNavioConfig } from '@/lib/textos'
+import { nomeNavioConfig, resumoCategorias } from '@/lib/textos'
 import { ModalConfiguracoes } from '@/components/modais/Configuracoes'
 import { salvarPerfil } from '@/lib/identidade'
 import { useSala, type Visao } from '@/lib/sala'
@@ -555,7 +555,7 @@ function cartoesResumo(config: CodenomesConfig, t: Dicionario): CartaoResumo[] {
   const g = gridFor(config)
   const tempo = (s: number | null) => (s === null ? '∞' : `${s} s`)
   const idioma = infoIdioma(config.wordLanguage ?? 'pt')
-  const categorias = config.onlyCustom ? t.config.personalizadas : config.categories.map((c) => t.categorias[c]).join(' + ') || '—'
+  const categorias = config.onlyCustom ? t.config.personalizadas : resumoCategorias(config.categories, t, 1)
   return [
     { icone: 'navios/navio-rubi.webp', rotulo: r.navios, valor: r.nNavios(config.shipCount) },
     { icone: 'cartas/fechada.webp', rotulo: r.tabuleiro, valor: r.cartas(g.cols, g.rows, g.total) },

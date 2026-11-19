@@ -256,3 +256,44 @@ test('idiomas: segue o navegador, troca pela bandeira e a sala nasce com as pala
   await expect.poll(async () => (await view(p)).config.wordLanguage).toBe('it')
   await ctx.close()
 })
+
+test('categorias: escolher várias no modal e ver todas misturadas no tabuleiro', async ({ browser }) => {
+  const { PALAVRAS, normalizar } = await import('../../packages/words/src/index')
+  const { ps } = await mesa(browser)
+  const [ana, leo, rafa, duda] = ps
+  await act(ana, { type: 'chooseShip', shipId: 'rubi' })
+  await act(leo, { type: 'chooseShip', shipId: 'rubi' })
+  await act(rafa, { type: 'chooseShip', shipId: 'safira' })
+  await act(duda, { type: 'chooseShip', shipId: 'safira' })
+
+  await ana.getByRole('button', { name: 'Editar' }).click()
+  await ana.getByRole('button', { name: /Categorias de palavras/ }).click()
+  await ana.getByRole('button', { name: 'Limpar' }).click()
+  await expect(ana.getByText('Nenhuma escolhida')).toBeVisible()
+  await expect(ana.getByRole('button', { name: 'Pronto' })).toBeDisabled()
+  await expect(ana.getByText('Marque uma categoria para ver exemplos das palavras.')).toBeVisible()
+  for (const n of ['Animais', 'Esportes', 'Lugares do mundo']) await ana.getByRole('checkbox', { name: new RegExp(n) }).click()
+  // exemplos de cada categoria marcada, a última no topo, com palavras da própria lista
+  const exemplos = ana.locator('.painel-exemplos .exemplo')
+  await expect(exemplos).toHaveCount(3)
+  expect(await exemplos.evaluateAll((els) => els.map((e) => e.getAttribute('data-categoria')))).toEqual(['lugares', 'esportes', 'animais'])
+  const antes = (await exemplos.first().locator('.palavras').innerText()).split(' · ')
+  expect(antes).toHaveLength(8)
+  const lugares = new Set(PALAVRAS.pt.lugares.map(normalizar))
+  expect(antes.every((w) => lugares.has(normalizar(w)))).toBe(true)
+  await ana.getByRole('button', { name: /Sortear outras/ }).click()
+  await expect.poll(async () => exemplos.first().locator('.palavras').innerText()).not.toBe(antes.join(' · '))
+  await ana.getByRole('button', { name: 'Pronto' }).click()
+  await expect(ana.getByRole('button', { name: /Categorias de palavras: Animais \+ Esportes \+ Lugares do mundo/ })).toBeVisible()
+  await ana.getByRole('button', { name: 'Salvar' }).click()
+  await expect.poll(async () => (await view(leo)).config.categories).toEqual(['animais', 'esportes', 'lugares'])
+  await expect(leo.getByText(/Animais \+2/)).toBeVisible()
+
+  await ana.getByRole('button', { name: 'Zarpar!' }).click()
+  await expect.poll(async () => (await view(ana)).game?.cards?.length ?? 0).toBeGreaterThan(0)
+  const cards: { word: string }[] = (await view(ana)).game.cards
+  for (const cat of ['animais', 'esportes', 'lugares'] as const) {
+    const lista = new Set(PALAVRAS.pt[cat].map(normalizar))
+    expect(cards.filter((c) => lista.has(normalizar(c.word))).length).toBeGreaterThanOrEqual(Math.floor(cards.length / 3))
+  }
+})

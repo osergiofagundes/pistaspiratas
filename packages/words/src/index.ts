@@ -1,28 +1,17 @@
-import * as pt from './pt/geral'
-import * as ptMar from './pt/mar'
-import * as en from './en/geral'
-import * as enMar from './en/mar'
-import * as es from './es/geral'
-import * as esMar from './es/mar'
-import * as fr from './fr/geral'
-import * as frMar from './fr/mar'
-import * as de from './de/geral'
-import * as deMar from './de/mar'
-import * as it from './it/geral'
-import * as itMar from './it/mar'
+import { pt } from './pt'
+import { en } from './en'
+import { es } from './es'
+import { fr } from './fr'
+import { de } from './de'
+import { it } from './it'
 import { IDIOMAS_PALAVRAS, ehIdioma, normalizar, raiz, type Idioma } from './normalizar'
+import type { Categoria, ListasDoIdioma } from './categorias'
 
 export { IDIOMAS_PALAVRAS, ehIdioma, normalizar, raiz, type Idioma }
+export { CATEGORIA_IDS, CATEGORIAS, ehCategoria, type Categoria } from './categorias'
 
-export type Categoria = 'geral' | 'mar'
-
-export const CATEGORIAS: { id: Categoria; nome: string }[] = [
-  { id: 'geral', nome: 'Geral' },
-  { id: 'mar', nome: 'Mar e Pirataria' },
-]
-
-function unicas(lista: string[], excluir: Set<string> = new Set()): string[] {
-  const vistas = new Set(excluir)
+function unicas(lista: string[]): string[] {
+  const vistas = new Set<string>()
   const saida: string[] = []
   for (const p of lista) {
     const n = normalizar(p)
@@ -33,23 +22,22 @@ function unicas(lista: string[], excluir: Set<string> = new Set()): string[] {
   return saida
 }
 
-/** Cada palavra aparece em uma categoria só (a temática tem prioridade). */
-function categorias(geral: string[], mar: string[]): Record<Categoria, string[]> {
-  const m = unicas(mar)
-  return { mar: m, geral: unicas(geral, new Set(m.map(normalizar))) }
+/**
+ * Cada lista tira só as suas repetidas: uma palavra pode estar em duas categorias
+ * (Vilão em Filmes e em Desenhos); o sorteio evita a repetição na mesa.
+ */
+function limpar(listas: ListasDoIdioma): Record<Categoria, string[]> {
+  return Object.fromEntries(Object.entries(listas).map(([id, lista]) => [id, unicas(lista)])) as Record<Categoria, string[]>
 }
 
 export const PALAVRAS: Record<Idioma, Record<Categoria, string[]>> = {
-  pt: categorias(pt.geral, ptMar.mar),
-  en: categorias(en.geral, enMar.mar),
-  es: categorias(es.geral, esMar.mar),
-  fr: categorias(fr.geral, frMar.mar),
-  de: categorias(de.geral, deMar.mar),
-  it: categorias(it.geral, itMar.mar),
+  pt: limpar(pt),
+  en: limpar(en),
+  es: limpar(es),
+  fr: limpar(fr),
+  de: limpar(de),
+  it: limpar(it),
 }
-
-export const palavrasMar = PALAVRAS.pt.mar
-export const palavrasGeral = PALAVRAS.pt.geral
 
 /** Lê a lista colada pelo Almirante: vírgula ou quebra de linha, 2 a 20 caracteres, sem duplicadas, até 300. */
 export function lerPalavrasPersonalizadas(texto: string): { aceitas: string[]; recusadas: number } {
