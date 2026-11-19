@@ -1,4 +1,4 @@
-import { normalizar, raiz } from '@arena/words'
+import { normalizar, raiz, type Idioma } from '@arena/words'
 
 /** Maior prefixo comum entre duas palavras. */
 function prefixoComum(a: string, b: string) {
@@ -16,6 +16,7 @@ export function validateClue(
   count: number,
   hiddenWords: string[],
   treasuresLeft: number,
+  idioma: Idioma = 'pt',
 ): string | null {
   const word = rawWord.trim()
   if (!word) return 'Digite uma palavra.'
@@ -28,12 +29,12 @@ export function validateClue(
   if (count > treasuresLeft)
     return `O número vai de 1 até ${treasuresLeft} (os tesouros que faltam).`
 
-  const r = raiz(n)
+  const r = raiz(n, idioma)
   for (const original of hiddenWords) {
     const w = normalizar(original)
     const upper = original.toUpperCase()
     if (w === n) return `Dica inválida: ${upper} está no tabuleiro.`
-    if (raiz(w) === r) return `Dica inválida: é plural ou singular de ${upper}.`
+    if (raiz(w, idioma) === r) return `Dica inválida: é plural ou singular de ${upper}.`
     const [curta, longa] = w.length <= n.length ? [w, n] : [n, w]
     if (curta.length >= 4 && longa.includes(curta))
       return `Dica inválida: contém ou está contida em ${upper}.`

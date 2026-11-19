@@ -6,6 +6,7 @@ import { acao } from './api'
 import { identidade, preferencias, PREFS_PADRAO, salvarPreferencias, type Preferencias } from './identidade'
 import { aplicarVolumes, audio, destravarAudio, tocar, volumesAtuais } from './sons'
 import { musicaAtual } from './musica'
+import { infoIdioma } from './i18n/idiomas'
 
 export type Visao = RoomView<CodenomesConfig, CodenomesView>
 export type Fechamento = 'kicked' | 'expired' | 'left' | 'not-found' | 'not-member'
@@ -28,6 +29,11 @@ type Estado = {
 
 let seq = 0
 
+/** <html lang> acompanha o idioma escolhido (leitores de tela, hifenização). */
+function marcarLang(p: Preferencias) {
+  if (typeof document !== 'undefined') document.documentElement.lang = infoIdioma(p.idioma).lang
+}
+
 export const useSala = create<Estado>((set, get) => ({
   code: null,
   view: null,
@@ -42,12 +48,14 @@ export const useSala = create<Estado>((set, get) => ({
     const prefs = preferencias()
     aplicarVolumes(prefs, 0)
     destravarAudio()
+    marcarLang(prefs)
     set({ prefs })
   },
   setPrefs: (p) => {
     const prefs = { ...get().prefs, ...p }
     salvarPreferencias(prefs)
     aplicarVolumes(prefs)
+    marcarLang(prefs)
     set({ prefs })
   },
   enviar: async (action) => {

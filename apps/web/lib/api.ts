@@ -1,8 +1,10 @@
 import type { Personagem } from '@arena/platform'
 import { identidade } from './identidade'
+import type { Idioma } from './i18n/idiomas'
 
-export async function criarSala(): Promise<string> {
-  const r = await fetch('/api/salas', { method: 'POST' })
+/** Cria a sala; as palavras do tabuleiro começam no idioma de quem criou. */
+export async function criarSala(idioma: Idioma): Promise<string> {
+  const r = await fetch('/api/salas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idioma }) })
   const j = await r.json()
   return j.code
 }

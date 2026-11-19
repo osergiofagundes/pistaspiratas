@@ -2,18 +2,20 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useSala } from '@/lib/sala'
+import { traduzirMensagem, useT } from '@/lib/i18n'
 
 /** Faixa curta no topo para erros de ação e avisos da sala ("Link copiado!", "Ana agora é o Almirante"). */
 export function Avisos({ extra }: { extra?: { texto: string; seq: number } | null }) {
   const erro = useSala((s) => s.erro)
   const notice = useSala((s) => s.view?.notice)
+  const t = useT()
   const [atual, setAtual] = useState<{ texto: string; tipo: 'erro' | 'info'; id: string } | null>(null)
 
   useEffect(() => {
-    if (erro) setAtual({ texto: erro.texto, tipo: 'erro', id: `e${erro.seq}` })
+    if (erro) setAtual({ texto: traduzirMensagem(erro.texto, t), tipo: 'erro', id: `e${erro.seq}` })
   }, [erro])
   useEffect(() => {
-    if (notice) setAtual({ texto: notice.text, tipo: 'info', id: `n${notice.id}` })
+    if (notice) setAtual({ texto: traduzirMensagem(notice.text, t), tipo: 'info', id: `n${notice.id}` })
   }, [notice?.id])
   useEffect(() => {
     if (extra) setAtual({ texto: extra.texto, tipo: 'info', id: `x${extra.seq}` })

@@ -6,27 +6,23 @@ import { BOARD_MAX, BOARD_MIN, type BoardSize, type CodenomesConfig, PRESETS, TE
 import { lerPalavrasPersonalizadas } from '@arena/words'
 import { Botao, DECO_ANCORA, IMG, Interruptor, Marcador, Modal, Segmentado, Seletor, Texto } from '@/components/ui'
 import { useSala } from '@/lib/sala'
+import { IDIOMAS, useT, type Dicionario } from '@/lib/i18n'
+import { nomeNavioConfig } from '@/lib/textos'
 
-export function rotuloTempo(t: number | null) {
-  return t === null ? 'Sem limite' : `${t} s`
+function opcoesTempo(t: Dicionario) {
+  return TEMPOS.map((v) => ({
+    v,
+    rotulo: v === null ? <span style={{ fontSize: 26, lineHeight: 1, fontFamily: 'system-ui, sans-serif', fontWeight: 800 }} title={t.comum.semLimite}>∞</span> : `${v}s`,
+  }))
 }
 
-/** "5×5", "8×6" ou "Automático" */
-export function rotuloTabuleiro(c: CodenomesConfig) {
-  const f = fixedBoard(c)
-  return f ? `${f[0]}×${f[1]}` : 'Automático'
+function opcoesTabuleiro(t: Dicionario): { v: BoardSize; rotulo: ReactNode }[] {
+  return [
+    { v: 'auto', rotulo: t.config.auto },
+    ...([5, 6, 7, 8, 9, 10] as const).map((n) => ({ v: n as BoardSize, rotulo: `${n}` })),
+    { v: 'custom', rotulo: t.config.pers },
+  ]
 }
-
-const OPCOES_TEMPO = TEMPOS.map((t) => ({
-  v: t,
-  rotulo: t === null ? <span style={{ fontSize: 26, lineHeight: 1, fontFamily: 'system-ui, sans-serif', fontWeight: 800 }} title="Sem limite">∞</span> : `${t}s`,
-}))
-
-const OPCOES_TABULEIRO: { v: BoardSize; rotulo: ReactNode }[] = [
-  { v: 'auto', rotulo: 'Auto' },
-  ...([5, 6, 7, 8, 9, 10] as const).map((n) => ({ v: n as BoardSize, rotulo: `${n}` })),
-  { v: 'custom', rotulo: 'Pers.' },
-]
 
 const W = 1820
 const H = 890
@@ -111,6 +107,7 @@ function MiniCarta({ tipo, w, h }: { tipo: TipoCarta; w: number; h: number }) {
 /** Prévia do tabuleiro: a grade com as cartas de cada tipo e a legenda com as quantidades. */
 function PreviaTabuleiro({ config, w, h }: { config: CodenomesConfig; w: number; h: number }) {
   const anim = useSala((s) => s.prefs.animacoes)
+  const t = useT()
   const g = gridFor(config)
   const navios = SHIP_IDS.slice(0, config.shipCount)
   const bonus = g.first - g.treasures
@@ -126,10 +123,10 @@ function PreviaTabuleiro({ config, w, h }: { config: CodenomesConfig; w: number;
   tipos.slice(0, g.total).forEach((t, i) => (casas[perm[i]] = t))
 
   const legenda: { tipo: TipoCarta; nome: string; n: number; cor?: string }[] = [
-    ...navios.map((id) => ({ tipo: id as TipoCarta, nome: `Navio ${config.shipNames[id] || SHIP_INFO[id].nome}`, n: g.treasures, cor: SHIP_INFO[id].cor })),
-    ...(bonus ? [{ tipo: 'bonus' as const, nome: 'Extra de quem começar', n: bonus }] : []),
-    { tipo: 'mar', nome: 'Mar Aberto', n: g.sea },
-    { tipo: 'kraken', nome: 'Kraken', n: g.kraken, cor: '#5B2A86' },
+    ...navios.map((id) => ({ tipo: id as TipoCarta, nome: t.comum.navio(nomeNavioConfig(config.shipNames, id, t)), n: g.treasures, cor: SHIP_INFO[id].cor })),
+    ...(bonus ? [{ tipo: 'bonus' as const, nome: t.config.extra, n: bonus }] : []),
+    { tipo: 'mar', nome: t.config.marAberto, n: g.sea },
+    { tipo: 'kraken', nome: t.config.kraken, n: g.kraken, cor: '#5B2A86' },
   ]
   const colsLeg = 2
   const linhasLeg = Math.ceil(legenda.length / colsLeg)
@@ -147,7 +144,7 @@ function PreviaTabuleiro({ config, w, h }: { config: CodenomesConfig; w: number;
   const oy = (areaH - gh) / 2
 
   return (
-    <div aria-label="Prévia do tabuleiro" style={{ position: 'absolute', inset: 0 }}>
+    <div aria-label={t.config.previa} style={{ position: 'absolute', inset: 0 }}>
       {casas.map((t, i) => (
         <motion.div
           key={`${i}-${t}`}
@@ -197,6 +194,9 @@ export function ModalConfiguracoes({
   onFechar: () => void
 }) {
   const [c, setC] = useState<CodenomesConfig>(config)
+  const t = useT()
+  const k = t.config
+  const OPCOES_TEMPO = opcoesTempo(t)
   const [texto, setTexto] = useState(config.customWords.join(', '))
   const lidas = useMemo(() => lerPalavrasPersonalizadas(texto), [texto])
   const g = gridFor(c)
@@ -215,13 +215,7 @@ export function ModalConfiguracoes({
     if (pers) mudaTabuleiro({ krakenCount: v })
     else mudaTabuleiro({ preset: 'personalizado', treasuresPerShip: g.treasures, krakenCount: v })
   }
-  const notaTabuleiro = fixo
-    ? c.treasuresManual
-      ? 'Tesouros: ajustados à mão'
-      : 'Tesouros: proporcionais ao tabuleiro'
-    : pers
-      ? undefined
-      : 'Mudar tesouros ou Kraken vira Personalizado'
+  const notaTabuleiro = fixo ? (c.treasuresManual ? k.notaManual : k.notaProporcional) : pers ? undefined : k.notaVira
   const categoria = (k: 'geral' | 'mar', v: boolean) => set({ categories: v ? [...c.categories, k] : c.categories.filter((x) => x !== k) })
 
   const yCartoes = 166
@@ -231,10 +225,10 @@ export function ModalConfiguracoes({
   const hPrevia = yCartoes2 + hCartao2 - yCartoes
 
   return (
-    <Modal titulo="Configurações da sala" w={W} h={H} onFechar={onFechar} decos={[DECO_ANCORA(W, H)]} fecharNoFundo={false}>
+    <Modal titulo={k.titulo} w={W} h={H} onFechar={onFechar} decos={[DECO_ANCORA(W, H)]} fecharNoFundo={false}>
       {/* preset */}
       <Texto x={COL.esq + 4} y={88} titulo tam={24} cor="#5A3410">
-        Preset
+        {k.preset}
       </Texto>
       <Segmentado
         x={180}
@@ -242,27 +236,27 @@ export function ModalConfiguracoes({
         w={COL.dir + COL.w - 180}
         h={44}
         tam={18}
-        opcoes={PRESETS.map((p) => ({ v: p.id, rotulo: p.nome }))}
+        opcoes={PRESETS.map((p) => ({ v: p.id, rotulo: t.presets[p.id].nome }))}
         valor={c.preset}
         onChange={(v) => mudaTabuleiro({ preset: v })}
       />
       <Texto x={180} y={132} w={COL.dir + COL.w - 180} tam={16} cor="#7A5A3A" peso={700}>
-        {PRESETS.find((p) => p.id === c.preset)?.descricao}
+        {t.presets[c.preset].descricao}
       </Texto>
 
       <Cartao
         x={COL.esq}
         y={yCartoes}
         h={hCartao1}
-        titulo="Tabuleiro"
+        titulo={k.tabuleiro}
         nota={notaTabuleiro}
         ordem={0}
       >
-        <Rotulo i={0}>Tamanho</Rotulo>
-        <Segmentado x={150} y={linha(0) + 3} w={390} h={36} tam={14} opcoes={OPCOES_TABULEIRO} valor={c.boardSize} onChange={(v) => mudaTabuleiro({ boardSize: v })} />
+        <Rotulo i={0}>{k.tamanho}</Rotulo>
+        <Segmentado x={150} y={linha(0) + 3} w={390} h={36} tam={14} opcoes={opcoesTabuleiro(t)} valor={c.boardSize} onChange={(v) => mudaTabuleiro({ boardSize: v })} />
         {c.boardSize === 'custom' ? (
           <>
-            <Rotulo i={1}>Colunas × linhas</Rotulo>
+            <Rotulo i={1}>{k.colunasLinhas}</Rotulo>
             <Seletor x={232} y={linha(1) + 2} h={38} valor={c.boardCols} min={BOARD_MIN} max={BOARD_MAX} onChange={(v) => mudaTabuleiro({ boardCols: v })} />
             <Texto x={364} y={linha(1) + 8} tam={20} cor="#5A3410" peso={900}>
               ×
@@ -272,14 +266,14 @@ export function ModalConfiguracoes({
         ) : (
           <>
             <Rotulo i={1} apagado>
-              Grade
+              {k.grade}
             </Rotulo>
             <Texto x={250} y={linha(1) + 10} w={290} tam={17} cor="#7A5A3A" peso={800} className="text-right">
-              {g.cols}×{g.rows} · {g.total} cartas{fixo ? '' : ' · automática'}
+              {k.gradeValor(g.cols, g.rows, g.total, !fixo)}
             </Texto>
           </>
         )}
-        <Rotulo i={2}>Número de navios</Rotulo>
+        <Rotulo i={2}>{k.numeroNavios}</Rotulo>
         <Segmentado
           x={380}
           y={linha(2) + 4}
@@ -290,16 +284,16 @@ export function ModalConfiguracoes({
           valor={c.shipCount}
           onChange={(v) => mudaTabuleiro({ shipCount: v })}
         />
-        <Rotulo i={3}>Tesouros por navio</Rotulo>
+        <Rotulo i={3}>{k.tesourosPorNavio}</Rotulo>
         {fixo && c.treasuresManual && (
           <button
             type="button"
             onClick={() => set({ treasuresManual: false })}
-            title="Voltar ao número proporcional ao tabuleiro"
+            title={k.voltarProporcional}
             className="link-ajuste"
             style={{ position: 'absolute', left: 212, top: linha(3) + 10, background: 'none', border: 0, padding: 0, fontSize: 14, fontWeight: 800, color: '#9A5A1A', textDecoration: 'underline' }}
           >
-            ↺ proporcional
+            {k.proporcional}
           </button>
         )}
         <Seletor
@@ -311,7 +305,7 @@ export function ModalConfiguracoes({
           max={g.maxTreasures}
           onChange={mudaTesouros}
         />
-        <Rotulo i={4}>Quantidade de Kraken</Rotulo>
+        <Rotulo i={4}>{k.quantidadeKraken}</Rotulo>
         <Segmentado
           x={430}
           y={linha(4) + 4}
@@ -322,47 +316,47 @@ export function ModalConfiguracoes({
           valor={g.kraken}
           onChange={mudaKraken}
         />
-        <Rotulo i={5}>Quem começa leva +1 tesouro</Rotulo>
+        <Rotulo i={5}>{k.bonus}</Rotulo>
         <Interruptor x={470} y={linha(5) + 4} ligado={c.firstBonus} onChange={(v) => mudaTabuleiro({ firstBonus: v })} />
       </Cartao>
 
-      <Cartao x={COL.esq} y={yCartoes2} h={hCartao2} titulo="Capitão e tempo" ordem={1}>
-        <Rotulo i={0}>Escolha do Capitão</Rotulo>
+      <Cartao x={COL.esq} y={yCartoes2} h={hCartao2} titulo={k.capitaoTempo} ordem={1}>
+        <Rotulo i={0}>{k.escolhaCapitao}</Rotulo>
         <Segmentado
           x={250}
           y={linha(0) + 4}
           w={290}
           h={36}
           opcoes={[
-            { v: 'sorteio' as const, rotulo: 'Sorteio' },
-            { v: 'escolha' as const, rotulo: 'O navio escolhe' },
+            { v: 'sorteio' as const, rotulo: k.sorteio },
+            { v: 'escolha' as const, rotulo: k.navioEscolhe },
           ]}
           valor={c.captainMode}
           onChange={(v) => set({ captainMode: v })}
         />
-        <Rotulo i={1}>Rodízio de Capitão</Rotulo>
+        <Rotulo i={1}>{k.rodizio}</Rotulo>
         <Interruptor x={470} y={linha(1) + 4} ligado={c.captainRotation === 'trocar'} onChange={(v) => set({ captainRotation: v ? 'trocar' : 'manter' })} />
-        <Rotulo i={2}>Tempo do Capitão</Rotulo>
+        <Rotulo i={2}>{k.tempoCapitao}</Rotulo>
         <Segmentado x={250} y={linha(2) + 4} w={290} h={36} opcoes={OPCOES_TEMPO} valor={c.captainTime} onChange={(v) => set({ captainTime: v })} />
-        <Rotulo i={3}>Tempo dos Marujos</Rotulo>
+        <Rotulo i={3}>{k.tempoMarujos}</Rotulo>
         <Segmentado x={250} y={linha(3) + 4} w={290} h={36} opcoes={OPCOES_TEMPO} valor={c.crewTime} onChange={(v) => set({ crewTime: v })} />
       </Cartao>
 
-      <Cartao x={COL.dir} y={yCartoes} h={hCartao1} titulo="Sala e regras" ordem={2}>
-        <Rotulo i={0}>Tamanho máximo</Rotulo>
+      <Cartao x={COL.dir} y={yCartoes} h={hCartao1} titulo={k.salaRegras} ordem={2}>
+        <Rotulo i={0}>{k.tamanhoMax}</Rotulo>
         <Seletor x={408} y={linha(0) + 2} h={40} valor={c.maxPlayers} min={4} max={24} onChange={(v) => set({ maxPlayers: v })} />
-        <Rotulo i={1}>Espectadores</Rotulo>
+        <Rotulo i={1}>{k.espectadores}</Rotulo>
         <Interruptor x={470} y={linha(1) + 4} ligado={c.allowSpectators} onChange={(v) => set({ allowSpectators: v })} />
-        <Rotulo i={2}>Tiro de Canhão</Rotulo>
+        <Rotulo i={2}>{k.canhao}</Rotulo>
         <Interruptor x={470} y={linha(2) + 4} ligado={c.cannon} onChange={(v) => set({ cannon: v })} />
-        <Rotulo i={3}>Nomes dos navios</Rotulo>
+        <Rotulo i={3}>{k.nomesNavios}</Rotulo>
         {SHIP_IDS.slice(0, c.shipCount).map((id, i) => (
           <input
             key={id}
             value={c.shipNames[id] ?? ''}
-            placeholder={SHIP_INFO[id].nome}
+            placeholder={t.navios[id]}
             maxLength={14}
-            aria-label={`Nome do navio ${SHIP_INFO[id].nome}`}
+            aria-label={k.nomeDoNavio(t.navios[id])}
             onChange={(e) => setC((a) => ({ ...a, shipNames: { ...a.shipNames, [id]: e.target.value } }))}
             className="campo-navio"
             style={{
@@ -385,31 +379,53 @@ export function ModalConfiguracoes({
         ))}
       </Cartao>
 
-      <Cartao x={COL.dir} y={yCartoes2} h={hCartao2} titulo="Palavras" ordem={3}>
+      <Cartao x={COL.dir} y={yCartoes2} h={hCartao2} titulo={k.palavras} ordem={3}>
         <Marcador x={150} y={16} marcado={c.categories.includes('geral')} onChange={(v) => categoria('geral', v)} />
         <Texto x={192} y={22} tam={17} cor="#5A3410" peso={800}>
-          Geral
+          {t.categorias.geral}
         </Texto>
         <Marcador x={290} y={16} marcado={c.categories.includes('mar')} onChange={(v) => categoria('mar', v)} />
-        <Texto x={332} y={22} tam={17} cor="#5A3410" peso={800}>
-          Mar e Pirataria
+        <Texto x={332} y={22} w={220} tam={17} cor="#5A3410" peso={800}>
+          {t.categorias.mar}
         </Texto>
+        {/* idioma das palavras do tabuleiro (e da regra de plural das dicas) */}
+        <Texto x={20} y={66} tam={17} cor="#5A3410" peso={800}>
+          {k.idiomaPalavras}
+        </Texto>
+        {IDIOMAS.map((l, i) => {
+          const sel = (c.wordLanguage ?? 'pt') === l.id
+          return (
+            <button
+              key={l.id}
+              type="button"
+              lang={l.lang}
+              aria-pressed={sel}
+              title={k.idiomaDe(l.nome)}
+              aria-label={k.idiomaDe(l.nome)}
+              onClick={() => set({ wordLanguage: l.id })}
+              className={`bandeira-palavras${sel ? ' ativa' : ''}`}
+              style={{ position: 'absolute', left: 150 + i * 64, top: 58, width: 54, height: 38 }}
+            >
+              <img src={`${IMG}/${l.bandeira}`} alt="" draggable={false} />
+            </button>
+          )
+        })}
         <textarea
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
-          aria-label="Palavras personalizadas"
-          placeholder="Palavras personalizadas: separe por vírgula ou uma por linha (até 300)"
+          aria-label={k.personalizadas}
+          placeholder={k.personalizadasPh}
           style={{
             position: 'absolute',
             left: 20,
-            top: 60,
+            top: 106,
             width: COL.w - 40,
-            height: 104,
+            height: 62,
             resize: 'none',
             borderRadius: 10,
             border: '3px solid #8A4A1C',
             background: '#FFF6DF',
-            padding: '8px 12px',
+            padding: '6px 12px',
             fontSize: 15,
             fontWeight: 700,
             color: '#5A3410',
@@ -419,24 +435,24 @@ export function ModalConfiguracoes({
         />
         <Marcador x={20} y={178} marcado={c.onlyCustom} onChange={(v) => set({ onlyCustom: v })} />
         <Texto x={62} y={184} tam={16} cor="#5A3410" peso={800}>
-          Usar só as personalizadas
+          {k.soPersonalizadas}
         </Texto>
         <Texto x={300} y={185} w={240} tam={15} cor={lidas.recusadas ? '#9A5A1A' : '#2A7A2A'} peso={800} className="text-right">
-          {lidas.aceitas.length} aceitas{lidas.recusadas ? ` · ${lidas.recusadas} recusadas` : ''}
+          {k.aceitas(lidas.aceitas.length, lidas.recusadas)}
         </Texto>
       </Cartao>
 
-      <Cartao x={COL.previa} y={yCartoes} h={hPrevia} titulo="Prévia do tabuleiro" nota={`${g.cols}×${g.rows} · ${g.total} cartas`} ordem={4}>
+      <Cartao x={COL.previa} y={yCartoes} h={hPrevia} titulo={k.previa} nota={k.previaNota(g.cols, g.rows, g.total)} ordem={4}>
         <div style={{ position: 'absolute', left: 20, top: 56, width: COL.w - 40, height: hPrevia - 72 }}>
           <PreviaTabuleiro config={c} w={COL.w - 40} h={hPrevia - 72} />
         </div>
       </Cartao>
 
       <Botao cor="marrom" x={W / 2 - 210} y={H - 108} w={190} h={68} onClick={onFechar}>
-        Cancelar
+        {t.comum.cancelar}
       </Botao>
       <Botao cor="verde" x={W / 2 + 10} y={H - 114} w={200} h={78} onClick={() => onSalvar({ ...c, customWords: lidas.aceitas })}>
-        Salvar
+        {t.comum.salvar}
       </Botao>
     </Modal>
   )

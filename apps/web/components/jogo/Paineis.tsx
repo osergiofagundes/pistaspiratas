@@ -3,6 +3,7 @@ import { SHIP_INFO, type Player, type ShipId } from '@arena/platform'
 import type { CardView, CodenomesView, ShipView } from '@arena/codenomes'
 import { Avatar, Moldura, Navio, Texto } from '@/components/ui'
 import { Carta } from './Carta'
+import { traduzNavio, useT } from '@/lib/i18n'
 
 /** Painel de um navio na coluna da esquerda (Moldura 320×200). */
 export function PainelNavio({ ship, players, x, y, vez }: { ship: ShipView; players: Player[]; x: number; y: number; vez: boolean }) {
@@ -10,22 +11,23 @@ export function PainelNavio({ ship, players, x, y, vez }: { ship: ShipView; play
   const crew = players.filter((p) => p.shipId === ship.id)
   const ordenados = [...crew].sort((a, b) => (a.id === ship.captainId ? -1 : b.id === ship.captainId ? 1 : 0))
   const achados = ship.total - ship.left
+  const t = useT()
   return (
     <>
       {vez && <div className="pulsar" style={{ position: 'absolute', left: x - 6, top: y - 6, width: 332, height: 212, border: '4px solid #FFD24A', borderRadius: 18 }} />}
       <Moldura x={x} y={y} w={320} h={200} />
       {ship.eliminated ? <Navio ship={ship.id} afundado x={x + 12} y={y + 74} w={124} h={82} /> : <Navio ship={ship.id} className={vez ? "navegar" : undefined} x={x + 20} y={y + 58} w={104} h={101} />}
       <Texto x={x + 138} y={y + 50} w={170} titulo tam={26} cor={ship.eliminated ? '#8A7A6A' : info.cor}>
-        {ship.name}
+        {traduzNavio(t, ship.name, ship.id)}
       </Texto>
       {ship.eliminated ? (
         <Texto x={x + 138} y={y + 84} w={166} tam={16} cor="#9B2C2C">
-          Afundado pelo Kraken
+          {t.paineis.afundadoKraken}
         </Texto>
       ) : (
         <>
           <Texto x={x + 138} y={y + 82} w={170} tam={16} cor="#5A3410" peso={700}>
-            Tesouros {achados} de {ship.total}
+            {t.paineis.tesouros(achados, ship.total)}
           </Texto>
           <div style={{ position: 'absolute', left: x + 138, top: y + 106, width: 150, height: 9, borderRadius: 5, background: 'rgba(0,0,0,.15)' }}>
             <div style={{ width: `${(achados / ship.total) * 100}%`, height: '100%', borderRadius: 5, background: info.cor, transition: 'width .4s' }} />
@@ -33,7 +35,7 @@ export function PainelNavio({ ship, players, x, y, vez }: { ship: ShipView; play
         </>
       )}
       {ordenados.slice(0, 4).map((p, i) => (
-        <div key={p.id} style={{ position: 'absolute', left: x + 138 + i * 42, top: y + (ship.eliminated ? 130 : 124), width: 38, height: 38 }} title={`${p.name}${p.id === ship.captainId ? ' · Capitão' : ''}`}>
+        <div key={p.id} style={{ position: 'absolute', left: x + 138 + i * 42, top: y + (ship.eliminated ? 130 : 124), width: 38, height: 38 }} title={`${p.name}${p.id === ship.captainId ? t.paineis.capitao : ''}`}>
           <Avatar avatar={p.avatar} ship={p.shipId} tam={38} x={0} y={0} apagado={ship.eliminated} cinza={!p.connected} />
           {p.id === ship.captainId && !ship.eliminated && <img src="/img/itens/coroa.webp" alt="" style={{ position: 'absolute', left: 22, top: -10, width: 22, height: 19 }} />}
         </div>

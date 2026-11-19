@@ -9,6 +9,8 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3000',
     viewport: { width: 1920, height: 1080 },
+    // o jogo segue o idioma do navegador na primeira visita; os testes rodam em português
+    locale: 'pt-BR',
     trace: 'retain-on-failure',
   },
   webServer: {

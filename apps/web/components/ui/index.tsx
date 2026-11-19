@@ -4,6 +4,7 @@ import { motion } from 'motion/react'
 import type { Personagem, ShipId } from '@arena/platform'
 import { tocar } from '@/lib/sons'
 import { useSala } from '@/lib/sala'
+import { useT } from '@/lib/i18n'
 import { NoveFatias } from './NoveFatias'
 import { BOTOES, CAMPO, MOLDURA, PAINEL_GRANDE, PLACA, type CorBotao } from './fatias'
 
@@ -45,7 +46,7 @@ export function Palco({ fundo, escurecer = 0.45, children }: { fundo: string; es
   )
 }
 
-type Pos = { x?: number; y?: number; w?: number; h?: number; style?: CSSProperties; className?: string }
+export type Pos = { x?: number; y?: number; w?: number; h?: number; style?: CSSProperties; className?: string }
 
 function pos({ x, y, w, h, style }: Pos): CSSProperties {
   return { position: 'absolute', left: x, top: y, width: w, height: h, ...style }
@@ -447,9 +448,10 @@ export function Seletor({
   ...p
 }: Pos & { valor: number; min: number; max: number; onChange: (v: number) => void; disabled?: boolean }) {
   const h = p.h ?? 52
+  const t = useT()
   return (
     <div style={pos({ w: h * 3.3, h, ...p })}>
-      <IconeNovo nome="menos" x={0} y={0} w={h} h={h} disabled={disabled || valor <= min} onClick={() => onChange(valor - 1)} title="Menos" />
+      <IconeNovo nome="menos" x={0} y={0} w={h} h={h} disabled={disabled || valor <= min} onClick={() => onChange(valor - 1)} title={t.comum.menos} />
       <div
         className="lilita"
         style={{
@@ -470,7 +472,7 @@ export function Seletor({
       >
         {valor}
       </div>
-      <IconeNovo nome="mais" x={h * 2.3} y={0} w={h} h={h} disabled={disabled || valor >= max} onClick={() => onChange(valor + 1)} title="Mais" />
+      <IconeNovo nome="mais" x={h * 2.3} y={0} w={h} h={h} disabled={disabled || valor >= max} onClick={() => onChange(valor + 1)} title={t.comum.mais} />
     </div>
   )
 }
@@ -590,6 +592,7 @@ export function Modal({
     return () => window.removeEventListener('keydown', f)
   }, [onFechar])
   const anim = useSala((s) => s.prefs.animacoes)
+  const t = useT()
   const larguraPlaca = titulo ? Math.max(280, titulo.length * 18 + 120) : 0
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 50 }}>
@@ -610,7 +613,7 @@ export function Modal({
           {onFechar && (
             <button
               type="button"
-              aria-label="Fechar"
+              aria-label={t.comum.fechar}
               className="img-botao"
               onClick={onFechar}
               style={{ left: x + w - 50, top: top - 10, width: 48, height: 48, ...estados(`${IMG}/interface/icones/fechar-modal`) }}

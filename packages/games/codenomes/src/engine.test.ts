@@ -4,6 +4,7 @@ import { PALAVRAS } from '@arena/words'
 import { codenomes, canStart } from './index'
 import { defaultConfig, gridFor, updateConfig } from './config'
 import { validateClue } from './clue'
+import { wordPool } from './board'
 import { type CodenomesAction, type CodenomesState, CANNON_HOLD_MS, CAPTAIN_WAIT_MS, tick, treasuresLeft } from './engine'
 
 function player(id: string, shipId: ShipId | null, now = 0): Player {
@@ -59,8 +60,8 @@ const ofType = (s: CodenomesState, o: string) => s.cards.findIndex((c) => c.owne
 
 describe('banco de palavras', () => {
   it('tem pelo menos 400 gerais e 100 temáticas', () => {
-    expect(PALAVRAS.geral.length).toBeGreaterThanOrEqual(400)
-    expect(PALAVRAS.mar.length).toBeGreaterThanOrEqual(100)
+    expect(PALAVRAS.pt.geral.length).toBeGreaterThanOrEqual(400)
+    expect(PALAVRAS.pt.mar.length).toBeGreaterThanOrEqual(100)
   })
 })
 
@@ -432,5 +433,24 @@ describe('visão filtrada', () => {
     const vg = codenomes.viewFor(state, null, ctx)
     expect(vg.me.role).toBe('gaivota')
     expect(vg.cards.every((c) => c.owner === null)).toBe(true)
+  })
+})
+
+describe('idioma das palavras', () => {
+  it('o tabuleiro usa a lista do idioma da sala', () => {
+    const en = wordPool({ ...defaultConfig(), wordLanguage: 'en' })
+    expect(en).toContain('Bridge')
+    expect(en).not.toContain('Ponte')
+    expect(updateConfig(defaultConfig(), { wordLanguage: 'xx' as never }).wordLanguage).toBe('pt')
+    expect(updateConfig(defaultConfig(), { wordLanguage: 'de' }).wordLanguage).toBe('de')
+    expect(defaultConfig('fr').wordLanguage).toBe('fr')
+  })
+
+  it('a dica usa a regra de plural do idioma', () => {
+    expect(validateClue('CATS', 1, ['Cat'], 5, 'en')).toMatch(/plural/)
+    expect(validateClue('CITIES', 1, ['City'], 5, 'en')).toMatch(/plural/)
+    expect(validateClue('HUNDE', 1, ['Hund'], 5, 'de')).toMatch(/plural/)
+    expect(validateClue('STRASSE', 1, ['Straße'], 5, 'de')).toMatch(/tabuleiro/)
+    expect(validateClue('DOG', 1, ['Cat'], 5, 'en')).toBeNull()
   })
 })

@@ -83,10 +83,10 @@ export class RoomService<C extends BaseConfig, S, A, V, M> {
     }
   }
 
-  async create(): Promise<string> {
+  async create(patch?: Partial<C>): Promise<string> {
     let code = roomCode(this.rng)
     while (await this.store.get(code)) code = roomCode(this.rng)
-    await this.store.set(createRoom(code, this.game, this.clock()) as Room<C, S, M>)
+    await this.store.set(createRoom(code, this.game, this.clock(), patch) as Room<C, S, M>)
     return code
   }
 

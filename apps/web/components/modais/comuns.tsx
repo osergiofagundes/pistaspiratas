@@ -9,13 +9,16 @@ import {
   DECO_ANCORA,
   Deslizante,
   Escotilha,
+  IMG,
   IconeNovo,
   Interruptor,
   Modal,
   Texto,
   type CorBotao,
   type Deco,
+  type Pos,
 } from '@/components/ui'
+import { IDIOMAS, infoIdioma, traduzirMensagem, useIdioma, useT } from '@/lib/i18n'
 import type { Perfil } from '@/lib/identidade'
 import { useSala } from '@/lib/sala'
 import { tocar } from '@/lib/sons'
@@ -28,15 +31,7 @@ export const DECO_BAU = (w: number, h: number, alt = 96): Deco => {
 }
 const DECO_CONFIRMAR = (w: number, h: number): Deco[] => [DECO_BARRIS(h), DECO_BAU(w, h)]
 
-/** nomes piratas para o botão de sortear (todos passam em validateName) */
-const NOMES_PIRATAS = [
-  'Barba Ruiva', 'Olho de Vidro', 'Perna de Pau', 'Gancho', 'Maré Alta', 'Vento Sul', 'Coral', 'Âncora',
-  'Bússola', 'Tempestade', 'Sardinha', 'Lula Gigante', 'Corsária', 'Bucaneiro', 'Cara de Sal', 'Dente de Ouro',
-  'Mão de Ferro', 'Gaivota Brava', 'Capitã Névoa', 'Marujo Feliz', 'Rato do Porão', 'Onda Brava', 'Estrela do Mar', 'Pirata Sorte',
-]
-
 const EQUIPES: ShipId[] = ['rubi', 'safira', 'esmeralda', 'ouro']
-const NOME_EQUIPE: Record<ShipId, string> = { rubi: 'Rubi', safira: 'Safira', esmeralda: 'Esmeralda', ouro: 'Ouro' }
 
 /** Seu perfil: nome e avatar, com prévia grande e as cores das 4 equipes. */
 export function ModalPerfil({
@@ -55,24 +50,24 @@ export function ModalPerfil({
   const [cor, setCor] = useState<ShipId>(ship ?? 'rubi')
   const [erro, setErro] = useState<string | null>(null)
   const anim = useSala((s) => s.prefs.animacoes)
+  const t = useT()
   const w = 1120
   const h = 680
   const confirmar = () => {
     const e = validateName(nome)
-    if (e) return setErro(e)
+    if (e) return setErro(traduzirMensagem(e, t))
     onConfirmar({ name: nome.trim().replace(/\s+/g, ' '), avatar })
   }
   const sortearNome = () => {
-    const outros = NOMES_PIRATAS.filter((n) => n !== nome)
+    const outros = t.nomesPiratas.filter((n) => n !== nome)
     setNome(outros[Math.floor(Math.random() * outros.length)])
     setErro(null)
   }
-  const info = PERSONAGENS.find((p) => p.id === avatar)
   const COL = 6
   const CEL = 112
 
   return (
-    <Modal titulo="Seu perfil" w={w} h={h} onFechar={onFechar} decos={[DECO_ANCORA(w, h)]}>
+    <Modal titulo={t.perfil.titulo} w={w} h={h} onFechar={onFechar} decos={[DECO_ANCORA(w, h)]}>
       {/* prévia */}
       <div
         style={{
@@ -97,14 +92,14 @@ export function ModalPerfil({
           <Escotilha avatar={avatar} ship={cor} tam={220} x={0} y={0} />
         </motion.div>
         <Texto x={10} y={256} w={300} centro titulo tam={30} cor="#5A3410" className="truncate">
-          {nome.trim() || 'Seu nome'}
+          {nome.trim() || t.perfil.seuNome}
         </Texto>
         <Texto x={10} y={296} w={300} centro tam={17} cor="#7A5A3A" peso={800}>
-          {info?.nome} · Navio {NOME_EQUIPE[cor]}
+          {t.perfil.avatarNavio(t.personagens[avatar], t.navios[cor])}
         </Texto>
         <div style={{ position: 'absolute', left: 20, right: 20, top: 334, height: 2, background: 'rgba(90,52,16,.15)' }} />
         <Texto x={10} y={348} w={300} centro titulo tam={18} cor="#7E3A12">
-          Cores do navio
+          {t.perfil.coresDoNavio}
         </Texto>
         <div style={{ position: 'absolute', left: 22, top: 380, width: 276, display: 'flex', justifyContent: 'space-between' }}>
           {EQUIPES.map((e) => (
@@ -112,7 +107,7 @@ export function ModalPerfil({
               key={e}
               type="button"
               onClick={() => setCor(e)}
-              aria-label={`Ver com a cor do Navio ${NOME_EQUIPE[e]}`}
+              aria-label={t.perfil.verComCor(t.navios[e])}
               aria-pressed={cor === e}
               className="avatar-opcao"
               style={{ position: 'relative', width: 64, height: 64, background: 'none', border: 0, padding: 0, opacity: cor === e ? 1 : 0.75 }}
@@ -122,13 +117,13 @@ export function ModalPerfil({
           ))}
         </div>
         <Texto x={20} y={454} w={280} centro tam={14} cor="#7A5A3A" peso={700}>
-          A cor acompanha o navio que você escolher no salão.
+          {t.perfil.corAcompanha}
         </Texto>
       </div>
 
       {/* nome */}
       <Texto x={404} y={66} titulo tam={24} cor="#5A3410">
-        Como vão te chamar?
+        {t.perfil.comoChamar}
       </Texto>
       <Campo
         x={398}
@@ -138,7 +133,7 @@ export function ModalPerfil({
         valor={nome}
         maxLength={16}
         autoFocus
-        placeholder="Seu nome (2 a 16 letras)"
+        placeholder={t.perfil.placeholder}
         erro={!!erro}
         onChange={(v) => {
           setNome(v)
@@ -146,7 +141,7 @@ export function ModalPerfil({
         }}
         onEnter={confirmar}
       />
-      <Botao cor="pequeno-marrom" x={1008} y={100} w={70} h={64} tam={28} onClick={sortearNome} title="Sortear um nome pirata">
+      <Botao cor="pequeno-marrom" x={1008} y={100} w={70} h={64} tam={28} onClick={sortearNome} title={t.perfil.sortear}>
         🎲
       </Botao>
       {erro && (
@@ -157,7 +152,7 @@ export function ModalPerfil({
 
       {/* avatares */}
       <Texto x={404} y={196} titulo tam={24} cor="#5A3410">
-        Escolha seu avatar
+        {t.perfil.escolhaAvatar}
       </Texto>
       {PERSONAGENS.map((p, i) => {
         const sel = avatar === p.id
@@ -166,7 +161,7 @@ export function ModalPerfil({
             key={p.id}
             type="button"
             onClick={() => setAvatar(p.id)}
-            aria-label={p.nome}
+            aria-label={t.personagens[p.id]}
             aria-pressed={sel}
             initial={anim ? { opacity: 0, y: 14 } : false}
             animate={{ opacity: 1, y: 0, scale: sel ? 1.06 : 1 }}
@@ -197,13 +192,13 @@ export function ModalPerfil({
                 whiteSpace: 'nowrap',
               }}
             >
-              {p.nome}
+              {t.personagens[p.id]}
             </span>
           </motion.button>
         )
       })}
 
-      <BotaoImagem nome="confirmar" x={w - 300} y={h - 130} w={210} h={84} onClick={confirmar} title="Confirmar" />
+      <BotaoTexto nome="confirmar" cor="verde" texto={t.comum.confirmar} x={w - 300} y={h - 130} w={210} h={84} onClick={confirmar} />
     </Modal>
   )
 }
@@ -234,6 +229,7 @@ export function ModalConfirmar({
   onFechar: () => void
   icone?: ReactNode
 }) {
+  const t = useT()
   const w = 680
   const h = 410
   const I = ICONE_CONFIRMAR
@@ -251,7 +247,7 @@ export function ModalConfirmar({
         {texto}
       </Texto>
       <Botao cor="marrom" x={w / 2 - 245} y={h - 122} w={225} h={74} onClick={onFechar}>
-        Cancelar
+        {t.comum.cancelar}
       </Botao>
       <Botao cor={corConfirmar} x={w / 2 + 20} y={h - 122} w={225} h={74} onClick={onConfirmar}>
         {confirmar}
@@ -263,7 +259,7 @@ export function ModalConfirmar({
 export function ModalInfo({
   titulo,
   texto,
-  botao = 'Ok',
+  botao,
   onFechar,
   icone,
   h = 360,
@@ -277,6 +273,7 @@ export function ModalInfo({
   h?: number
   extra?: ReactNode
 }) {
+  const t = useT()
   const w = 700
   return (
     <Modal titulo={titulo} w={w} h={h} onFechar={onFechar} decos={[DECO_ANCORA(w, h)]}>
@@ -286,7 +283,7 @@ export function ModalInfo({
       </Texto>
       {extra}
       <Botao cor="verde" x={w / 2 - 110} y={h - 112} w={220} h={74} onClick={onFechar}>
-        {botao}
+        {botao ?? t.comum.ok}
       </Botao>
     </Modal>
   )
@@ -295,12 +292,111 @@ export function ModalInfo({
 /** o manual fica em ComoJogar.tsx; reexportado aqui para as telas */
 export { ModalComoJogar } from './ComoJogar'
 
+/**
+ * Botão com texto desenhado na arte (Criar Sala, Entrar na Sala, Confirmar, Sair da Sala).
+ * A arte é em português; nos outros idiomas vira um Botao de cor parecida com o texto traduzido.
+ */
+export function BotaoTexto({
+  nome,
+  cor,
+  texto,
+  tam,
+  title,
+  onClick,
+  disabled,
+  ...p
+}: Pos & { nome: string; cor: CorBotao; texto: string; tam?: number; title?: string; onClick?: () => void; disabled?: boolean }) {
+  const idioma = useIdioma()
+  if (idioma === 'pt') return <BotaoImagem nome={nome} onClick={onClick} disabled={disabled} title={title ?? texto} {...p} />
+  return (
+    <Botao cor={cor} tam={tam} title={title} onClick={onClick} disabled={disabled} {...p}>
+      {texto}
+    </Botao>
+  )
+}
+
+/** Bandeira do idioma atual; abre a escolha entre as 6 placas. Fica na barra de cima das telas. */
+export function BotaoIdioma({ x, y, tam = 64 }: { x: number; y: number; tam?: number }) {
+  const [aberto, setAberto] = useState(false)
+  const t = useT()
+  const idioma = useIdioma()
+  const alt = Math.round(tam * 0.78)
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          tocar('clique')
+          setAberto(true)
+        }}
+        title={t.idioma.botao}
+        aria-label={t.idioma.botao}
+        className="botao-idioma"
+        style={{ position: 'absolute', left: x, top: y + (tam - alt) / 2, width: tam, height: alt }}
+      >
+        <img src={`${IMG}/${infoIdioma(idioma).bandeira}`} alt="" draggable={false} />
+      </button>
+      {aberto && <ModalIdioma onFechar={() => setAberto(false)} />}
+    </>
+  )
+}
+
+/** As 6 placas de idioma (lote 6); a escolhida ganha o anel dourado e o visto. */
+export function ModalIdioma({ onFechar }: { onFechar: () => void }) {
+  const t = useT()
+  const idioma = useIdioma()
+  const setPrefs = useSala((s) => s.setPrefs)
+  const anim = useSala((s) => s.prefs.animacoes)
+  const w = 1080
+  const h = 750
+  const PW = 300
+  const PH = 230
+  const GX = 30
+  const x0 = (w - 3 * PW - 2 * GX) / 2
+  return (
+    <Modal titulo={t.idioma.titulo} w={w} h={h} onFechar={onFechar} decos={[DECO_ANCORA(w, h)]}>
+      <Texto x={70} y={76} w={w - 140} centro tam={18} cor="#7A5A3A" peso={700}>
+        {t.idioma.texto}
+      </Texto>
+      {IDIOMAS.map((l, i) => {
+        const sel = l.id === idioma
+        return (
+          <motion.button
+            key={l.id}
+            type="button"
+            lang={l.lang}
+            aria-pressed={sel}
+            aria-label={l.nome}
+            onClick={() => {
+              tocar('clique')
+              setPrefs({ idioma: l.id })
+            }}
+            initial={anim ? { opacity: 0, y: 16 } : false}
+            animate={{ opacity: 1, y: 0, scale: sel ? 1.04 : 1 }}
+            whileHover={{ y: -5 }}
+            transition={{ duration: 0.22, delay: anim ? 0.08 + i * 0.04 : 0 }}
+            className={`placa-idioma${sel ? ' ativa' : ''}`}
+            style={{ position: 'absolute', left: x0 + (i % 3) * (PW + GX), top: 132 + Math.floor(i / 3) * (PH + 22), width: PW, height: PH }}
+          >
+            <img src={`${IMG}/${l.placa}`} alt="" draggable={false} />
+            {sel && <span className="selo-visto" aria-hidden>✔</span>}
+          </motion.button>
+        )
+      })}
+      <Botao cor="verde" x={w / 2 - 110} y={h - 112} w={220} h={74} onClick={onFechar}>
+        {t.comum.pronto}
+      </Botao>
+    </Modal>
+  )
+}
+
 /** Engrenagem que abre as Preferências; fica na barra de cima de todas as telas. */
 export function BotaoPreferencias({ x, y, onEditarPerfil }: { x: number; y: number; onEditarPerfil?: () => void }) {
   const [aberto, setAberto] = useState(false)
+  const t = useT()
   return (
     <>
-      <IconeNovo nome="engrenagem" x={x} y={y} w={66} h={66} onClick={() => setAberto(true)} title="Preferências" />
+      <IconeNovo nome="engrenagem" x={x} y={y} w={66} h={66} onClick={() => setAberto(true)} title={t.comum.preferencias} />
       {aberto && (
         <ModalPreferencias
           onFechar={() => setAberto(false)}
@@ -320,18 +416,21 @@ export function BotaoPreferencias({ x, y, onEditarPerfil }: { x: number; y: numb
 export function ModalPreferencias({ onFechar, onEditarPerfil }: { onFechar: () => void; onEditarPerfil?: () => void }) {
   const prefs = useSala((s) => s.prefs)
   const setPrefs = useSala((s) => s.setPrefs)
+  const t = useT()
+  const [idiomas, setIdiomas] = useState(false)
   const w = 700
-  const h = 564
+  const h = 640
   const volumes: { k: 'musica' | 'efeitos'; t: string; d: string; amostra?: () => void }[] = [
-    { k: 'musica', t: 'Música', d: 'Trilha do porto e do alto-mar' },
-    { k: 'efeitos', t: 'Efeitos sonoros', d: 'Moedas, ondas, Kraken e cliques', amostra: () => tocar('moedas') },
+    { k: 'musica', t: t.prefs.musica, d: t.prefs.musicaD },
+    { k: 'efeitos', t: t.prefs.efeitos, d: t.prefs.efeitosD, amostra: () => tocar('moedas') },
   ]
   const chaves: { k: 'mudo' | 'animacoes'; t: string; d: string }[] = [
-    { k: 'mudo', t: 'Silenciar tudo', d: 'O mesmo do ícone de som no canto da tela' },
-    { k: 'animacoes', t: 'Animações', d: 'Logo balançando, navios, cartas virando' },
+    { k: 'mudo', t: t.prefs.mudo, d: t.prefs.mudoD },
+    { k: 'animacoes', t: t.prefs.animacoes, d: t.prefs.animacoesD },
   ]
+  const atual = infoIdioma(prefs.idioma)
   return (
-    <Modal titulo="Preferências" w={w} h={h} onFechar={onFechar} decos={[DECO_ANCORA(w, h)]}>
+    <Modal titulo={t.comum.preferencias} w={w} h={h} onFechar={onFechar} decos={[DECO_ANCORA(w, h)]}>
       {volumes.map((l, i) => (
         <div key={l.k} style={{ position: 'absolute', left: 60, top: 74 + i * 82, width: w - 120, height: 70 }}>
           <Texto x={0} y={4} titulo tam={22} cor="#5A3410">
@@ -344,7 +443,7 @@ export function ModalPreferencias({ onFechar, onEditarPerfil }: { onFechar: () =
             x={w - 120 - 330}
             y={12}
             w={260}
-            rotulo={`Volume: ${l.t}`}
+            rotulo={t.prefs.volume(l.t)}
             valor={prefs[l.k]}
             disabled={prefs.mudo}
             onChange={(v) => setPrefs({ [l.k]: v })}
@@ -367,14 +466,36 @@ export function ModalPreferencias({ onFechar, onEditarPerfil }: { onFechar: () =
           <Interruptor x={w - 120 - 74} y={10} ligado={prefs[l.k]} onChange={(v) => setPrefs({ [l.k]: v })} />
         </div>
       ))}
+      {/* idioma: a bandeira atual abre as 6 placas */}
+      <div style={{ position: 'absolute', left: 60, top: 410, width: w - 120, height: 66 }}>
+        <Texto x={0} y={4} titulo tam={22} cor="#5A3410">
+          {t.idioma.titulo}
+        </Texto>
+        <Texto x={0} y={34} tam={15} cor="#7A5A3A" peso={600}>
+          {t.idioma.descricao}
+        </Texto>
+        <button
+          type="button"
+          onClick={() => {
+            tocar('clique')
+            setIdiomas(true)
+          }}
+          className="pilula-idioma"
+          style={{ position: 'absolute', right: 0, top: 6, height: 50 }}
+        >
+          <img src={`${IMG}/${atual.bandeira}`} alt="" draggable={false} />
+          <span lang={atual.lang}>{atual.nome}</span>
+        </button>
+      </div>
       {onEditarPerfil && (
         <Botao cor="marrom" x={60} y={h - 116} w={230} h={74} onClick={onEditarPerfil}>
-          Editar perfil
+          {t.prefs.editarPerfil}
         </Botao>
       )}
       <Botao cor="verde" x={w - 60 - 200} y={h - 116} w={200} h={74} onClick={onFechar}>
-        Pronto
+        {t.comum.pronto}
       </Botao>
+      {idiomas && <ModalIdioma onFechar={() => setIdiomas(false)} />}
     </Modal>
   )
 }

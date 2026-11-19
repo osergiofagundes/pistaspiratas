@@ -1,8 +1,18 @@
-import { geral as geralBruto } from './geral'
-import { mar as marBruto } from './mar'
-import { normalizar, raiz } from './normalizar'
+import * as pt from './pt/geral'
+import * as ptMar from './pt/mar'
+import * as en from './en/geral'
+import * as enMar from './en/mar'
+import * as es from './es/geral'
+import * as esMar from './es/mar'
+import * as fr from './fr/geral'
+import * as frMar from './fr/mar'
+import * as de from './de/geral'
+import * as deMar from './de/mar'
+import * as it from './it/geral'
+import * as itMar from './it/mar'
+import { IDIOMAS_PALAVRAS, ehIdioma, normalizar, raiz, type Idioma } from './normalizar'
 
-export { normalizar, raiz }
+export { IDIOMAS_PALAVRAS, ehIdioma, normalizar, raiz, type Idioma }
 
 export type Categoria = 'geral' | 'mar'
 
@@ -24,13 +34,22 @@ function unicas(lista: string[], excluir: Set<string> = new Set()): string[] {
 }
 
 /** Cada palavra aparece em uma categoria só (a temática tem prioridade). */
-export const palavrasMar = unicas(marBruto)
-export const palavrasGeral = unicas(geralBruto, new Set(palavrasMar.map(normalizar)))
-
-export const PALAVRAS: Record<Categoria, string[]> = {
-  geral: palavrasGeral,
-  mar: palavrasMar,
+function categorias(geral: string[], mar: string[]): Record<Categoria, string[]> {
+  const m = unicas(mar)
+  return { mar: m, geral: unicas(geral, new Set(m.map(normalizar))) }
 }
+
+export const PALAVRAS: Record<Idioma, Record<Categoria, string[]>> = {
+  pt: categorias(pt.geral, ptMar.mar),
+  en: categorias(en.geral, enMar.mar),
+  es: categorias(es.geral, esMar.mar),
+  fr: categorias(fr.geral, frMar.mar),
+  de: categorias(de.geral, deMar.mar),
+  it: categorias(it.geral, itMar.mar),
+}
+
+export const palavrasMar = PALAVRAS.pt.mar
+export const palavrasGeral = PALAVRAS.pt.geral
 
 /** Lê a lista colada pelo Almirante: vírgula ou quebra de linha, 2 a 20 caracteres, sem duplicadas, até 300. */
 export function lerPalavrasPersonalizadas(texto: string): { aceitas: string[]; recusadas: number } {

@@ -1,4 +1,4 @@
-import { PALAVRAS, normalizar, raiz } from '@arena/words'
+import { PALAVRAS, normalizar, raiz, type Idioma } from '@arena/words'
 import { type Rng, type ShipId, shuffle } from '@arena/platform'
 import { type CodenomesConfig, gridFor } from './config'
 
@@ -17,7 +17,8 @@ export function wordPool(config: CodenomesConfig): string[] {
   const custom = config.customWords
   if (config.onlyCustom) return dedupe(custom)
   const cats = config.categories.length ? config.categories : ['geral' as const]
-  return dedupe([...cats.flatMap((c) => PALAVRAS[c] ?? []), ...custom])
+  const lista = PALAVRAS[config.wordLanguage ?? 'pt'] ?? PALAVRAS.pt
+  return dedupe([...cats.flatMap((c) => lista[c] ?? []), ...custom])
 }
 
 function dedupe(list: string[]): string[] {
@@ -34,14 +35,14 @@ function dedupe(list: string[]): string[] {
  * Sorteia as palavras evitando a mesma raiz (Navio e Navios) e, quando dá,
  * as palavras usadas nas últimas partidas da sala.
  */
-export function drawWords(pool: string[], count: number, recent: string[], rng: Rng): string[] {
+export function drawWords(pool: string[], count: number, recent: string[], rng: Rng, idioma: Idioma = 'pt'): string[] {
   const recentSet = new Set(recent.map(normalizar))
   const fresh = pool.filter((w) => !recentSet.has(normalizar(w)))
   const source = fresh.length >= count ? fresh : pool
   const out: string[] = []
   const roots = new Set<string>()
   for (const w of shuffle(source, rng)) {
-    const r = raiz(w)
+    const r = raiz(w, idioma)
     if (roots.has(r)) continue
     roots.add(r)
     out.push(w)
@@ -65,7 +66,7 @@ export function generateBoard(
   rng: Rng,
 ): { cards: Card[]; cols: number; rows: number } {
   const g = gridFor(config)
-  const words = drawWords(wordPool(config), g.total, recent, rng)
+  const words = drawWords(wordPool(config), g.total, recent, rng, config.wordLanguage ?? 'pt')
   const owners: Owner[] = []
   for (const s of ships) for (let i = 0; i < (s === first ? g.first : g.treasures); i++) owners.push(s)
   for (let i = 0; i < g.kraken; i++) owners.push('kraken')

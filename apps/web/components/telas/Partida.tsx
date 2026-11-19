@@ -22,7 +22,8 @@ import {
   Texto,
 } from '@/components/ui'
 import { Avisos } from '@/components/ui/Avisos'
-import { BotaoPreferencias, ICONE_CONFIRMAR, ModalComoJogar, ModalConfirmar, ModalInfo } from '@/components/modais/comuns'
+import { BotaoIdioma, BotaoPreferencias, ICONE_CONFIRMAR, ModalComoJogar, ModalConfirmar, ModalInfo } from '@/components/modais/comuns'
+import { traduzirMensagem, useT } from '@/lib/i18n'
 import { Diario } from '@/components/jogo/Diario'
 import { PainelNavio, Tabuleiro } from '@/components/jogo/Paineis'
 import { useSala, type Visao } from '@/lib/sala'
@@ -52,7 +53,9 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
   const eventos = useSala((s) => s.eventos)
   const prefs = useSala((s) => s.prefs)
   const setPrefs = useSala((s) => s.setPrefs)
-  const t = useAgora(200)
+  const ms = useAgora(200)
+  const t = useT()
+  const nome = (id: ShipId) => nomeNavio(game, id, t)
 
   const me = view.players.find((p) => p.id === view.you)
   const souAlmirante = view.adminId === view.you
@@ -109,7 +112,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
   useEffect(() => {
     if (visto.current === game.startedAt) return
     visto.current = game.startedAt
-    if (game.log.length === 1 && !game.log[0].clue && t - game.startedAt < 20_000) {
+    if (game.log.length === 1 && !game.log[0].clue && ms - game.startedAt < 20_000) {
       setSorteio(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -145,7 +148,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
         setOcultarMapa(false)
       }
       if (ev.type === 'timeout')
-        setAviso({ texto: `Tempo esgotado! O Navio ${nomeNavio(game, ev.shipId)} perdeu a vez.`, seq: ev.seq })
+        setAviso({ texto: t.partida.tempoEsgotado(nome(ev.shipId)), seq: ev.seq })
       if (ev.type === 'turn') {
         setDestaque(null)
         setDica('')
@@ -172,7 +175,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
   }, [avisoCanhao])
 
   // relógio parado enquanto o aviso do canhão aparece (holdUntil)
-  const agoraRelogio = Math.max(t, turno.holdUntil ?? 0)
+  const agoraRelogio = Math.max(ms, turno.holdUntil ?? 0)
   const restante = pausada
     ? turno.deadline !== null && view.paused
       ? turno.deadline - Math.max(view.paused.since, turno.holdUntil ?? 0)
@@ -211,8 +214,8 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
 
   const darOrdem = async () => {
     const hidden = game.cards.filter((c) => !c.revealed).map((c) => c.word)
-    const err = validateClue(dica, numero, hidden, restantes)
-    if (err) return setErroDica(err)
+    const err = validateClue(dica, numero, hidden, restantes, game.settings.lang ?? 'pt')
+    if (err) return setErroDica(traduzirMensagem(err, t))
     setErroDica(null)
     const ok = await enviar({ type: 'game', action: { type: 'giveClue', word: dica.trim(), count: numero } })
     if (ok) setDica('')
@@ -221,16 +224,18 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
   const mapa = game.me.seesMap && !ocultarMapa
   const centro = turno.clue
 
+  const papel = t.partida.papel
   const roleTexto =
     role === 'capitao'
-      ? `Capitão do Navio ${nomeNavio(game, game.me.shipId!)}`
+      ? papel.capitao(nome(game.me.shipId!))
       : role === 'marujo'
-        ? `Marujo do Navio ${nomeNavio(game, game.me.shipId!)}`
+        ? papel.marujo(nome(game.me.shipId!))
         : role === 'exCapitao'
-          ? `Navio ${nomeNavio(game, game.me.shipId!)} · já viu o mapa`
+          ? papel.exCapitao(nome(game.me.shipId!))
           : game.me.shipId
-            ? 'Gaivota · navio afundado'
-            : 'Gaivota · assistindo a partida'
+            ? papel.gaivotaAfundado
+            : papel.gaivotaAssistindo
+  const navioVezNome = nome(turno.shipId)
 
   return (
     <Palco fundo="fundo-partida" escurecer={0.45}>
@@ -238,10 +243,10 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
       <div className="barra" style={{ left: 24, top: 16, width: 1872, height: 84 }} />
       <Bandeira ship={turno.shipId} x={42} y={30} w={64} h={55} />
       <Texto x={116} y={22} titulo tam={30} cor={infoVez.corClara} contorno>
-        Vez do Navio {navioVez.name}
+        {t.partida.vezDoNavio(navioVezNome)}
       </Texto>
       <Texto x={116} y={62} tam={17} cor="#F3E6C8" peso={700}>
-        {textoFase(game)}
+        {textoFase(game, t)}
       </Texto>
       {centro ? (
         <motion.div
@@ -259,7 +264,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
           </span>
           <span
             className="lilita"
-            title={`${centro.count} ${centro.count === 1 ? 'palavra' : 'palavras'}`}
+            title={t.partida.palavras(centro.count)}
             style={{
               flex: '0 0 auto',
               width: 54,
@@ -282,7 +287,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
       ) : (
         <div style={{ position: 'absolute', left: 500, top: 16, width: 690, height: 84, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span className="lilita contorno" style={{ ['--c' as string]: '#3A1D0C', fontSize: 34, lineHeight: 1, color: '#F3E6C8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } as React.CSSProperties}>
-            {souCapitaoDaVez ? 'Aguardando a sua ordem…' : `Aguardando a ordem de ${navioVez.captainName || 'Capitão'}…`}
+            {souCapitaoDaVez ? t.partida.aguardandoSua : t.partida.aguardandoDe(navioVez.captainName || t.comum.capitao)}
           </span>
         </div>
       )}
@@ -306,7 +311,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
             color: '#5A3410',
           }}
         >
-          {turno.phase === 'cannon' ? '💥 Tiro de Canhão!' : `${turno.guessesLeft} ${turno.guessesLeft === 1 ? 'palpite restante' : 'palpites restantes'}`}
+          {turno.phase === 'cannon' ? t.partida.tiroCanhao : t.partida.palpitesRestantes(turno.guessesLeft)}
         </div>
       )}
       <div
@@ -330,10 +335,11 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
       >
         {restante === null ? '∞' : formatarTempo(restante)}
       </div>
-      <BotaoPreferencias x={1592} y={25} />
-      <Icone nome={prefs.mudo ? 'som-desligado' : 'som-ligado'} x={1666} y={25} onClick={() => setPrefs({ mudo: !prefs.mudo })} title={prefs.mudo ? 'Ligar o som' : 'Silenciar'} />
-      <Icone nome="ajuda" x={1740} y={25} onClick={() => setOverlay('ajuda')} title="Como jogar" />
-      <Icone nome="fechar" x={1814} y={25} onClick={() => setOverlay(souAlmirante ? (overlay === 'menu' ? null : 'menu') : 'sair')} title={souAlmirante ? 'Menu do Almirante' : 'Sair da partida'} />
+      <BotaoIdioma x={1586} y={28} tam={56} />
+      <BotaoPreferencias x={1648} y={25} />
+      <Icone nome={prefs.mudo ? 'som-desligado' : 'som-ligado'} x={1716} y={27} w={58} h={60} onClick={() => setPrefs({ mudo: !prefs.mudo })} title={prefs.mudo ? t.comum.ligarSom : t.comum.silenciar} />
+      <Icone nome="ajuda" x={1778} y={27} w={58} h={60} onClick={() => setOverlay('ajuda')} title={t.comum.comoJogar} />
+      <Icone nome="fechar" x={1840} y={30} w={52} h={54} onClick={() => setOverlay(souAlmirante ? (overlay === 'menu' ? null : 'menu') : 'sair')} title={souAlmirante ? t.partida.menuAlmirante : t.partida.sairPartida} />
 
       {/* navios */}
       {game.turnOrder
@@ -375,7 +381,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
             <Bandeira ship={faixa.ship} x={430} y={482} w={104} h={90} />
             <Bandeira ship={faixa.ship} x={1386} y={482} w={104} h={90} />
             <Texto x={540} y={494} w={840} centro titulo tam={56} cor={SHIP_INFO[faixa.ship].corClara} contorno>
-              Vez do Navio {nomeNavio(game, faixa.ship)}
+              {t.partida.vezDoNavio(nome(faixa.ship))}
             </Texto>
           </motion.div>
         )}
@@ -388,7 +394,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
       <div className="barra" style={{ left: 24, top: 968, width: 1872, height: 96 }} />
       {me && <Avatar avatar={me.avatar} ship={me.shipId} tam={64} x={42} y={984} />}
       <Texto x={118} y={982} titulo tam={26} cor="#FFF8EC">
-        Você: {me?.name}
+        {t.partida.voce(me?.name ?? '')}
       </Texto>
       <Texto x={118} y={1018} tam={17} cor="#F3E6C8" peso={700}>
         {roleTexto}
@@ -402,7 +408,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
             w={460}
             h={60}
             valor={dica}
-            placeholder="Digite a dica (uma palavra)"
+            placeholder={t.partida.dicaPh}
             maxLength={24}
             tam={22}
             erro={!!erroDica}
@@ -421,22 +427,22 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
           )}
           <Seletor x={1036} y={988} h={52} valor={numero} min={1} max={Math.max(1, restantes)} onChange={setNumero} disabled={pausada} />
           <Botao cor="verde" x={1270} y={976} w={230} h={80} onClick={darOrdem} disabled={pausada || !dica.trim()}>
-            Dar ordem
+            {t.partida.darOrdem}
           </Botao>
           <Texto x={1520} y={984} w={250} tam={19} cor="#FFE08A" peso={800}>
-            {minhasMarcas.length} {minhasMarcas.length === 1 ? 'marcada' : 'marcadas'}
+            {t.partida.marcadas(minhasMarcas.length)}
           </Texto>
           <Texto x={1520} y={1012} w={250} tam={14} cor="#E8D2A8" peso={700}>
-            Toque nos seus tesouros para marcar. Só os Capitães veem.
+            {t.partida.toqueMarcar}
           </Texto>
         </>
       )}
       {souCapitaoDaVez && turno.phase !== 'clue' && (
         <Texto x={560} y={986} w={1100} tam={19} cor="#F3E6C8" peso={700}>
-          Ordem dada! Agora é com os Marujos. Lembre-se: o Capitão só fala pela dica.
+          {t.partida.ordemDada}
           <br />
           <span style={{ fontSize: 16, color: '#E8D2A8' }}>
-            {selecao.length} {selecao.length === 1 ? 'palavra marcada' : 'palavras marcadas'} · confirmaram {confirmaram} de {presentes.length}
+            {t.partida.selecaoResumo(selecao.length, confirmaram, presentes.length)}
           </span>
         </Texto>
       )}
@@ -448,15 +454,15 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
           w={64}
           h={64}
           onClick={() => setOcultarMapa(!ocultarMapa)}
-          title={ocultarMapa ? 'Mostrar o mapa' : 'Ocultar o mapa (para transmitir a tela)'}
+          title={ocultarMapa ? t.partida.mostrarMapa : t.partida.ocultarMapa}
         />
       )}
       {role === 'capitao' && !minhaVez && (
         <Texto x={560} y={986} w={1180} tam={19} cor="#F3E6C8" peso={700}>
-          Aguardando o Navio {navioVez.name}. Prepare a próxima ordem olhando o mapa.
+          {t.partida.aguardandoNavio(navioVezNome)}
           <br />
           <span style={{ fontSize: 16, color: '#E8D2A8' }}>
-            Toque nos tesouros do seu navio para marcar as palavras da próxima dica ({minhasMarcas.length} {minhasMarcas.length === 1 ? 'marcada' : 'marcadas'}). Só os Capitães veem.
+            {t.partida.toqueTesouros(minhasMarcas.length)}
           </span>
         </Texto>
       )}
@@ -464,9 +470,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
       {souMarujoDaVez && turno.phase !== 'clue' && (
         <>
           <Texto x={470} y={976} w={740} tam={17} cor="#F3E6C8" peso={700}>
-            {turno.phase === 'cannon'
-              ? 'Tiro livre! Marquem 1 carta qualquer e confirmem, ou abram mão do canhão.'
-              : `Marquem até ${turno.limit} ${turno.limit === 1 ? 'palavra' : 'palavras'} e confirmem. Todos precisam confirmar.`}
+            {turno.phase === 'cannon' ? t.partida.tiroLivre : t.partida.marquemAte(turno.limit)}
           </Texto>
           {/* quem já confirmou */}
           <div style={{ position: 'absolute', left: 470, top: 1006, height: 44, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -476,7 +480,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
               const ok = turno.confirms.includes(id)
               const fim = turno.endVotes.includes(id)
               return (
-                <div key={id} title={`${p.name}${ok ? ' confirmou' : fim ? ' quer encerrar' : ''}`} style={{ position: 'relative', width: 40, height: 40, opacity: ok || fim ? 1 : 0.55 }}>
+                <div key={id} title={`${p.name}${ok ? t.partida.confirmou : fim ? t.partida.querEncerrar : ''}`} style={{ position: 'relative', width: 40, height: 40, opacity: ok || fim ? 1 : 0.55 }}>
                   <Avatar avatar={p.avatar} ship={p.shipId} tam={40} x={0} y={0} />
                   {(ok || fim) && (
                     <span
@@ -504,7 +508,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
               )
             })}
             <span style={{ marginLeft: 6, fontSize: 16, fontWeight: 800, color: '#E8D2A8' }}>
-              {selecao.length > 0 ? `${selecao.length} marcada${selecao.length > 1 ? 's' : ''} · ` : ''}confirmaram {confirmaram} de {presentes.length}
+              {t.partida.confirmaram(selecao.length, confirmaram, presentes.length)}
             </span>
           </div>
           <Botao
@@ -518,7 +522,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
             onClick={confirmar}
             disabled={pausada || (!confirmei && selecao.length === 0)}
           >
-            {confirmei ? 'Cancelar confirmação' : selecao.length > 1 ? `Confirmar ${selecao.length}` : 'Confirmar'}
+            {confirmei ? t.partida.cancelarConfirmacao : t.partida.confirmarN(selecao.length)}
           </Botao>
           <Botao
             cor={pediFim ? 'marrom' : 'vermelho'}
@@ -530,24 +534,24 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
             onClick={() => encerrar()}
             disabled={pausada || (turno.phase === 'guessing' && turno.guesses < 1)}
           >
-            {pediFim ? 'Cancelar' : turno.phase === 'cannon' ? 'Abrir mão' : 'Encerrar vez'} ({querFim}/{presentes.length})
+            {pediFim ? t.comum.cancelar : turno.phase === 'cannon' ? t.partida.abrirMao : t.partida.encerrarVez} ({querFim}/{presentes.length})
           </Botao>
         </>
       )}
       {souMarujoDaVez && turno.phase === 'clue' && (
         <Texto x={500} y={1000} w={1000} tam={19} cor="#F3E6C8" peso={700}>
-          Seu Capitão está pensando na ordem…
+          {t.partida.capitaoPensando}
         </Texto>
       )}
       {!minhaVez && role !== 'capitao' && (
         <Texto x={500} y={1000} w={1000} tam={20} cor="#F3E6C8" peso={700}>
-          {role === 'gaivota' ? '👀 ' : ''}Aguardando o Navio {navioVez.name}
-          {turno.phase === 'clue' ? ' receber a ordem do Capitão.' : ` escolher as palavras (${selecao.length} marcada${selecao.length === 1 ? '' : 's'}, confirmaram ${confirmaram} de ${presentes.length}).`}
+          {role === 'gaivota' ? '👀 ' : ''}
+          {turno.phase === 'clue' ? t.partida.aguardandoOrdem(navioVezNome) : t.partida.aguardandoEscolha(navioVezNome, selecao.length, confirmaram, presentes.length)}
         </Texto>
       )}
       {role === 'exCapitao' && minhaVez && (
         <Texto x={500} y={1000} w={1000} tam={19} cor="#F3E6C8" peso={700}>
-          Você já viu o mapa, então assiste sem votar. Torça pelo seu navio!
+          {t.partida.jaViuMapa}
         </Texto>
       )}
 
@@ -557,14 +561,14 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
           <FundoEscuro opacidade={0.6} />
           <IconeNovo nome="pausa" x={900} y={330} w={120} h={120} />
           <Texto x={0} y={470} w={1920} centro titulo tam={64} cor="#FFF8EC" contorno>
-            Partida pausada
+            {t.partida.pausada}
           </Texto>
           <Texto x={0} y={556} w={1920} centro tam={24} cor="#F3E6C8" peso={700}>
-            {souAlmirante ? 'O relógio está parado para todos.' : `O Almirante ${view.players.find((p) => p.id === view.paused?.by)?.name ?? ''} pausou a partida. O relógio está parado.`}
+            {souAlmirante ? t.partida.relogioParado : t.partida.almirantePausou(view.players.find((p) => p.id === view.paused?.by)?.name ?? '')}
           </Texto>
           {souAlmirante && (
             <Botao cor="verde" x={820} y={620} w={280} h={90} onClick={() => enviar({ type: 'resume' })}>
-              Retomar
+              {t.partida.retomar}
             </Botao>
           )}
         </div>
@@ -578,15 +582,15 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px 10px' }}>
               <img src="/img/itens/brasao-almirante.webp" alt="" style={{ width: 40, height: 37 }} />
               <span className="lilita" style={{ fontSize: 24, color: '#5A3410' }}>
-                Menu do Almirante
+                {t.partida.menuAlmirante}
               </span>
             </div>
             {[
               pausada
-                ? { i: 'play' as const, t: 'Retomar partida', d: 'O relógio volta a correr', f: () => enviar({ type: 'resume' }) }
-                : { i: 'pausa' as const, t: 'Pausar partida', d: 'Para o relógio de todos', f: () => enviar({ type: 'pause' }) },
-              { i: 'sair' as const, t: 'Sair da sala', d: me?.shipId ? `Você deixa o Navio ${nomeNavio(game, me.shipId)}` : 'Você deixa a sala', f: () => setOverlay('sair') },
-              { i: 'cadeado' as const, t: 'Encerrar partida', d: 'Todos voltam ao salão', f: () => setOverlay('encerrar'), cor: '#B3261E' },
+                ? { i: 'play' as const, t: t.partida.menu.retomar, d: t.partida.menu.retomarD, f: () => enviar({ type: 'resume' }) }
+                : { i: 'pausa' as const, t: t.partida.menu.pausar, d: t.partida.menu.pausarD, f: () => enviar({ type: 'pause' }) },
+              { i: 'sair' as const, t: t.partida.menu.sair, d: me?.shipId ? t.partida.menu.sairD(nome(me.shipId)) : t.partida.menu.sairDSemNavio, f: () => setOverlay('sair') },
+              { i: 'cadeado' as const, t: t.partida.menu.encerrar, d: t.partida.menu.encerrarD, f: () => setOverlay('encerrar'), cor: '#B3261E' },
             ].map((o) => (
               <button
                 key={o.t}
@@ -617,14 +621,10 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
       {overlay === 'ajuda' && <ModalComoJogar onFechar={() => setOverlay(null)} />}
       {overlay === 'sair' && (
         <ModalConfirmar
-          titulo="Sair da partida"
-          pergunta="Abandonar o navio?"
-          texto={
-            role === 'capitao'
-              ? 'Você é o Capitão! Se sair, outro Marujo do navio assume e passa a ver o mapa.'
-              : 'A partida continua sem você.'
-          }
-          confirmar="Sair"
+          titulo={t.partida.sairPartida}
+          pergunta={t.partida.sairModal.pergunta}
+          texto={role === 'capitao' ? t.partida.sairModal.textoCapitao : t.partida.sairModal.texto}
+          confirmar={t.comum.sair}
           onFechar={() => setOverlay(null)}
           onConfirmar={async () => {
             await enviar({ type: 'leave' })
@@ -634,11 +634,11 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
       )}
       {overlay === 'encerrar' && (
         <ModalConfirmar
-          titulo="Encerrar partida"
-          pergunta="Encerrar a partida?"
-          texto="Ela termina agora, sem vencedor. Todos veem o mapa e depois voltam ao salão."
+          titulo={t.partida.encerrarModal.titulo}
+          pergunta={t.partida.encerrarModal.pergunta}
+          texto={t.partida.encerrarModal.texto}
           icone={<Imagem src="itens/brasao-almirante.webp" x={0} y={0} w={ICONE_CONFIRMAR} h={ICONE_CONFIRMAR} />}
-          confirmar="Encerrar"
+          confirmar={t.partida.encerrarModal.confirmar}
           onFechar={() => setOverlay(null)}
           onConfirmar={() => {
             enviar({ type: 'endGame' })
@@ -647,13 +647,13 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
         />
       )}
       {typeof overlay === 'object' && overlay?.tipo === 'canhao' && turno.phase === 'cannon' && (
-        <Modal titulo="Tiro de Canhão!" w={700} h={460} onFechar={() => setOverlay(null)} decos={[DECO_ANCORA(700, 460)]}>
+        <Modal titulo={t.partida.canhaoModal.titulo} w={700} h={460} onFechar={() => setOverlay(null)} decos={[DECO_ANCORA(700, 460)]}>
           <Texto x={60} y={70} w={580} centro tam={21} cor="#5A3410" peso={700}>
-            Vocês acertaram todas as palavras da ordem! Ganharam um palpite livre em qualquer carta do tabuleiro.
+            {t.partida.canhaoModal.texto}
           </Texto>
           <IconeNovo nome="canhao" x={310} y={160} w={80} h={80} />
           <Texto x={60} y={252} w={580} centro tam={15} cor="#7A5A3A" peso={700}>
-            O relógio fica parado enquanto este aviso aparece.
+            {t.partida.canhaoModal.relogio}
           </Texto>
           {/* o aviso some sozinho: a barrinha mostra o tempo */}
           <div style={{ position: 'absolute', left: 120, right: 120, top: 284, height: 8, borderRadius: 4, background: 'rgba(90,52,16,.18)', overflow: 'hidden' }}>
@@ -665,7 +665,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
             />
           </div>
           <Botao cor="azul" x={60} y={330} w={320} h={80} tam={24} onClick={() => setOverlay(null)}>
-            Disparar canhão
+            {t.partida.canhaoModal.disparar}
           </Botao>
           <Botao
             cor="cinza"
@@ -679,19 +679,20 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
               setOverlay(null)
             }}
           >
-            Agora não
+            {t.partida.canhaoModal.agoraNao}
           </Botao>
         </Modal>
       )}
       {typeof overlay === 'object' && overlay?.tipo === 'afundou' && (
         <ModalInfo
-          titulo="Navio afundado!"
+          titulo={t.partida.afundou.titulo}
           h={470}
           icone={<Navio ship={overlay.ship as never} afundado x={-60} y={-10} w={190} h={125} />}
           texto={
             <>
               <br />
-              <br />O Navio {nomeNavio(game, overlay.ship as never)} encontrou o Kraken e afundou! A tripulação agora assiste como Gaivota.
+              <br />
+              {t.partida.afundou.texto(nome(overlay.ship as ShipId))}
             </>
           }
           onFechar={() => setOverlay(null)}
@@ -699,16 +700,16 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
       )}
       {typeof overlay === 'object' && overlay?.tipo === 'capitao' && (
         <ModalInfo
-          titulo="Você virou Capitão!"
+          titulo={t.partida.virouCapitao.titulo}
           h={440}
           icone={me ? <Escotilha avatar={me.avatar} ship={me.shipId} tam={80} /> : undefined}
-          texto="O Capitão anterior caiu. Agora você vê o mapa e dá as ordens do seu navio. Só fale pela dica!"
-          botao="Ao leme!"
+          texto={t.partida.virouCapitao.texto}
+          botao={t.partida.virouCapitao.botao}
           onFechar={() => setOverlay(null)}
         />
       )}
       {sorteio && (
-        <Modal titulo="Capitães sorteados" w={900} h={300} onFechar={() => setSorteio(false)} decos={[DECO_ANCORA(900, 300)]} y={330}>
+        <Modal titulo={t.partida.sorteados.titulo} w={900} h={300} onFechar={() => setSorteio(false)} decos={[DECO_ANCORA(900, 300)]} y={330}>
           <div style={{ position: 'absolute', left: 50, right: 50, top: 60, display: 'flex', justifyContent: 'space-around' }}>
             {game.ships.map((s) => {
               const cap = view.players.find((p) => p.id === s.captainId)
@@ -718,14 +719,13 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
                   <div className="lilita" style={{ position: 'absolute', left: 0, right: 0, top: 88, fontSize: 20, color: SHIP_INFO[s.id].cor }}>
                     {cap?.name ?? '—'}
                   </div>
-                  <div style={{ position: 'absolute', left: 0, right: 0, top: 114, fontSize: 14, fontWeight: 700, color: '#7A5A3A' }}>Navio {s.name}</div>
+                  <div style={{ position: 'absolute', left: 0, right: 0, top: 114, fontSize: 14, fontWeight: 700, color: '#7A5A3A' }}>{t.comum.navio(nome(s.id))}</div>
                 </div>
               )
             })}
           </div>
           <Texto x={0} y={214} w={900} centro tam={18} cor="#5A3410" peso={700}>
-            Começa o Navio {nomeNavio(game, game.firstShip)}
-            {bonusPrimeiro ? ', com 1 tesouro a mais.' : '.'}
+            {t.partida.sorteados.comeca(nome(game.firstShip), bonusPrimeiro)}
           </Texto>
           {/* o aviso some sozinho: a barrinha mostra o tempo */}
           <div style={{ position: 'absolute', left: 120, right: 120, top: 252, height: 8, borderRadius: 4, background: 'rgba(90,52,16,.18)', overflow: 'hidden' }}>

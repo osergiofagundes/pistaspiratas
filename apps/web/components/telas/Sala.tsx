@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Palco, Texto } from '@/components/ui'
-import { BotaoPreferencias, ModalInfo, ModalPerfil } from '@/components/modais/comuns'
+import { BotaoIdioma, BotaoPreferencias, ModalInfo, ModalPerfil } from '@/components/modais/comuns'
+import { useT } from '@/lib/i18n'
 import { entrarNaSala, type ErroEntrada } from '@/lib/api'
 import { perfil as lerPerfil, salvarPerfil, type Perfil } from '@/lib/identidade'
 import { conectar, desconectar, useSala } from '@/lib/sala'
@@ -11,17 +12,6 @@ import { Partida } from './Partida'
 import { Fim } from './Fim'
 
 type Etapa = 'perfil' | 'entrando' | 'dentro' | { erro: ErroEntrada | 'kicked' | 'expired' | 'not-member' }
-
-const MENSAGENS: Record<string, { titulo: string; texto: string }> = {
-  'not-found': { titulo: 'Sala encerrada', texto: 'Essa sala não existe mais. As salas expiram 30 minutos depois que todos saem.' },
-  expired: { titulo: 'Sala encerrada', texto: 'Essa sala foi encerrada porque ficou vazia.' },
-  full: { titulo: 'Sala cheia', texto: 'Essa sala já atingiu o limite de jogadores. Peça ao Almirante para aumentar o tamanho da sala.' },
-  banned: { titulo: 'Removido da sala', texto: 'O Almirante removeu você desta sala. Você pode criar uma sala nova na tela inicial.' },
-  kicked: { titulo: 'Removido da sala', texto: 'O Almirante removeu você desta sala. Você pode criar uma sala nova na tela inicial.' },
-  'no-spectators': { titulo: 'Partida em andamento', texto: 'A partida já começou e esta sala não aceita espectadores. Tente de novo quando ela acabar.' },
-  'bad-token': { titulo: 'Sessão inválida', texto: 'Não foi possível confirmar quem você é. Recarregue a página.' },
-  'not-member': { titulo: 'Fora da sala', texto: 'Você não está mais nesta sala. Volte para o início e entre de novo pelo link.' },
-}
 
 /** Página da sala: perfil, entrada, conexão em tempo real e a tela de cada fase. */
 export function Sala({ code }: { code: string }) {
@@ -34,6 +24,7 @@ export function Sala({ code }: { code: string }) {
   const fechado = useSala((s) => s.fechado)
   const conectado = useSala((s) => s.conectado)
   const tentou = useRef(false)
+  const t = useT()
 
   const entrar = async (p: Perfil) => {
     setEtapa('entrando')
@@ -74,11 +65,12 @@ export function Sala({ code }: { code: string }) {
   }, [fechado, router, code])
 
   if (typeof etapa === 'object') {
-    const m = MENSAGENS[etapa.erro] ?? MENSAGENS['not-found']
+    const m = t.sala.erros[etapa.erro] ?? t.sala.erros['not-found']
     return (
       <Palco fundo="fundo-salao" escurecer={0.35}>
+        <BotaoIdioma x={1726} y={42} />
         <BotaoPreferencias x={1804} y={42} />
-        <ModalInfo titulo={m.titulo} texto={m.texto} botao="Voltar ao início" onFechar={() => router.push('/')} />
+        <ModalInfo titulo={m.titulo} texto={m.texto} botao={t.sala.voltarInicio} onFechar={() => router.push('/')} />
       </Palco>
     )
   }
@@ -86,9 +78,10 @@ export function Sala({ code }: { code: string }) {
   if (etapa === 'perfil') {
     return (
       <Palco fundo="fundo-salao" escurecer={0.35}>
+        <BotaoIdioma x={1726} y={42} />
         <BotaoPreferencias x={1804} y={42} />
         <Texto x={0} y={120} w={1920} centro titulo tam={40} cor="#FFF8EC" contorno>
-          Você foi convidado para a sala {code}!
+          {t.sala.convidado(code)}
         </Texto>
         <ModalPerfil
           inicial={perfil}
@@ -101,7 +94,7 @@ export function Sala({ code }: { code: string }) {
         />
         {erroNome && (
           <Texto x={0} y={980} w={1920} centro tam={22} cor="#FFB4A8" className="contorno-fino">
-            Esse nome não pode ser usado. Escolha outro.
+            {t.sala.nomeInvalido}
           </Texto>
         )}
       </Palco>
@@ -111,9 +104,10 @@ export function Sala({ code }: { code: string }) {
   if (!view) {
     return (
       <Palco fundo="fundo-salao" escurecer={0.35}>
+        <BotaoIdioma x={1726} y={42} />
         <BotaoPreferencias x={1804} y={42} />
         <Texto x={0} y={500} w={1920} centro titulo tam={44} cor="#FFF8EC" contorno>
-          Içando as velas…
+          {t.sala.icando}
         </Texto>
       </Palco>
     )
@@ -128,9 +122,9 @@ export function Sala({ code }: { code: string }) {
           extra={
             gaivota && (
               <ModalInfo
-                titulo="Partida em andamento"
-                texto="A partida já começou, então você entra assistindo. Quando ela acabar, escolha um navio no salão."
-                botao="Assistir"
+                titulo={t.sala.emAndamento}
+                texto={t.sala.emAndamentoTexto}
+                botao={t.sala.assistir}
                 onFechar={() => setGaivota(false)}
               />
             )
@@ -154,7 +148,7 @@ export function Sala({ code }: { code: string }) {
             fontSize: 18,
           }}
         >
-          Reconectando…
+          {t.sala.reconectando}
         </div>
       )}
     </>

@@ -1,9 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { PERSONAGENS, isValidCode, normalizeCode } from '@arena/platform'
+import { isValidCode, normalizeCode } from '@arena/platform'
 import {
-  BotaoImagem,
   Campo,
   Entrar,
   Escotilha,
@@ -15,7 +14,8 @@ import {
   Placa,
   Texto,
 } from '@/components/ui'
-import { BotaoPreferencias, DECO_BARRIS, DECO_BAU, ModalComoJogar, ModalInfo, ModalPerfil } from '@/components/modais/comuns'
+import { BotaoIdioma, BotaoPreferencias, BotaoTexto, DECO_BARRIS, DECO_BAU, ModalComoJogar, ModalInfo, ModalPerfil } from '@/components/modais/comuns'
+import { useIdioma, useT } from '@/lib/i18n'
 import { criarSala, infoSala } from '@/lib/api'
 import { perfil as lerPerfil, salvarPerfil, type Perfil } from '@/lib/identidade'
 import { useSala } from '@/lib/sala'
@@ -33,6 +33,8 @@ export function Inicio({ erroInicial }: { erroInicial?: string | null }) {
   const [depoisDoPerfil, setDepoisDoPerfil] = useState<null | (() => void)>(null)
   const [ocupado, setOcupado] = useState(false)
   const mudo = useSala((s) => s.prefs.mudo)
+  const t = useT()
+  const idioma = useIdioma()
   useMusica('porto')
   const setPrefs = useSala((s) => s.setPrefs)
 
@@ -49,24 +51,24 @@ export function Inicio({ erroInicial }: { erroInicial?: string | null }) {
   const criar = () =>
     comPerfil(async () => {
       setOcupado(true)
-      const code = await criarSala()
+      const code = await criarSala(idioma)
       router.push(`/sala/${code}`)
     })
 
   const entrar = () => {
     const code = normalizeCode(codigo)
-    if (!isValidCode(code)) return setErro('O código tem 6 letras e números, como K7PX2M.')
+    if (!isValidCode(code)) return setErro(t.inicio.erroCodigo)
     comPerfil(async () => {
       setOcupado(true)
       const info = await infoSala(code)
       setOcupado(false)
-      if (!info) return setErro('Não achamos essa sala. Confira o código com o Almirante.')
+      if (!info) return setErro(t.inicio.naoAchamos)
       if (info.players >= info.maxPlayers) return setModal('cheia')
       router.push(`/sala/${code}`)
     })
   }
 
-  const nomeAvatar = PERSONAGENS.find((p) => p.id === perfil?.avatar)?.nome
+  const nomeAvatar = perfil ? t.personagens[perfil.avatar] : ''
 
   return (
     <Palco fundo="fundo-inicio" escurecer={0.08}>
@@ -75,7 +77,7 @@ export function Inicio({ erroInicial }: { erroInicial?: string | null }) {
         type="button"
         onClick={() => setModal('perfil')}
         className="pilula-escura"
-        style={{ position: 'absolute', left: 1316, top: 38, width: 302, height: 74, textAlign: 'left' }}
+        style={{ position: 'absolute', left: 1238, top: 38, width: 302, height: 74, textAlign: 'left' }}
       >
         {perfil ? (
           <Escotilha avatar={perfil.avatar} ship="rubi" tam={66} x={4} y={2} />
@@ -83,14 +85,15 @@ export function Inicio({ erroInicial }: { erroInicial?: string | null }) {
           <IconeNovo nome="mais" x={10} y={10} w={50} h={50} />
         )}
         <span className="lilita" style={{ position: 'absolute', left: 80, top: 10, fontSize: 24, color: '#FFF8EC' }}>
-          {perfil?.name ?? 'Criar perfil'}
+          {perfil?.name ?? t.inicio.criarPerfil}
         </span>
         <span style={{ position: 'absolute', left: 80, top: 42, fontSize: 14, color: '#E8D2A8', fontWeight: 700 }}>
-          {perfil ? `${nomeAvatar} · editar perfil` : 'nome e avatar'}
+          {perfil ? t.inicio.editarPerfil(nomeAvatar) : t.inicio.nomeAvatar}
         </span>
       </button>
-      <Icone nome={mudo ? 'som-desligado' : 'som-ligado'} x={1648} y={42} onClick={() => setPrefs({ mudo: !mudo })} title={mudo ? 'Ligar o som' : 'Silenciar'} />
-      <Icone nome="ajuda" x={1726} y={42} onClick={() => setModal('ajuda')} title="Como jogar" />
+      <BotaoIdioma x={1570} y={42} />
+      <Icone nome={mudo ? 'som-desligado' : 'som-ligado'} x={1648} y={42} onClick={() => setPrefs({ mudo: !mudo })} title={mudo ? t.comum.ligarSom : t.comum.silenciar} />
+      <Icone nome="ajuda" x={1726} y={42} onClick={() => setModal('ajuda')} title={t.comum.comoJogar} />
       <BotaoPreferencias x={1804} y={42} onEditarPerfil={() => setModal('perfil')} />
 
       {/* lado esquerdo: logo, faixa e chips */}
@@ -102,8 +105,8 @@ export function Inicio({ erroInicial }: { erroInicial?: string | null }) {
       <Entrar atraso={0.25}>
         <div className="flutuar" style={{ position: 'absolute', left: 190, top: 574, width: 724, height: 176, animationDelay: '-2s' }}>
           <Imagem src="interface/molduras/faixa.webp" x={0} y={0} w={724} h={176} />
-          <Texto x={60} y={62} w={604} centro titulo tam={27} cor="#5A3410">
-            Dê dicas, ache tesouros e fuja do Kraken!
+          <Texto x={60} y={t.inicio.slogan.length > 44 ? 66 : 62} w={604} centro titulo tam={t.inicio.slogan.length > 44 ? 23 : 27} cor="#5A3410">
+            {t.inicio.slogan}
           </Texto>
         </div>
       </Entrar>
@@ -112,7 +115,7 @@ export function Inicio({ erroInicial }: { erroInicial?: string | null }) {
         <div style={{ position: 'absolute', left: 190, top: 790, width: 724, display: 'flex', justifyContent: 'center' }}>
           <div className="pilula-escura" style={{ position: 'relative', height: 56, padding: '0 26px', display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
             <span className="lilita" style={{ fontSize: 20 }}>
-              Desenvolvido por Sérgio Fagundes ·
+              {t.inicio.creditos}
             </span>
             <a
               href="https://www.linkedin.com/in/sergiofagundes/"
@@ -130,21 +133,21 @@ export function Inicio({ erroInicial }: { erroInicial?: string | null }) {
       {/* painel Jogar agora */}
       <Entrar atraso={0.2} de="direita">
       <Moldura x={1184} y={200} w={632} h={612} />
-      <Placa texto="Jogar agora" x={1356} y={180} w={290} tam={26} />
+      <Placa texto={t.inicio.jogarAgora} x={1356} y={180} w={290} tam={26} />
       {/* barris e baú apoiados nos cantos de baixo da moldura (base em 200 + 612) */}
       {[DECO_BARRIS(612, 136), DECO_BAU(632, 612, 112)].map((d) => (
         <Imagem key={d.src} src={d.src} x={1184 + d.x} y={200 + d.y} w={d.w} h={d.h} />
       ))}
       <Texto x={1184} y={268} w={632} centro titulo tam={34} cor="#5A3410">
-        Monte sua tripulação
+        {t.inicio.monte}
       </Texto>
       <Texto x={1184} y={314} w={632} centro tam={19} cor="#7A5A3A" peso={700}>
-        Crie uma sala e chame os amigos pelo link.
+        {t.inicio.crie}
       </Texto>
-      <BotaoImagem nome="criar-sala" className="brilho" x={1316} y={372} w={368} h={128} onClick={criar} disabled={ocupado} title="Criar Sala" />
+      <BotaoTexto nome="criar-sala" cor="marrom" texto={t.inicio.criarSala} tam={44} className="brilho" x={1316} y={372} w={368} h={128} onClick={criar} disabled={ocupado} />
       <div style={{ position: 'absolute', left: 1240, top: 556, width: 520, height: 2, background: 'rgba(90,52,16,.25)' }} />
       <div style={{ position: 'absolute', left: 1384, top: 544, width: 232, textAlign: 'center', background: '#F3DDB0', fontSize: 16, fontWeight: 700, color: '#7A5A3A' }}>
-        ou entre com o código
+        {t.inicio.ouEntre}
       </div>
       <Campo
         x={1236}
@@ -152,7 +155,7 @@ export function Inicio({ erroInicial }: { erroInicial?: string | null }) {
         w={326}
         h={62}
         valor={codigo}
-        placeholder="Código da sala"
+        placeholder={t.inicio.codigo}
         maxLength={8}
         tam={24}
         erro={!!erro}
@@ -162,14 +165,14 @@ export function Inicio({ erroInicial }: { erroInicial?: string | null }) {
         }}
         onEnter={entrar}
       />
-      <BotaoImagem nome="entrar-na-sala" x={1572} y={600} w={196} h={76} onClick={entrar} disabled={ocupado} title="Entrar na Sala" />
+      <BotaoTexto nome="entrar-na-sala" cor="marrom" texto={t.inicio.entrar} title={t.inicio.entrarNaSala} tam={26} x={1572} y={600} w={196} h={76} onClick={entrar} disabled={ocupado} />
       {erro ? (
         <Texto x={1236} y={676} w={540} tam={16} cor="#B3261E">
           {erro}
         </Texto>
       ) : (
         <Texto x={1236} y={694} w={540} centro tam={16} cor="#7A5A3A" peso={600}>
-          Sem conta e sem download: crie a sala e mande o link no Discord.
+          {t.inicio.semConta}
         </Texto>
       )}
       </Entrar>
@@ -194,8 +197,8 @@ export function Inicio({ erroInicial }: { erroInicial?: string | null }) {
       {modal === 'ajuda' && <ModalComoJogar onFechar={() => setModal(null)} />}
       {modal === 'cheia' && (
         <ModalInfo
-          titulo="Sala cheia"
-          texto="Essa sala já atingiu o limite de jogadores. Peça ao Almirante para aumentar o tamanho da sala ou crie uma nova."
+          titulo={t.inicio.salaCheia}
+          texto={t.inicio.salaCheiaTexto}
           onFechar={() => setModal(null)}
         />
       )}

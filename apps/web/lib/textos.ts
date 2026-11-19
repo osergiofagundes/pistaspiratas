@@ -1,8 +1,16 @@
 import { SHIP_INFO, type ShipId } from '@arena/platform'
-import type { CodenomesView, EndReason, LogEntry, Owner } from '@arena/codenomes'
+import type { CodenomesView, LogEntry, Owner } from '@arena/codenomes'
+import { traduzNavio, type Dicionario } from './i18n'
 
-export function nomeNavio(view: CodenomesView | null, id: ShipId): string {
-  return view?.ships.find((s) => s.id === id)?.name ?? SHIP_INFO[id].nome
+/** Nome do navio na partida; os nomes padrão (Rubi, Safira…) saem no idioma escolhido. */
+export function nomeNavio(view: CodenomesView | null, id: ShipId, t: Dicionario): string {
+  const nome = view?.ships.find((s) => s.id === id)?.name
+  return nome ? traduzNavio(t, nome, id) : t.navios[id]
+}
+
+/** Nome do navio no salão: o que o Almirante deu ou o padrão traduzido. */
+export function nomeNavioConfig(nomes: Partial<Record<ShipId, string>>, id: ShipId, t: Dicionario): string {
+  return nomes[id] || t.navios[id]
 }
 
 export function corDono(owner: Owner): string {
@@ -11,55 +19,38 @@ export function corDono(owner: Owner): string {
   return SHIP_INFO[owner].cor
 }
 
-export function rotuloDono(view: CodenomesView, owner: Owner): string {
-  if (owner === 'mar') return 'Mar Aberto'
-  if (owner === 'kraken') return 'Kraken!'
-  return `Tesouro ${nomeNavio(view, owner)}`
-}
-
-const FIM: Record<EndReason, string> = {
-  mar: 'caiu no Mar Aberto · vez encerrada',
-  outro: 'achou tesouro de outro navio',
-  eliminado: 'armadilha de navio afundado',
-  kraken: 'encontrou o Kraken',
-  encerrou: 'vez encerrada',
-  tempo: 'acabou o tempo',
-  tempoCapitao: 'o Capitão perdeu o tempo',
-  todos: 'acertou tudo · vez encerrada',
-  canhao: 'vez encerrada',
-  semCanhao: 'abriu mão do canhão',
-  semMarujos: 'vez pulada',
-  vitoria: 'fim de jogo',
-  encerrada: 'partida encerrada',
+export function rotuloDono(view: CodenomesView, owner: Owner, t: Dicionario): string {
+  if (owner === 'mar') return t.textos.marAberto
+  if (owner === 'kraken') return t.textos.kraken
+  return t.textos.tesouroDe(nomeNavio(view, owner, t))
 }
 
 /** Rodapé de uma entrada do Diário, por exemplo "3 de 3 + canhão · vez encerrada". */
-export function resumoEntrada(e: LogEntry, ativo: boolean, view: CodenomesView): string {
-  if (ativo && !e.clue) {
-    const nome = e.captainName || 'Capitão'
-    return `${nome} pensando na dica…`
-  }
+export function resumoEntrada(e: LogEntry, ativo: boolean, view: CodenomesView, t: Dicionario): string {
+  const x = t.textos
+  if (ativo && !e.clue) return x.pensando(e.captainName || t.comum.capitao)
   const normais = e.picks.filter((p) => !p.cannon)
   const certos = normais.filter((p) => p.owner === e.shipId).length
   const canhao = e.picks.some((p) => p.cannon)
   if (ativo) {
-    if (view.turn.phase === 'cannon') return 'Canhão liberado!'
-    return normais.length ? `${certos} de ${e.clue?.count ?? 0} acertos` : 'Aguardando palpites'
+    if (view.turn.phase === 'cannon') return x.canhaoLiberado
+    return normais.length ? x.acertosDe(certos, e.clue?.count ?? 0) : x.aguardandoPalpites
   }
   if (!e.end) return ''
-  if (e.end === 'tempoCapitao' || e.end === 'semMarujos') return FIM[e.end]
-  if (!e.clue) return FIM[e.end]
-  const base = `${certos} de ${e.clue.count}${canhao ? ' + tiro de canhão' : ''}`
-  if (e.end === 'canhao' || e.end === 'todos') return `${base} · vez encerrada`
-  return `${base} · ${FIM[e.end]}`
+  if (e.end === 'tempoCapitao' || e.end === 'semMarujos') return x.fim[e.end]
+  if (!e.clue) return x.fim[e.end]
+  const base = x.base(certos, e.clue.count, canhao)
+  if (e.end === 'canhao' || e.end === 'todos') return `${base} · ${x.vezEncerrada}`
+  return `${base} · ${x.fim[e.end]}`
 }
 
-export function textoFase(view: CodenomesView): string {
-  if (view.finishReason) return 'Fim de jogo'
-  if (view.paused) return 'Partida pausada'
-  if (view.turn.phase === 'clue') return 'Fase 1 · Ordem do Capitão'
-  if (view.turn.phase === 'cannon') return 'Tiro de Canhão!'
-  return 'Fase 2 · Palpites dos Marujos'
+export function textoFase(view: CodenomesView, t: Dicionario): string {
+  const f = t.partida.fase
+  if (view.finishReason) return f.fim
+  if (view.paused) return f.pausada
+  if (view.turn.phase === 'clue') return f.clue
+  if (view.turn.phase === 'cannon') return f.cannon
+  return f.guessing
 }
 
 export function formatarTempo(ms: number): string {
@@ -68,23 +59,23 @@ export function formatarTempo(ms: number): string {
 }
 
 /** Texto do "Copiar resumo" para colar no Discord. */
-export function resumoPartida(view: CodenomesView): string {
+export function resumoPartida(view: CodenomesView, t: Dicionario): string {
   const linhas: string[] = []
-  const vencedor = view.winner ? `Vitória do Navio ${nomeNavio(view, view.winner)}!` : 'Partida encerrada'
+  const vencedor = view.winner ? t.fim.vitoriaDo(nomeNavio(view, view.winner, t)) : t.fim.encerrada
   const minutos = view.finishedAt ? Math.max(1, Math.round((view.finishedAt - view.startedAt) / 60000)) : 0
-  linhas.push(`🏴‍☠️ Pistas Piratas — ${vencedor} (${view.log.length} turnos, ${minutos} min)`)
+  linhas.push(t.textos.resumoTitulo(vencedor, view.log.length, minutos))
   for (const e of view.log) {
     if (!e.clue && e.picks.length === 0) continue
-    const nome = nomeNavio(view, e.shipId)
+    const nome = nomeNavio(view, e.shipId, t)
     const picks = e.picks
-      .map((p) => `${p.cannon ? '💥 ' : ''}${p.word} ${p.owner === e.shipId ? '✔' : `✘ (${rotuloDono(view, p.owner)})`}`)
+      .map((p) => `${p.cannon ? '💥 ' : ''}${p.word} ${p.owner === e.shipId ? '✔' : `✘ (${rotuloDono(view, p.owner, t)})`}`)
       .join(', ')
-    linhas.push(`Turno ${e.number} · ${nome} (${e.captainName}): ${e.clue ? `${e.clue.word} ${e.clue.count}` : '—'}${picks ? ` → ${picks}` : ''}`)
+    linhas.push(`${t.textos.resumoTurno(e.number, nome, e.captainName)}: ${e.clue ? `${e.clue.word} ${e.clue.count}` : '—'}${picks ? ` → ${picks}` : ''}`)
   }
   const placar = [...view.ships]
     .sort((a, b) => b.total - b.left - (a.total - a.left))
-    .map((s) => `${s.name} ${s.total - s.left}/${s.total}${s.eliminated ? ' (afundado)' : ''}`)
+    .map((s) => `${nomeNavio(view, s.id, t)} ${s.total - s.left}/${s.total}${s.eliminated ? t.textos.afundado : ''}`)
     .join(' · ')
-  linhas.push(`Placar: ${placar}`)
+  linhas.push(t.textos.placar(placar))
   return linhas.join('\n')
 }

@@ -6,7 +6,8 @@ export type Jogador = Page & { nome: string }
 export const imagensQuebradas = new Set<string>()
 
 export async function jogador(browser: Browser, nome: string, avatar = 'papagaio'): Promise<Jogador> {
-  const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 } })
+  // contexto criado à mão não herda o "use" da config: o idioma do navegador vai aqui
+  const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 }, locale: 'pt-BR' })
   await ctx.addInitScript(
     ([n, a]) => {
       localStorage.setItem('arena.perfil', JSON.stringify({ name: n, avatar: a }))

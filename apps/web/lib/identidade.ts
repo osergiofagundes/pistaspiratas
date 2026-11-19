@@ -1,4 +1,5 @@
 import type { Personagem } from '@arena/platform'
+import { detectarIdioma, ehIdioma, type Idioma } from './i18n/idiomas'
 
 /** Identificador anônimo e token secreto do navegador (6.2), guardados no localStorage. */
 export type Identidade = { id: string; token: string }
@@ -41,9 +42,9 @@ export function salvarPerfil(p: Perfil) {
   gravar('arena.perfil', p)
 }
 
-/** Volumes de 0 a 1; mudo silencia tudo (ícone de som). */
-export type Preferencias = { efeitos: number; musica: number; mudo: boolean; animacoes: boolean }
-export const PREFS_PADRAO: Preferencias = { efeitos: 0.8, musica: 0.5, mudo: false, animacoes: true }
+/** Volumes de 0 a 1; mudo silencia tudo (ícone de som); idioma da interface. */
+export type Preferencias = { efeitos: number; musica: number; mudo: boolean; animacoes: boolean; idioma: Idioma }
+export const PREFS_PADRAO: Preferencias = { efeitos: 0.8, musica: 0.5, mudo: false, animacoes: true, idioma: 'pt' }
 
 const limitar = (n: unknown, padrao: number) => (typeof n === 'number' && isFinite(n) ? Math.min(1, Math.max(0, n)) : padrao)
 
@@ -55,6 +56,8 @@ export function preferencias(): Preferencias {
     // a versão antiga guardava só "som: false"
     mudo: typeof salvo.mudo === 'boolean' ? salvo.mudo : salvo.som === false,
     animacoes: salvo.animacoes ?? PREFS_PADRAO.animacoes,
+    // primeira visita: o idioma do navegador
+    idioma: ehIdioma(salvo.idioma) ? salvo.idioma : detectarIdioma(typeof navigator !== 'undefined' ? navigator.languages : undefined),
   }
 }
 

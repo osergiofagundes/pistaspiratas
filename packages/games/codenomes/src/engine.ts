@@ -12,6 +12,7 @@ import {
 import { type Card, type Owner, generateBoard } from './board'
 import { validateClue } from './clue'
 import { type CodenomesConfig, shipName } from './config'
+import type { Idioma } from '@arena/words'
 
 /** Quanto o relógio espera um Capitão que caiu antes de sortear outro (6.5). */
 export const CAPTAIN_WAIT_MS = 60_000
@@ -97,7 +98,8 @@ export type CodenomesState = {
   paused: number | null
   startedAt: number
   finishedAt: number | null
-  settings: { cannon: boolean; captainTime: number | null; crewTime: number | null }
+  /** lang: idioma das palavras (falta nas partidas criadas antes dos idiomas, vale pt) */
+  settings: { cannon: boolean; captainTime: number | null; crewTime: number | null; lang?: Idioma }
   /** cartas que cada Capitão marcou para se organizar; só os Capitães veem */
   marks: Partial<Record<ShipId, number[]>>
 }
@@ -206,7 +208,7 @@ export function setup(
     paused: null,
     startedAt: ctx.now,
     finishedAt: null,
-    settings: { cannon: config.cannon, captainTime: config.captainTime, crewTime: config.crewTime },
+    settings: { cannon: config.cannon, captainTime: config.captainTime, crewTime: config.crewTime, lang: config.wordLanguage ?? 'pt' },
     marks: {},
   }
   const newMemory: CodenomesMemory = {
@@ -260,7 +262,7 @@ export function validate(state: CodenomesState, playerId: string, action: Codeno
       if (ship.captainId !== playerId) return 'Só o Capitão da vez dá a ordem.'
       if (turn.phase !== 'clue') return 'A ordem já foi dada.'
       const hidden = state.cards.filter((c) => !c.revealed).map((c) => c.word)
-      return validateClue(String(action.word ?? ''), Number(action.count), hidden, treasuresLeft(state, ship.id))
+      return validateClue(String(action.word ?? ''), Number(action.count), hidden, treasuresLeft(state, ship.id), state.settings.lang ?? 'pt')
     }
     case 'select':
     case 'confirm':

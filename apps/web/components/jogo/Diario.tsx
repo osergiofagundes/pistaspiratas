@@ -5,6 +5,7 @@ import { SHIP_INFO, type Player, type ShipId } from '@arena/platform'
 import type { CodenomesView, LogEntry } from '@arena/codenomes'
 import { Avatar, Bandeirinha, IMG, Moldura, Placa } from '@/components/ui'
 import { corDono, nomeNavio, resumoEntrada, rotuloDono } from '@/lib/textos'
+import { traduzirMensagem, useT } from '@/lib/i18n'
 
 /** Diário de Bordo (seção 8): um cartão por turno, o mais recente no topo, com filtro por navio. */
 export function Diario({
@@ -14,7 +15,7 @@ export function Diario({
   y,
   w = 320,
   h = 836,
-  titulo = 'Diário de Bordo',
+  titulo,
   destaque,
   onDestacar,
 }: {
@@ -29,12 +30,13 @@ export function Diario({
   onDestacar?: (turno: number | null) => void
 }) {
   const [filtro, setFiltro] = useState<ShipId | null>(null)
+  const t = useT()
   const entradas = [...view.log].reverse().filter((e) => !filtro || e.shipId === filtro)
   const ativo = view.finishReason ? -1 : view.turn.number
   return (
     <>
       <Moldura x={x} y={y} w={w} h={h} />
-      <Placa texto={titulo} x={x + (w - 250) / 2} y={y - 20} w={250} tam={24} />
+      <Placa texto={titulo ?? t.diario.titulo} x={x + (w - 250) / 2} y={y - 20} w={250} tam={24} />
       <div style={{ position: 'absolute', left: x + 22, top: y + 64, width: w - 44, height: h - 92, display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
           <button
@@ -51,13 +53,13 @@ export function Diario({
               color: filtro === null ? '#FFE08A' : '#5A3410',
             }}
           >
-            Todos
+            {t.diario.todos}
           </button>
           {view.ships.map((s) => (
             <button
               key={s.id}
               type="button"
-              title={`Só o Navio ${s.name}`}
+              title={t.diario.soNavio(nomeNavio(view, s.id, t))}
               onClick={() => setFiltro(filtro === s.id ? null : s.id)}
               style={{
                 width: 32,
@@ -74,7 +76,7 @@ export function Diario({
           ))}
         </div>
         <div className="rolagem" style={{ flex: 1, paddingRight: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {entradas.length === 0 && <div style={{ fontSize: 14, color: '#7A5A3A', textAlign: 'center', marginTop: 20 }}>Nada registrado ainda.</div>}
+          {entradas.length === 0 && <div style={{ fontSize: 14, color: '#7A5A3A', textAlign: 'center', marginTop: 20 }}>{t.diario.nadaAinda}</div>}
           {entradas.map((e) => (
             <Entrada
               key={e.number}
@@ -109,7 +111,8 @@ function Entrada({
 }) {
   const cor = SHIP_INFO[e.shipId].cor
   const capitao = players.find((p) => p.id === e.captainId)
-  const rodape = resumoEntrada(e, ativo, view)
+  const t = useT()
+  const rodape = resumoEntrada(e, ativo, view, t)
   return (
     <motion.div
       layout
@@ -135,9 +138,9 @@ function Entrada({
           <Bandeirinha ship={e.shipId} x={0} y={0} w={22} h={18} />
         </span>
         <span className="lilita" style={{ fontSize: 15, color: cor, flex: 1 }}>
-          Turno {e.number} · {nomeNavio(view, e.shipId)}
+          {t.diario.turno(e.number, nomeNavio(view, e.shipId, t))}
         </span>
-        {capitao && <Avatar avatar={capitao.avatar} ship={e.shipId} tam={22} title={`Capitão ${capitao.name}`} />}
+        {capitao && <Avatar avatar={capitao.avatar} ship={e.shipId} tam={22} title={t.diario.capitaoX(capitao.name)} />}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '4px 0' }}>
@@ -147,10 +150,10 @@ function Entrada({
           </span>
         ) : (
           <span style={{ background: 'rgba(58,36,20,.12)', color: '#7A5A3A', borderRadius: 10, padding: '1px 10px', fontSize: 12, fontWeight: 700 }}>
-            {ativo ? 'aguardando a dica…' : 'sem ordem'}
+            {ativo ? t.diario.aguardandoDica : t.diario.semOrdem}
           </span>
         )}
-        {e.captainName && <span style={{ fontSize: 12, color: '#8A6A4A', fontWeight: 700 }}>dica de {e.captainName}</span>}
+        {e.captainName && <span style={{ fontSize: 12, color: '#8A6A4A', fontWeight: 700 }}>{t.diario.dicaDe(e.captainName)}</span>}
       </div>
 
       {e.picks.map((p, i) => (
@@ -164,15 +167,15 @@ function Entrada({
             {p.word.toUpperCase()}
           </span>
           <span style={{ fontWeight: 700, fontSize: 12, color: corDono(p.owner) }}>
-            {p.cannon ? 'canhão · ' : ''}
-            {rotuloDono(view, p.owner)}
+            {p.cannon ? t.diario.canhao : ''}
+            {rotuloDono(view, p.owner, t)}
           </span>
         </div>
       ))}
 
       {e.notes.map((n, i) => (
         <div key={i} style={{ fontSize: 12, fontWeight: 700, color: /afundou|Kraken/.test(n) ? '#9B2C2C' : '#2A6A3A', marginTop: 2 }}>
-          ○ {n}
+          ○ {traduzirMensagem(n, t)}
         </div>
       ))}
 
@@ -193,7 +196,7 @@ function Entrada({
           <span>{rodape}</span>
           {ativo && (
             <span className="lilita" style={{ background: '#FFD24A', color: '#5A3410', fontSize: 10, padding: '1px 6px', borderRadius: 4 }}>
-              EM ANDAMENTO
+              {t.diario.emAndamento}
             </span>
           )}
         </div>

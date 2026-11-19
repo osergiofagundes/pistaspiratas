@@ -1,4 +1,4 @@
-import type { Categoria } from '@arena/words'
+import { ehIdioma, type Categoria, type Idioma } from '@arena/words'
 import type { ShipId } from '@arena/platform'
 
 export type Preset = 'classico' | 'rapido' | 'caotico' | 'tranquilo' | 'personalizado'
@@ -30,6 +30,8 @@ export type CodenomesConfig = {
   captainTime: Tempo
   crewTime: Tempo
   categories: Categoria[]
+  /** idioma das palavras do tabuleiro (e da regra de plural das dicas) */
+  wordLanguage: Idioma
   customWords: string[]
   onlyCustom: boolean
   allowSpectators: boolean
@@ -56,7 +58,7 @@ const VALORES: Record<Exclude<Preset, 'personalizado'>, PresetValues> = {
   tranquilo: { treasures: 8, kraken: () => 1, captainTime: null, crewTime: null, seaMin: 0.2 },
 }
 
-export function defaultConfig(): CodenomesConfig {
+export function defaultConfig(wordLanguage: Idioma = 'pt'): CodenomesConfig {
   return {
     preset: 'classico',
     shipCount: 2,
@@ -73,6 +75,7 @@ export function defaultConfig(): CodenomesConfig {
     captainTime: 90,
     crewTime: 120,
     categories: ['geral'],
+    wordLanguage,
     customWords: [],
     onlyCustom: false,
     allowSpectators: true,
@@ -115,6 +118,7 @@ export function updateConfig(current: CodenomesConfig, patch: Partial<CodenomesC
     const cats = patch.categories.filter((x) => x === 'geral' || x === 'mar')
     c.categories = [...new Set(cats)]
   }
+  if (ehIdioma(patch.wordLanguage)) c.wordLanguage = patch.wordLanguage
   if (patch.customWords) c.customWords = patch.customWords.slice(0, 300).map((w) => String(w).slice(0, 20))
   if (patch.onlyCustom !== undefined) c.onlyCustom = !!patch.onlyCustom
   if (patch.allowSpectators !== undefined) c.allowSpectators = !!patch.allowSpectators

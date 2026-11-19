@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation'
 import { SHIP_INFO, type ShipId } from '@arena/platform'
 import { Bandeira, Botao, Escotilha, Icone, Imagem, Moldura, Navio, Palco, Texto } from '@/components/ui'
 import { Avisos } from '@/components/ui/Avisos'
-import { BotaoPreferencias, ModalConfirmar } from '@/components/modais/comuns'
+import { BotaoIdioma, BotaoPreferencias, ModalConfirmar } from '@/components/modais/comuns'
+import { useT } from '@/lib/i18n'
 import { Diario } from '@/components/jogo/Diario'
 import { Tabuleiro } from '@/components/jogo/Paineis'
 import { useSala, type Visao } from '@/lib/sala'
-import { resumoPartida } from '@/lib/textos'
+import { nomeNavio, resumoPartida } from '@/lib/textos'
 import { useMusica } from '@/lib/useMusica'
 
 const MEDALHA = ['#F5C542', '#C9D1D9', '#D08A4E', '#9A7A5A']
@@ -22,6 +23,8 @@ export function Fim({ view }: { view: Visao }) {
   const prefs = useSala((s) => s.prefs)
   const setPrefs = useSala((s) => s.setPrefs)
   const anim = prefs.animacoes
+  const t = useT()
+  const nome = (id: ShipId) => nomeNavio(game, id, t)
   const [aviso, setAviso] = useState<{ texto: string; seq: number } | null>(null)
   const [sair, setSair] = useState(false)
   const [aba, setAba] = useState<'resumo' | 'mapa'>('resumo')
@@ -33,14 +36,14 @@ export function Fim({ view }: { view: Visao }) {
   const minutos = game.finishedAt ? Math.max(1, Math.round((game.finishedAt - game.startedAt) / 60000)) : 0
   useMusica(derrota ? 'derrota' : 'vitoria')
 
-  const titulo = venci ? 'Vitória!' : derrota ? 'Derrota…' : venc ? `Vitória do Navio ${venc.name}!` : 'Partida encerrada'
+  const titulo = venci ? t.fim.vitoria : derrota ? t.fim.derrota : venc ? t.fim.vitoriaDo(nome(venc.id)) : t.fim.encerrada
   const corTitulo = venci ? '#FFD24A' : derrota ? '#A9C7E8' : venc ? SHIP_INFO[venc.id].corClara : '#FFF8EC'
   const motivo = !venc
-    ? 'O Almirante encerrou a partida antes do fim.'
+    ? t.fim.motivoEncerrou
     : game.finishReason === 'sobrevivencia'
-      ? `O Navio ${venc.name} foi o último navio no mar.`
-      : `O Navio ${venc.name} achou os ${venc.total} tesouros.`
-  const subtitulo = derrota ? `${motivo} Fica para a próxima!` : venci ? `${motivo} A tripulação está rica!` : motivo
+      ? t.fim.motivoSobrevivencia(nome(venc.id))
+      : t.fim.motivoTesouros(nome(venc.id), venc.total)
+  const subtitulo = derrota ? t.fim.proxima(motivo) : venci ? t.fim.rica(motivo) : motivo
 
   // números de cada navio e da partida, tirados do Diário
   const stats = useMemo(() => {
@@ -75,18 +78,18 @@ export function Fim({ view }: { view: Visao }) {
   )
 
   const copiar = async () => {
-    const texto = resumoPartida(game)
+    const texto = resumoPartida(game, t)
     try {
       await navigator.clipboard.writeText(texto)
     } catch {
-      const t = document.createElement('textarea')
-      t.value = texto
-      document.body.appendChild(t)
-      t.select()
+      const area = document.createElement('textarea')
+      area.value = texto
+      document.body.appendChild(area)
+      area.select()
       document.execCommand('copy')
-      t.remove()
+      area.remove()
     }
-    setAviso({ texto: 'Resumo copiado! Cole no Discord.', seq: Date.now() })
+    setAviso({ texto: t.fim.resumoCopiado, seq: Date.now() })
   }
 
   const tripulacao = venc ? view.players.filter((p) => p.shipId === venc.id) : []
@@ -116,8 +119,9 @@ export function Fim({ view }: { view: Visao }) {
           {subtitulo}
         </Texto>
       </motion.div>
+      <BotaoIdioma x={1666} y={18} />
       <BotaoPreferencias x={1740} y={18} />
-      <Icone nome={prefs.mudo ? 'som-desligado' : 'som-ligado'} x={1814} y={18} onClick={() => setPrefs({ mudo: !prefs.mudo })} title={prefs.mudo ? 'Ligar o som' : 'Silenciar'} />
+      <Icone nome={prefs.mudo ? 'som-desligado' : 'som-ligado'} x={1814} y={18} onClick={() => setPrefs({ mudo: !prefs.mudo })} title={prefs.mudo ? t.comum.ligarSom : t.comum.silenciar} />
 
       {aba === 'resumo' ? (
         <>
@@ -133,12 +137,12 @@ export function Fim({ view }: { view: Visao }) {
               <>
                 <div style={{ position: 'absolute', left: 50, top: 210, width: 760, height: 8, display: 'flex', justifyContent: 'center' }}>
                   <span className="lilita" style={{ padding: '4px 18px', borderRadius: 999, background: SHIP_INFO[venc.id].cor, color: '#FFF8EC', fontSize: 18, height: 30, display: 'flex', alignItems: 'center' }}>
-                    🏆 Vencedor
+                    {t.fim.vencedor}
                   </span>
                 </div>
                 <Navio ship={venc.id} className={anim ? 'navegar' : undefined} x={250} y={252} w={360} h={330} />
                 <Texto x={50} y={584} w={760} centro titulo tam={44} cor={SHIP_INFO[venc.id].cor}>
-                  Navio {venc.name}
+                  {t.comum.navio(nome(venc.id))}
                 </Texto>
                 <div style={{ position: 'absolute', left: 90, top: 646, width: 680, display: 'flex', justifyContent: 'center', gap: 14 }}>
                   {tripulacao.map((p, i) => (
@@ -162,10 +166,10 @@ export function Fim({ view }: { view: Visao }) {
               <>
                 <img src="/img/interface/icones/cadeado.webp" alt="" style={{ position: 'absolute', left: 350, top: 290, width: 160, height: 160 }} />
                 <Texto x={50} y={480} w={760} centro titulo tam={44} cor="#5A3410">
-                  Sem vencedor
+                  {t.fim.semVencedor}
                 </Texto>
                 <Texto x={120} y={540} w={620} centro tam={20} cor="#7A5A3A">
-                  A partida terminou antes de algum navio achar todos os tesouros.
+                  {t.fim.semVencedorTexto}
                 </Texto>
               </>
             )}
@@ -173,7 +177,7 @@ export function Fim({ view }: { view: Visao }) {
 
           {/* placar */}
           <Texto x={860} y={154} titulo tam={32} cor="#FFF8EC" contorno>
-            Placar
+            {t.fim.placar}
           </Texto>
           {placar.map((s, i) => {
             const n = stats.porNavio.get(s.id)!
@@ -219,15 +223,15 @@ export function Fim({ view }: { view: Visao }) {
                     color: s.eliminated ? '#FFF8EC' : '#3A1D0C',
                   }}
                 >
-                  {s.eliminated ? '☠' : `${i + 1}º`}
+                  {s.eliminated ? '☠' : t.fim.posicao(i + 1)}
                 </div>
                 <Navio ship={s.id} afundado={s.eliminated} x={88} y={h / 2 - 52} w={112} h={104} />
                 <Texto x={214} y={h / 2 - 50} titulo tam={30} cor={s.eliminated ? '#7A6A5A' : info.cor}>
-                  Navio {s.name}
-                  {meu ? <span style={{ fontSize: 18, color: '#7A5A3A' }}> · seu navio</span> : null}
+                  {t.comum.navio(nome(s.id))}
+                  {meu ? <span style={{ fontSize: 18, color: '#7A5A3A' }}>{t.fim.seuNavio}</span> : null}
                 </Texto>
                 <Texto x={214} y={h / 2 - 12} tam={16} cor="#7A5A3A" peso={700}>
-                  Capitão: {s.captainName || '—'}
+                  {t.fim.capitaoX(s.captainName || '—')}
                 </Texto>
                 {/* tesouros */}
                 <div style={{ position: 'absolute', left: 214, top: h / 2 + 18, width: 270, height: 18, borderRadius: 9, background: 'rgba(90,52,16,.18)', overflow: 'hidden' }}>
@@ -239,17 +243,17 @@ export function Fim({ view }: { view: Visao }) {
                   />
                 </div>
                 <Texto x={496} y={h / 2 + 15} tam={17} cor="#5A3410" peso={800}>
-                  {achados} de {s.total} tesouros
+                  {t.fim.tesourosDe(achados, s.total)}
                 </Texto>
                 {/* números do navio */}
                 <div style={{ position: 'absolute', right: 24, top: h / 2 - 38, display: 'flex', gap: 10 }}>
-                  <Numero valor={n.acertos} rotulo={n.acertos === 1 ? 'acerto' : 'acertos'} cor="#2E7A2A" />
-                  <Numero valor={n.erros} rotulo={n.erros === 1 ? 'erro' : 'erros'} cor="#B3261E" />
-                  <Numero valor={n.turnos} rotulo={n.turnos === 1 ? 'turno' : 'turnos'} cor="#5A3410" />
+                  <Numero valor={n.acertos} rotulo={t.fim.acertos(n.acertos)} cor="#2E7A2A" />
+                  <Numero valor={n.erros} rotulo={t.fim.erros(n.erros)} cor="#B3261E" />
+                  <Numero valor={n.turnos} rotulo={t.fim.turnos(n.turnos)} cor="#5A3410" />
                 </div>
                 {s.eliminated && (
                   <Texto x={214} y={h - 26} tam={14} cor="#8A2A1E" peso={800}>
-                    Afundou com o Kraken{n.afundouNoTurno ? ` no turno ${n.afundouNoTurno}` : ''}
+                    {t.fim.afundouKraken(n.afundouNoTurno)}
                   </Texto>
                 )}
               </motion.div>
@@ -258,11 +262,11 @@ export function Fim({ view }: { view: Visao }) {
 
           {/* números da partida */}
           {[
-            { v: `${minutos} min`, r: 'de partida' },
-            { v: game.log.length, r: game.log.length === 1 ? 'turno' : 'turnos' },
-            { v: stats.tesouros, r: 'tesouros achados' },
-            { v: stats.krakens, r: stats.krakens === 1 ? 'Kraken encontrado' : 'Krakens encontrados' },
-            { v: stats.canhoes, r: stats.canhoes === 1 ? 'tiro de canhão' : 'tiros de canhão' },
+            { v: t.fim.minutos(minutos), r: t.fim.dePartida },
+            { v: game.log.length, r: t.fim.turnos(game.log.length) },
+            { v: stats.tesouros, r: t.fim.tesourosAchados },
+            { v: stats.krakens, r: t.fim.krakens(stats.krakens) },
+            { v: stats.canhoes, r: t.fim.canhoes(stats.canhoes) },
           ].map((n, i) => (
             <motion.div
               key={n.r}
@@ -307,23 +311,23 @@ export function Fim({ view }: { view: Visao }) {
             animadas={new Set()}
             fim
           />
-          <Diario view={game} players={view.players} x={1576} y={140} h={808} titulo="Diário completo" />
+          <Diario view={game} players={view.players} x={1576} y={140} h={808} titulo={t.fim.diarioCompleto} />
         </>
       )}
 
       {/* barra inferior */}
       <div className="barra" style={{ left: 24, top: 968, width: 1872, height: 96 }} />
       <Texto x={50} y={1002} tam={19} cor="#F3E6C8" peso={700}>
-        Partida de {minutos} min · {game.log.length} {game.log.length === 1 ? 'turno' : 'turnos'}
+        {t.fim.rodape(minutos, game.log.length)}
       </Texto>
       <Botao cor="azul" x={760} y={980} w={270} h={72} tam={22} onClick={() => setAba(aba === 'resumo' ? 'mapa' : 'resumo')}>
-        {aba === 'resumo' ? 'Ver mapa e diário' : 'Ver resumo'}
+        {aba === 'resumo' ? t.fim.verMapa : t.fim.verResumo}
       </Botao>
       <Botao cor="cinza" x={1050} y={980} w={150} h={72} tam={22} onClick={() => setSair(true)}>
-        Sair
+        {t.comum.sair}
       </Botao>
       <Botao cor="marrom" x={1236} y={976} w={290} h={80} tam={26} onClick={copiar}>
-        Copiar resumo
+        {t.fim.copiarResumo}
       </Botao>
       <Botao
         cor={souAlmirante ? 'verde' : 'cinza'}
@@ -334,18 +338,18 @@ export function Fim({ view }: { view: Visao }) {
         tam={souAlmirante ? 28 : 21}
         disabled={!souAlmirante}
         onClick={() => enviar({ type: 'backToLobby' })}
-        title={souAlmirante ? undefined : 'Só o Almirante leva todos ao salão'}
+        title={souAlmirante ? undefined : t.fim.soAlmiranteLeva}
       >
-        {souAlmirante ? 'Voltar ao salão' : 'Esperando o Almirante'}
+        {souAlmirante ? t.fim.voltarSalao : t.fim.esperandoAlmirante}
       </Botao>
 
       <Avisos extra={aviso} />
       {sair && (
         <ModalConfirmar
-          titulo="Sair da sala"
-          pergunta="Deixar a tripulação?"
-          texto="Você pode voltar pelo link enquanto a sala existir."
-          confirmar="Sair"
+          titulo={t.salao.sair.titulo}
+          pergunta={t.salao.sair.pergunta}
+          texto={t.salao.sair.texto}
+          confirmar={t.comum.sair}
           onFechar={() => setSair(false)}
           onConfirmar={async () => {
             await enviar({ type: 'leave' })

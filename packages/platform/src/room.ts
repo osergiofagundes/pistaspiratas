@@ -59,7 +59,8 @@ export type RoomStep<R> = { room: R; events: GameEvent[]; changed: boolean; erro
 
 type AnyGame = GameDefinition<any, any, any, any, any>
 
-export function createRoom<C extends BaseConfig>(code: string, game: GameDefinition<C, any, any, any>, now: number): Room<C> {
+/** Sala nova no salão; `patch` ajusta a config padrão (por exemplo, o idioma das palavras de quem criou). */
+export function createRoom<C extends BaseConfig>(code: string, game: GameDefinition<C, any, any, any>, now: number, patch?: Partial<C>): Room<C> {
   return {
     code,
     createdAt: now,
@@ -69,7 +70,7 @@ export function createRoom<C extends BaseConfig>(code: string, game: GameDefinit
     banned: [],
     gameId: game.id,
     phase: 'lobby',
-    config: game.defaultConfig(),
+    config: patch ? game.updateConfig(game.defaultConfig(), patch) : game.defaultConfig(),
     game: null,
     memory: undefined,
     captainClaims: {},

@@ -19,6 +19,8 @@ const LARGURAS = [
   [/^navios\//, 320],
   [/^bandeiras\//, 180],
   [/^logos\//, 1000],
+  [/^idiomas\/bandeira-/, 160],
+  [/^idiomas\//, 480],
   [/^itens\//, 320],
   [/^interface\/icones\//, 128],
   [/^interface\/botoes\//, 600],

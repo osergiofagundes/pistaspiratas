@@ -216,3 +216,43 @@ test('sair da sala e criar ou entrar em outra sem voltar ao início', async ({ b
   expect(ana.url()).toContain(`/sala/${code}`)
   await expect.poll(async () => (await view(leo)).players.length).toBe(2)
 })
+
+test('idiomas: segue o navegador, troca pela bandeira e a sala nasce com as palavras do idioma', async ({ browser }) => {
+  // navegador em inglês e nenhuma preferência salva
+  const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 }, locale: 'en-US' })
+  await ctx.addInitScript(() => {
+    if (!localStorage.getItem('arena.perfil')) localStorage.setItem('arena.perfil', JSON.stringify({ name: 'Kai', avatar: 'papagaio' }))
+  })
+  const p = await ctx.newPage()
+  p.on('response', (r) => {
+    if (r.url().includes('/img/') && r.status() >= 400) imagensQuebradas.add(r.url())
+  })
+  await p.goto('/')
+  await expect(p.getByRole('button', { name: 'Create Room' })).toBeVisible()
+  await expect(p.getByText('Gather your crew')).toBeVisible()
+
+  // a bandeira abre as 6 placas; Deutsch troca a interface na hora e fica salvo
+  await p.getByRole('button', { name: 'Language: English' }).click()
+  await p.getByRole('button', { name: 'Deutsch' }).click()
+  await expect(p.getByText('Stell deine Crew zusammen')).toBeVisible()
+  await p.getByRole('button', { name: 'Fertig' }).click()
+  await p.reload()
+  await expect(p.getByRole('button', { name: 'Raum erstellen' })).toBeVisible()
+  expect(await p.evaluate(() => document.documentElement.lang)).toBe('de')
+
+  // a sala criada já vem com as palavras em alemão
+  await p.getByRole('button', { name: 'Raum erstellen' }).click()
+  await expect(p.getByText('Lobby', { exact: true })).toBeVisible()
+  expect((await view(p)).config.wordLanguage).toBe('de')
+
+  // erro do servidor chega traduzido
+  await p.evaluate(() => (window as any).__sala.getState().enviar({ type: 'start' }))
+  await expect(p.getByText(/braucht mindestens 2 Spieler/).first()).toBeVisible()
+
+  // nas configurações, a bandeira do idioma das palavras muda a sala
+  await p.getByRole('button', { name: 'Bearbeiten' }).click()
+  await p.getByRole('button', { name: 'Wörter auf Italiano' }).click()
+  await p.getByRole('button', { name: 'Speichern' }).click()
+  await expect.poll(async () => (await view(p)).config.wordLanguage).toBe('it')
+  await ctx.close()
+})
