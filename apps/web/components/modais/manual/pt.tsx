@@ -194,15 +194,15 @@ export const SECOES: Secao[] = [
           </div>
           <Lista
             itens={[
-              <><B>Presets:</B> Clássico, Rápido, Caótico, Tranquilo ou Personalizado.</>,
+              <><B>Série:</B> partida avulsa, melhor de 3 ou melhor de 5, com placar por navio.</>,
               <><B>Tabuleiro:</B> automático ou de 5×5 a 10×10. Os tesouros acompanham o tamanho, mas dá para ajustar.</>,
               <><B>Quem começa</B> pode levar 1 tesouro a mais.</>,
               <><B>Capitão:</B> sorteado ou escolhido pelo navio, com rodízio a cada partida.</>,
               <><B>Tempo</B> do Capitão e dos Marujos, ou sem relógio.</>,
-              <><B>Palavras:</B> Geral, Mar e Pirataria ou uma lista sua, em qualquer um dos 6 idiomas.</>,
+              <><B>Palavras:</B> 17 categorias (Brasil, Filmes, Games, Comidas…) misturadas em partes iguais, ou uma lista sua, em qualquer um dos 6 idiomas.</>,
             ]}
           />
-          <div style={{ fontSize: 15, fontWeight: 700, color: SUAVE, marginTop: 6 }}>Só o Almirante muda as configurações, pelo botão Editar no salão.</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: SUAVE, marginTop: 6 }}>Só o Almirante muda as configurações, pelo botão Editar no salão. Restaurar padrão volta tudo aos valores iniciais.</div>
         </Quadro>
       </div>
     ),

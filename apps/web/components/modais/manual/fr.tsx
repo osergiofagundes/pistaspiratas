@@ -192,15 +192,15 @@ export const SECOES: Secao[] = [
           </div>
           <Lista
             itens={[
-              <><B>Préréglages :</B> Classique, Rapide, Chaotique, Tranquille ou Personnalisé.</>,
+              <><B>Série :</B> partie simple, au meilleur des 3 ou des 5, avec un score par navire.</>,
               <><B>Plateau :</B> automatique ou de 5×5 à 10×10. Les trésors suivent la taille, mais on peut les ajuster.</>,
               <><B>Le premier navire</B> peut recevoir 1 trésor de plus.</>,
               <><B>Capitaine :</B> tiré au sort ou choisi par le navire, avec rotation à chaque partie.</>,
               <><B>Temps</B> du Capitaine et des Matelots, ou sans horloge.</>,
-              <><B>Mots :</B> Général, Mer et Piraterie ou votre propre liste, dans l’une des 6 langues.</>,
+              <><B>Mots :</B> 17 catégories (Films, Jeux vidéo, Cuisine, Animaux…) mélangées à parts égales, ou votre propre liste, dans l’une des 6 langues.</>,
             ]}
           />
-          <div style={{ fontSize: 15, fontWeight: 700, color: SUAVE, marginTop: 6 }}>Seul l’Amiral change les réglages, avec le bouton Modifier dans le salon.</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: SUAVE, marginTop: 6 }}>Seul l’Amiral change les réglages, avec le bouton Modifier dans le salon. Valeurs par défaut remet les réglages de départ.</div>
         </Quadro>
       </div>
     ),

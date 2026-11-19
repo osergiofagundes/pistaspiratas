@@ -192,15 +192,15 @@ export const SECOES: Secao[] = [
           </div>
           <Lista
             itens={[
-              <><B>Presets:</B> Clásico, Rápido, Caótico, Tranquilo o Personalizado.</>,
+              <><B>Serie:</B> partida suelta, al mejor de 3 o al mejor de 5, con marcador por barco.</>,
               <><B>Tablero:</B> automático o de 5×5 a 10×10. Los tesoros siguen el tamaño, pero se pueden ajustar.</>,
               <><B>Quien empieza</B> puede llevar 1 tesoro más.</>,
               <><B>Capitán:</B> sorteado o elegido por el barco, con rotación en cada partida.</>,
               <><B>Tiempo</B> del Capitán y de los Marineros, o sin reloj.</>,
-              <><B>Palabras:</B> General, Mar y Piratería o una lista tuya, en cualquiera de los 6 idiomas.</>,
+              <><B>Palabras:</B> 17 categorías (Películas, Videojuegos, Comidas, Animales…) mezcladas en partes iguales, o una lista tuya, en cualquiera de los 6 idiomas.</>,
             ]}
           />
-          <div style={{ fontSize: 15, fontWeight: 700, color: SUAVE, marginTop: 6 }}>Solo el Almirante cambia los ajustes, con el botón Editar en el salón.</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: SUAVE, marginTop: 6 }}>Solo el Almirante cambia los ajustes, con el botón Editar en el salón. Restablecer vuelve a los valores iniciales.</div>
         </Quadro>
       </div>
     ),

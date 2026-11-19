@@ -192,15 +192,15 @@ export const SECOES: Secao[] = [
           </div>
           <Lista
             itens={[
-              <><B>Presets:</B> Classic, Quick, Chaotic, Relaxed or Custom.</>,
+              <><B>Series:</B> single game, best of 3 or best of 5, with a score per ship.</>,
               <><B>Board:</B> automatic or from 5×5 to 10×10. Treasures follow the size, but you can adjust them.</>,
               <><B>Whoever starts</B> can get 1 extra treasure.</>,
               <><B>Captain:</B> drawn at random or chosen by the ship, rotating each game.</>,
               <><B>Time</B> for the Captain and the Sailors, or no clock.</>,
-              <><B>Words:</B> General, Sea and Piracy or your own list, in any of the 6 languages.</>,
+              <><B>Words:</B> 17 categories (Movies, Games, Food, Animals…) mixed in equal parts, or your own list, in any of the 6 languages.</>,
             ]}
           />
-          <div style={{ fontSize: 15, fontWeight: 700, color: SUAVE, marginTop: 6 }}>Only the Admiral changes the settings, with the Edit button in the lobby.</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: SUAVE, marginTop: 6 }}>Only the Admiral changes the settings, with the Edit button in the lobby. Reset to default brings back the starting values.</div>
         </Quadro>
       </div>
     ),

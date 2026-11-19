@@ -192,15 +192,15 @@ export const SECOES: Secao[] = [
           </div>
           <Lista
             itens={[
-              <><B>Vorlagen:</B> Klassisch, Schnell, Chaotisch, Entspannt oder Eigene.</>,
+              <><B>Serie:</B> einzelnes Spiel, Best of 3 oder Best of 5, mit Punktestand pro Schiff.</>,
               <><B>Spielfeld:</B> automatisch oder von 5×5 bis 10×10. Die Schätze passen sich an, lassen sich aber einstellen.</>,
               <><B>Das Startschiff</B> kann 1 Schatz mehr bekommen.</>,
               <><B>Kapitän:</B> ausgelost oder vom Schiff gewählt, mit Wechsel in jedem Spiel.</>,
               <><B>Zeit</B> für Kapitän und Matrosen, oder ohne Uhr.</>,
-              <><B>Wörter:</B> Allgemein, Meer und Piraterie oder eine eigene Liste, in einer der 6 Sprachen.</>,
+              <><B>Wörter:</B> 17 Kategorien (Filme, Games, Essen, Tiere…) zu gleichen Teilen gemischt, oder eine eigene Liste, in einer der 6 Sprachen.</>,
             ]}
           />
-          <div style={{ fontSize: 15, fontWeight: 700, color: SUAVE, marginTop: 6 }}>Nur der Admiral ändert die Optionen, mit dem Bearbeiten-Knopf in der Lobby.</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: SUAVE, marginTop: 6 }}>Nur der Admiral ändert die Optionen, mit dem Bearbeiten-Knopf in der Lobby. Standard wiederherstellen setzt die Startwerte zurück.</div>
         </Quadro>
       </div>
     ),
