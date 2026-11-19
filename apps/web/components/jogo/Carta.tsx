@@ -1,8 +1,10 @@
 'use client'
-import { motion } from 'motion/react'
+import { useRef } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { create } from 'zustand'
 import type { ShipId } from '@arena/platform'
 import type { CardView } from '@arena/codenomes'
-import { IMG } from '@/components/ui'
+import { IMG, usePalco } from '@/components/ui'
 
 export type CartaProps = {
   carta: CardView
@@ -27,6 +29,33 @@ export type CartaProps = {
   fim?: boolean
 }
 
+/** Palavra ampliada ao tocar e segurar uma carta (no celular as cartas ficam pequenas). */
+const useZoom = create<{ palavra: string | null; set: (p: string | null) => void }>((set) => ({ palavra: null, set: (palavra) => set({ palavra }) }))
+const SEGURAR_MS = 450
+
+export function ZoomCarta() {
+  const palavra = useZoom((s) => s.palavra)
+  const { W, H } = usePalco()
+  return (
+    <AnimatePresence>
+      {palavra && (
+        <motion.div
+          key={palavra}
+          initial={{ opacity: 0, scale: 0.6 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          transition={{ duration: 0.15 }}
+          className="lilita zoom-carta"
+          role="status"
+          style={{ position: 'absolute', left: W / 2 - 300, top: H / 2 - 90, width: 600, height: 180, zIndex: 70, pointerEvents: 'none', fontSize: Math.min(76, 560 / Math.max(5, palavra.length * 0.62)) }}
+        >
+          {palavra.toUpperCase()}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
 /** Carta do tabuleiro (Carta/tabuleiro): pergaminho fechado, tesouro com o navio, Mar Aberto ou Kraken. */
 export function Carta({ carta, w, h, mapa, ordem, podeVotar, marcas = [], minhaMarca, podeMarcar, onMarcar, destaque, onVotar, animar, fim }: CartaProps) {
   const marcada = ordem !== null && !carta.revealed
@@ -39,12 +68,40 @@ export function Carta({ carta, w, h, mapa, ordem, podeVotar, marcas = [], minhaM
   const apagada = fim && !carta.revealed
   const fechada = arte === 'fechada'
   const centro = arte === 'mar' || arte === 'kraken'
+  // tocar e segurar amplia a palavra; o toque que vem depois não vale como clique
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const segurou = useRef(false)
+  const setZoom = useZoom((s) => s.set)
+  const soltar = () => {
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = null
+    if (useZoom.getState().palavra) setZoom(null)
+  }
+  const acao = podeVotar ? onVotar : clicavel ? onMarcar : undefined
 
   return (
     <motion.button
       type="button"
-      onClick={podeVotar ? onVotar : clicavel ? onMarcar : undefined}
-      disabled={!clicavel}
+      onClick={() => {
+        if (segurou.current) {
+          segurou.current = false
+          return
+        }
+        acao?.()
+      }}
+      onPointerDown={(e) => {
+        if (e.pointerType !== 'touch') return
+        segurou.current = false
+        timer.current = setTimeout(() => {
+          segurou.current = true
+          setZoom(carta.word)
+        }, SEGURAR_MS)
+      }}
+      onPointerUp={soltar}
+      onPointerCancel={soltar}
+      onPointerLeave={soltar}
+      onContextMenu={(e) => e.preventDefault()}
+      aria-disabled={!clicavel}
       initial={false}
       animate={{ rotateY: animar ? [90, 0] : 0, scale: marcada ? 1.04 : 1 }}
       transition={{ duration: animar ? 0.45 : 0.15 }}

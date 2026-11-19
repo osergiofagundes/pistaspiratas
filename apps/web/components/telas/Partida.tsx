@@ -20,12 +20,16 @@ import {
   Palco,
   Seletor,
   Texto,
+  Formato,
+  usePalco,
 } from '@/components/ui'
 import { Avisos } from '@/components/ui/Avisos'
 import { BotaoIdioma, BotaoPreferencias, ICONE_CONFIRMAR, ModalComoJogar, ModalConfirmar, ModalInfo } from '@/components/modais/comuns'
 import { traduzirMensagem, useT } from '@/lib/i18n'
 import { Diario } from '@/components/jogo/Diario'
 import { PainelNavio, Tabuleiro } from '@/components/jogo/Paineis'
+import { PartidaCompacta } from './PartidaCompacta'
+import { ZoomCarta } from '@/components/jogo/Carta'
 import { useSala, type Visao } from '@/lib/sala'
 import { formatarTempo, nomeNavio, textoFase } from '@/lib/textos'
 import { useAgora } from '@/lib/useAgora'
@@ -46,7 +50,8 @@ type Overlay =
   | { tipo: 'canhao'; turno: number }
 
 /** Partida (telas 1004, 1680, 3088… 17901): visões de Capitão, Marujo e Gaivota. */
-export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
+/** Estado, efeitos e ações da partida (os dois desenhos, desktop e compacto, usam o mesmo). */
+function usePartida(view: Visao) {
   const router = useRouter()
   const game = view.game!
   const enviar = useSala((s) => s.enviar)
@@ -237,134 +242,317 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
             : papel.gaivotaAssistindo
   const navioVezNome = nome(turno.shipId)
 
+  return { view, router, game, enviar, prefs, setPrefs, t, nome, me, souAlmirante, turno, navioVez, infoVez, role, minhaVez, souCapitaoDaVez, souMarujoDaVez, pausada, bonusPrimeiro, ocultarMapa, setOcultarMapa, dica, setDica, numero, setNumero, erroDica, setErroDica, destaque, setDestaque, overlay, setOverlay, sorteio, setSorteio, aviso, faixa, setFaixa, tremor, minhasMarcas, marcar_, animadas, restante, apertado, selecao, presentes, confirmei, pediFim, confirmaram, querFim, marcar, confirmar, encerrar, darOrdem, mapa, centro, roleTexto, navioVezNome, restantes }
+}
+
+export type CtxPartida = ReturnType<typeof usePartida>
+
+export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
+  const c = usePartida(view)
+  const { router, game, enviar, prefs, setPrefs, t, nome, me, souAlmirante, turno, navioVez, infoVez, role, minhaVez, souCapitaoDaVez, souMarujoDaVez, pausada, bonusPrimeiro, ocultarMapa, setOcultarMapa, dica, setDica, numero, setNumero, erroDica, setErroDica, destaque, setDestaque, overlay, setOverlay, sorteio, setSorteio, aviso, faixa, setFaixa, tremor, minhasMarcas, marcar_, animadas, restante, apertado, selecao, presentes, confirmei, pediFim, confirmaram, querFim, marcar, confirmar, encerrar, darOrdem, mapa, centro, roleTexto, navioVezNome, restantes } = c
   return (
     <Palco fundo="fundo-partida" escurecer={0.45}>
-      {/* barra superior */}
-      <div className="barra" style={{ left: 24, top: 16, width: 1872, height: 84 }} />
-      <Bandeira ship={turno.shipId} x={42} y={30} w={64} h={55} />
-      <Texto x={116} y={22} titulo tam={30} cor={infoVez.corClara} contorno>
-        {t.partida.vezDoNavio(navioVezNome)}
-      </Texto>
-      <Texto x={116} y={62} tam={17} cor="#F3E6C8" peso={700}>
-        {textoFase(game, t)}
-      </Texto>
-      {centro ? (
-        <motion.div
-          key={`${turno.number}-${centro.word}`}
-          initial={prefs.animacoes ? { scale: 1.8, opacity: 0 } : false}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 14 }}
-          style={{ position: 'absolute', left: 500, top: 16, width: 690, height: 84, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}
-        >
-          <span
-            className="lilita contorno"
-            style={{ ['--c' as string]: '#3A1D0C', fontSize: Math.min(50, 560 / Math.max(6, centro.word.length * 0.66)), lineHeight: 1, color: '#FFF8EC', whiteSpace: 'nowrap' } as React.CSSProperties}
-          >
-            {centro.word}
-          </span>
-          <span
-            className="lilita"
-            title={t.partida.palavras(centro.count)}
-            style={{
-              flex: '0 0 auto',
-              width: 54,
-              height: 54,
-              borderRadius: '50%',
-              background: 'linear-gradient(#FFE27A, #E0A21E)',
-              border: '3px solid #6B3A17',
-              boxShadow: '0 3px 0 rgba(0,0,0,.4)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 32,
-              lineHeight: 1,
-              color: '#3A1D0C',
-            }}
-          >
-            {centro.count}
-          </span>
-        </motion.div>
-      ) : (
-        <div style={{ position: 'absolute', left: 500, top: 16, width: 690, height: 84, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span className="lilita contorno" style={{ ['--c' as string]: '#3A1D0C', fontSize: 34, lineHeight: 1, color: '#F3E6C8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } as React.CSSProperties}>
-            {souCapitaoDaVez ? t.partida.aguardandoSua : t.partida.aguardandoDe(navioVez.captainName || t.comum.capitao)}
-          </span>
-        </div>
-      )}
-      {turno.phase !== 'clue' && (
-        <div
-          style={{
-            position: 'absolute',
-            left: 1210,
-            top: 36,
-            width: 214,
-            height: 44,
-            borderRadius: 22,
-            background: turno.phase === 'cannon' ? '#FFD24A' : '#F3DDB0',
-            border: '3px solid #6B3A17',
-            boxSizing: 'border-box',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 800,
-            fontSize: 17,
-            color: '#5A3410',
-          }}
-        >
-          {turno.phase === 'cannon' ? t.partida.tiroCanhao : t.partida.palpitesRestantes(turno.guessesLeft)}
-        </div>
-      )}
-      <div
-        className={`lilita ${restante !== null && restante > 0 && restante < 10_000 && !pausada ? 'tremer' : ''}`}
-        style={{
-          position: 'absolute',
-          left: 1442,
-          top: 30,
-          width: 132,
-          height: 56,
-          borderRadius: 28,
-          background: '#3A2414',
-          border: `3px solid ${restante !== null && restante < 10_000 && !pausada ? '#FF5A4A' : '#F0B44C'}`,
-          boxSizing: 'border-box',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 34,
-          color: restante !== null && restante < 10_000 && !pausada ? '#FF8A7A' : '#FFE08A',
-        }}
-      >
-        {restante === null ? '∞' : formatarTempo(restante)}
-      </div>
-      <BotaoIdioma x={1586} y={28} tam={56} />
-      <BotaoPreferencias x={1648} y={25} />
-      <Icone nome={prefs.mudo ? 'som-desligado' : 'som-ligado'} x={1716} y={27} w={58} h={60} onClick={() => setPrefs({ mudo: !prefs.mudo })} title={prefs.mudo ? t.comum.ligarSom : t.comum.silenciar} />
-      <Icone nome="ajuda" x={1778} y={27} w={58} h={60} onClick={() => setOverlay('ajuda')} title={t.comum.comoJogar} />
-      <Icone nome="fechar" x={1840} y={30} w={52} h={54} onClick={() => setOverlay(souAlmirante ? (overlay === 'menu' ? null : 'menu') : 'sair')} title={souAlmirante ? t.partida.menuAlmirante : t.partida.sairPartida} />
+      <Formato
+        desktop={
+          <>
+            {/* barra superior */}
+            <div className="barra" style={{ left: 24, top: 16, width: 1872, height: 84 }} />
+            <Bandeira ship={turno.shipId} x={42} y={30} w={64} h={55} />
+            <Texto x={116} y={22} titulo tam={30} cor={infoVez.corClara} contorno>
+              {t.partida.vezDoNavio(navioVezNome)}
+            </Texto>
+            <Texto x={116} y={62} tam={17} cor="#F3E6C8" peso={700}>
+              {textoFase(game, t)}
+            </Texto>
+            {centro ? (
+              <motion.div
+                key={`${turno.number}-${centro.word}`}
+                initial={prefs.animacoes ? { scale: 1.8, opacity: 0 } : false}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 14 }}
+                style={{ position: 'absolute', left: 500, top: 16, width: 690, height: 84, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}
+              >
+                <span
+                  className="lilita contorno"
+                  style={{ ['--c' as string]: '#3A1D0C', fontSize: Math.min(50, 560 / Math.max(6, centro.word.length * 0.66)), lineHeight: 1, color: '#FFF8EC', whiteSpace: 'nowrap' } as React.CSSProperties}
+                >
+                  {centro.word}
+                </span>
+                <span
+                  className="lilita"
+                  title={t.partida.palavras(centro.count)}
+                  style={{
+                    flex: '0 0 auto',
+                    width: 54,
+                    height: 54,
+                    borderRadius: '50%',
+                    background: 'linear-gradient(#FFE27A, #E0A21E)',
+                    border: '3px solid #6B3A17',
+                    boxShadow: '0 3px 0 rgba(0,0,0,.4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 32,
+                    lineHeight: 1,
+                    color: '#3A1D0C',
+                  }}
+                >
+                  {centro.count}
+                </span>
+              </motion.div>
+            ) : (
+              <div style={{ position: 'absolute', left: 500, top: 16, width: 690, height: 84, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="lilita contorno" style={{ ['--c' as string]: '#3A1D0C', fontSize: 34, lineHeight: 1, color: '#F3E6C8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } as React.CSSProperties}>
+                  {souCapitaoDaVez ? t.partida.aguardandoSua : t.partida.aguardandoDe(navioVez.captainName || t.comum.capitao)}
+                </span>
+              </div>
+            )}
+            {turno.phase !== 'clue' && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: 1210,
+                  top: 36,
+                  width: 214,
+                  height: 44,
+                  borderRadius: 22,
+                  background: turno.phase === 'cannon' ? '#FFD24A' : '#F3DDB0',
+                  border: '3px solid #6B3A17',
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 800,
+                  fontSize: 17,
+                  color: '#5A3410',
+                }}
+              >
+                {turno.phase === 'cannon' ? t.partida.tiroCanhao : t.partida.palpitesRestantes(turno.guessesLeft)}
+              </div>
+            )}
+            <div
+              className={`lilita ${restante !== null && restante > 0 && restante < 10_000 && !pausada ? 'tremer' : ''}`}
+              style={{
+                position: 'absolute',
+                left: 1442,
+                top: 30,
+                width: 132,
+                height: 56,
+                borderRadius: 28,
+                background: '#3A2414',
+                border: `3px solid ${restante !== null && restante < 10_000 && !pausada ? '#FF5A4A' : '#F0B44C'}`,
+                boxSizing: 'border-box',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 34,
+                color: restante !== null && restante < 10_000 && !pausada ? '#FF8A7A' : '#FFE08A',
+              }}
+            >
+              {restante === null ? '∞' : formatarTempo(restante)}
+            </div>
+            <BotaoIdioma x={1586} y={28} tam={56} />
+            <BotaoPreferencias x={1648} y={25} />
+            <Icone nome={prefs.mudo ? 'som-desligado' : 'som-ligado'} x={1716} y={27} w={58} h={60} onClick={() => setPrefs({ mudo: !prefs.mudo })} title={prefs.mudo ? t.comum.ligarSom : t.comum.silenciar} />
+            <Icone nome="ajuda" x={1778} y={27} w={58} h={60} onClick={() => setOverlay('ajuda')} title={t.comum.comoJogar} />
+            <Icone nome="fechar" x={1840} y={30} w={52} h={54} onClick={() => setOverlay(souAlmirante ? (overlay === 'menu' ? null : 'menu') : 'sair')} title={souAlmirante ? t.partida.menuAlmirante : t.partida.sairPartida} />
 
-      {/* navios */}
-      {game.turnOrder
-        .slice()
-        .sort((a, b) => ['rubi', 'safira', 'esmeralda', 'ouro'].indexOf(a) - ['rubi', 'safira', 'esmeralda', 'ouro'].indexOf(b))
-        .map((id, i) => {
-          const s = game.ships.find((x) => x.id === id)!
-          return <PainelNavio key={id} ship={s} players={view.players} x={24} y={116 + i * 212} vez={id === turno.shipId} />
-        })}
+            {/* navios */}
+            {game.turnOrder
+              .slice()
+              .sort((a, b) => ['rubi', 'safira', 'esmeralda', 'ouro'].indexOf(a) - ['rubi', 'safira', 'esmeralda', 'ouro'].indexOf(b))
+              .map((id, i) => {
+                const s = game.ships.find((x) => x.id === id)!
+                return <PainelNavio key={id} ship={s} players={view.players} x={24} y={116 + i * 212} vez={id === turno.shipId} />
+              })}
 
-      {/* tabuleiro (treme quando sai o Kraken) */}
-      <div key={`tabuleiro-${tremor}`} className={tremor ? 'tremer-uma-vez' : undefined} style={{ position: 'absolute', left: 0, top: 0 }}>
-        <Tabuleiro
-          view={game}
-          players={view.players}
-          mapa={mapa}
-          podeVotar={souMarujoDaVez && turno.phase !== 'clue' && !pausada}
-          podeMarcar={role === 'capitao' && !pausada}
-          onMarcar={marcar_}
-          meuNavio={game.me.shipId}
-          onVotar={marcar}
-          destaque={destaque}
-          animadas={animadas}
-        />
-      </div>
+            {/* tabuleiro (treme quando sai o Kraken) */}
+            <div key={`tabuleiro-${tremor}`} className={tremor ? 'tremer-uma-vez' : undefined} style={{ position: 'absolute', left: 0, top: 0 }}>
+              <Tabuleiro
+                view={game}
+                players={view.players}
+                mapa={mapa}
+                podeVotar={souMarujoDaVez && turno.phase !== 'clue' && !pausada}
+                podeMarcar={role === 'capitao' && !pausada}
+                onMarcar={marcar_}
+                meuNavio={game.me.shipId}
+                onVotar={marcar}
+                destaque={destaque}
+                animadas={animadas}
+              />
+            </div>
+
+            {/* diário */}
+            <Diario view={game} players={view.players} x={1576} y={116} onDestacar={game.me.seesMap ? setDestaque : undefined} destaque={destaque} />
+
+            {/* barra inferior */}
+            <div className="barra" style={{ left: 24, top: 968, width: 1872, height: 96 }} />
+            {me && <Avatar avatar={me.avatar} ship={me.shipId} tam={64} x={42} y={984} />}
+            <Texto x={118} y={982} titulo tam={26} cor="#FFF8EC">
+              {t.partida.voce(me?.name ?? '')}
+            </Texto>
+            <Texto x={118} y={1018} tam={17} cor="#F3E6C8" peso={700}>
+              {roleTexto}
+            </Texto>
+
+            {souCapitaoDaVez && turno.phase === 'clue' && (
+              <>
+                <Campo
+                  x={560}
+                  y={984}
+                  w={460}
+                  h={60}
+                  valor={dica}
+                  placeholder={t.partida.dicaPh}
+                  maxLength={24}
+                  tam={22}
+                  erro={!!erroDica}
+                  autoFocus
+                  onChange={(v) => {
+                    setDica(v)
+                    setErroDica(null)
+                  }}
+                  onEnter={darOrdem}
+                  disabled={pausada}
+                />
+                {erroDica && (
+                  <div style={{ position: 'absolute', left: 560, top: 930, padding: '6px 14px', borderRadius: 10, background: 'rgba(140,30,22,.95)', color: '#FFF8EC', fontWeight: 800, fontSize: 16, whiteSpace: 'nowrap' }}>
+                    {erroDica}
+                  </div>
+                )}
+                <Seletor x={1036} y={988} h={52} valor={numero} min={1} max={Math.max(1, restantes)} onChange={setNumero} disabled={pausada} />
+                <Botao cor="verde" x={1270} y={976} w={230} h={80} onClick={darOrdem} disabled={pausada || !dica.trim()}>
+                  {t.partida.darOrdem}
+                </Botao>
+                <Texto x={1520} y={984} w={250} tam={19} cor="#FFE08A" peso={800}>
+                  {t.partida.marcadas(minhasMarcas.length)}
+                </Texto>
+                <Texto x={1520} y={1012} w={250} tam={14} cor="#E8D2A8" peso={700}>
+                  {t.partida.toqueMarcar}
+                </Texto>
+              </>
+            )}
+            {souCapitaoDaVez && turno.phase !== 'clue' && (
+              <Texto x={560} y={986} w={1100} tam={19} cor="#F3E6C8" peso={700}>
+                {t.partida.ordemDada}
+                <br />
+                <span style={{ fontSize: 16, color: '#E8D2A8' }}>
+                  {t.partida.selecaoResumo(selecao.length, confirmaram, presentes.length)}
+                </span>
+              </Texto>
+            )}
+            {role === 'capitao' && (
+              <IconeNovo
+                nome={ocultarMapa ? 'olho-riscado' : 'olho'}
+                x={1786}
+                y={984}
+                w={64}
+                h={64}
+                onClick={() => setOcultarMapa(!ocultarMapa)}
+                title={ocultarMapa ? t.partida.mostrarMapa : t.partida.ocultarMapa}
+              />
+            )}
+            {role === 'capitao' && !minhaVez && (
+              <Texto x={560} y={986} w={1180} tam={19} cor="#F3E6C8" peso={700}>
+                {t.partida.aguardandoNavio(navioVezNome)}
+                <br />
+                <span style={{ fontSize: 16, color: '#E8D2A8' }}>
+                  {t.partida.toqueTesouros(minhasMarcas.length)}
+                </span>
+              </Texto>
+            )}
+
+            {souMarujoDaVez && turno.phase !== 'clue' && (
+              <>
+                <Texto x={470} y={976} w={740} tam={17} cor="#F3E6C8" peso={700}>
+                  {turno.phase === 'cannon' ? t.partida.tiroLivre : t.partida.marquemAte(turno.limit)}
+                </Texto>
+                {/* quem já confirmou */}
+                <div style={{ position: 'absolute', left: 470, top: 1006, height: 44, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {presentes.map((id) => {
+                    const p = view.players.find((x) => x.id === id)
+                    if (!p) return null
+                    const ok = turno.confirms.includes(id)
+                    const fim = turno.endVotes.includes(id)
+                    return (
+                      <div key={id} title={`${p.name}${ok ? t.partida.confirmou : fim ? t.partida.querEncerrar : ''}`} style={{ position: 'relative', width: 40, height: 40, opacity: ok || fim ? 1 : 0.55 }}>
+                        <Avatar avatar={p.avatar} ship={p.shipId} tam={40} x={0} y={0} />
+                        {(ok || fim) && (
+                          <span
+                            style={{
+                              position: 'absolute',
+                              right: -4,
+                              bottom: -2,
+                              width: 18,
+                              height: 18,
+                              borderRadius: '50%',
+                              background: ok ? '#2E8A2A' : '#B3261E',
+                              border: '2px solid #FFF8EC',
+                              color: '#FFF',
+                              fontSize: 11,
+                              fontWeight: 900,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            {ok ? '✔' : '✕'}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                  <span style={{ marginLeft: 6, fontSize: 16, fontWeight: 800, color: '#E8D2A8' }}>
+                    {t.partida.confirmaram(selecao.length, confirmaram, presentes.length)}
+                  </span>
+                </div>
+                <Botao
+                  cor={confirmei ? 'marrom' : 'verde'}
+                  className={!confirmei && selecao.length > 0 ? 'brilho' : undefined}
+                  x={1226}
+                  y={976}
+                  w={330}
+                  h={80}
+                  tam={confirmei ? 20 : 24}
+                  onClick={confirmar}
+                  disabled={pausada || (!confirmei && selecao.length === 0)}
+                >
+                  {confirmei ? t.partida.cancelarConfirmacao : t.partida.confirmarN(selecao.length)}
+                </Botao>
+                <Botao
+                  cor={pediFim ? 'marrom' : 'vermelho'}
+                  x={1572}
+                  y={976}
+                  w={304}
+                  h={80}
+                  tam={pediFim ? 19 : 22}
+                  onClick={() => encerrar()}
+                  disabled={pausada || (turno.phase === 'guessing' && turno.guesses < 1)}
+                >
+                  {pediFim ? t.comum.cancelar : turno.phase === 'cannon' ? t.partida.abrirMao : t.partida.encerrarVez} ({querFim}/{presentes.length})
+                </Botao>
+              </>
+            )}
+            {souMarujoDaVez && turno.phase === 'clue' && (
+              <Texto x={500} y={1000} w={1000} tam={19} cor="#F3E6C8" peso={700}>
+                {t.partida.capitaoPensando}
+              </Texto>
+            )}
+            {!minhaVez && role !== 'capitao' && (
+              <Texto x={500} y={1000} w={1000} tam={20} cor="#F3E6C8" peso={700}>
+                {role === 'gaivota' ? '👀 ' : ''}
+                {turno.phase === 'clue' ? t.partida.aguardandoOrdem(navioVezNome) : t.partida.aguardandoEscolha(navioVezNome, selecao.length, confirmaram, presentes.length)}
+              </Texto>
+            )}
+            {role === 'exCapitao' && minhaVez && (
+              <Texto x={500} y={1000} w={1000} tam={19} cor="#F3E6C8" peso={700}>
+                {t.partida.jaViuMapa}
+              </Texto>
+            )}
+          </>
+        }
+        compacto={<PartidaCompacta c={c} />}
+      />
 
       {/* faixa "Vez do Navio X" cruzando o tabuleiro a cada troca de vez */}
       <AnimatePresence>
@@ -377,200 +565,19 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
             onAnimationComplete={() => setFaixa(null)}
             style={{ position: 'absolute', left: 0, top: 0, zIndex: 20, pointerEvents: 'none' }}
           >
-            <div style={{ position: 'absolute', left: 362, top: 470, width: 1196, height: 120, background: 'linear-gradient(90deg, transparent, rgba(27,16,9,.96) 16%, rgba(27,16,9,.96) 84%, transparent)' }} />
-            <Bandeira ship={faixa.ship} x={430} y={482} w={104} h={90} />
-            <Bandeira ship={faixa.ship} x={1386} y={482} w={104} h={90} />
-            <Texto x={540} y={494} w={840} centro titulo tam={56} cor={SHIP_INFO[faixa.ship].corClara} contorno>
-              {t.partida.vezDoNavio(nome(faixa.ship))}
-            </Texto>
+            <FaixaVez ship={faixa.ship} texto={t.partida.vezDoNavio(nome(faixa.ship))} />
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* diário */}
-      <Diario view={game} players={view.players} x={1576} y={116} onDestacar={game.me.seesMap ? setDestaque : undefined} destaque={destaque} />
-
-      {/* barra inferior */}
-      <div className="barra" style={{ left: 24, top: 968, width: 1872, height: 96 }} />
-      {me && <Avatar avatar={me.avatar} ship={me.shipId} tam={64} x={42} y={984} />}
-      <Texto x={118} y={982} titulo tam={26} cor="#FFF8EC">
-        {t.partida.voce(me?.name ?? '')}
-      </Texto>
-      <Texto x={118} y={1018} tam={17} cor="#F3E6C8" peso={700}>
-        {roleTexto}
-      </Texto>
-
-      {souCapitaoDaVez && turno.phase === 'clue' && (
-        <>
-          <Campo
-            x={560}
-            y={984}
-            w={460}
-            h={60}
-            valor={dica}
-            placeholder={t.partida.dicaPh}
-            maxLength={24}
-            tam={22}
-            erro={!!erroDica}
-            autoFocus
-            onChange={(v) => {
-              setDica(v)
-              setErroDica(null)
-            }}
-            onEnter={darOrdem}
-            disabled={pausada}
-          />
-          {erroDica && (
-            <div style={{ position: 'absolute', left: 560, top: 930, padding: '6px 14px', borderRadius: 10, background: 'rgba(140,30,22,.95)', color: '#FFF8EC', fontWeight: 800, fontSize: 16, whiteSpace: 'nowrap' }}>
-              {erroDica}
-            </div>
-          )}
-          <Seletor x={1036} y={988} h={52} valor={numero} min={1} max={Math.max(1, restantes)} onChange={setNumero} disabled={pausada} />
-          <Botao cor="verde" x={1270} y={976} w={230} h={80} onClick={darOrdem} disabled={pausada || !dica.trim()}>
-            {t.partida.darOrdem}
-          </Botao>
-          <Texto x={1520} y={984} w={250} tam={19} cor="#FFE08A" peso={800}>
-            {t.partida.marcadas(minhasMarcas.length)}
-          </Texto>
-          <Texto x={1520} y={1012} w={250} tam={14} cor="#E8D2A8" peso={700}>
-            {t.partida.toqueMarcar}
-          </Texto>
-        </>
-      )}
-      {souCapitaoDaVez && turno.phase !== 'clue' && (
-        <Texto x={560} y={986} w={1100} tam={19} cor="#F3E6C8" peso={700}>
-          {t.partida.ordemDada}
-          <br />
-          <span style={{ fontSize: 16, color: '#E8D2A8' }}>
-            {t.partida.selecaoResumo(selecao.length, confirmaram, presentes.length)}
-          </span>
-        </Texto>
-      )}
-      {role === 'capitao' && (
-        <IconeNovo
-          nome={ocultarMapa ? 'olho-riscado' : 'olho'}
-          x={1786}
-          y={984}
-          w={64}
-          h={64}
-          onClick={() => setOcultarMapa(!ocultarMapa)}
-          title={ocultarMapa ? t.partida.mostrarMapa : t.partida.ocultarMapa}
-        />
-      )}
-      {role === 'capitao' && !minhaVez && (
-        <Texto x={560} y={986} w={1180} tam={19} cor="#F3E6C8" peso={700}>
-          {t.partida.aguardandoNavio(navioVezNome)}
-          <br />
-          <span style={{ fontSize: 16, color: '#E8D2A8' }}>
-            {t.partida.toqueTesouros(minhasMarcas.length)}
-          </span>
-        </Texto>
-      )}
-
-      {souMarujoDaVez && turno.phase !== 'clue' && (
-        <>
-          <Texto x={470} y={976} w={740} tam={17} cor="#F3E6C8" peso={700}>
-            {turno.phase === 'cannon' ? t.partida.tiroLivre : t.partida.marquemAte(turno.limit)}
-          </Texto>
-          {/* quem já confirmou */}
-          <div style={{ position: 'absolute', left: 470, top: 1006, height: 44, display: 'flex', alignItems: 'center', gap: 8 }}>
-            {presentes.map((id) => {
-              const p = view.players.find((x) => x.id === id)
-              if (!p) return null
-              const ok = turno.confirms.includes(id)
-              const fim = turno.endVotes.includes(id)
-              return (
-                <div key={id} title={`${p.name}${ok ? t.partida.confirmou : fim ? t.partida.querEncerrar : ''}`} style={{ position: 'relative', width: 40, height: 40, opacity: ok || fim ? 1 : 0.55 }}>
-                  <Avatar avatar={p.avatar} ship={p.shipId} tam={40} x={0} y={0} />
-                  {(ok || fim) && (
-                    <span
-                      style={{
-                        position: 'absolute',
-                        right: -4,
-                        bottom: -2,
-                        width: 18,
-                        height: 18,
-                        borderRadius: '50%',
-                        background: ok ? '#2E8A2A' : '#B3261E',
-                        border: '2px solid #FFF8EC',
-                        color: '#FFF',
-                        fontSize: 11,
-                        fontWeight: 900,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      {ok ? '✔' : '✕'}
-                    </span>
-                  )}
-                </div>
-              )
-            })}
-            <span style={{ marginLeft: 6, fontSize: 16, fontWeight: 800, color: '#E8D2A8' }}>
-              {t.partida.confirmaram(selecao.length, confirmaram, presentes.length)}
-            </span>
-          </div>
-          <Botao
-            cor={confirmei ? 'marrom' : 'verde'}
-            className={!confirmei && selecao.length > 0 ? 'brilho' : undefined}
-            x={1226}
-            y={976}
-            w={330}
-            h={80}
-            tam={confirmei ? 20 : 24}
-            onClick={confirmar}
-            disabled={pausada || (!confirmei && selecao.length === 0)}
-          >
-            {confirmei ? t.partida.cancelarConfirmacao : t.partida.confirmarN(selecao.length)}
-          </Botao>
-          <Botao
-            cor={pediFim ? 'marrom' : 'vermelho'}
-            x={1572}
-            y={976}
-            w={304}
-            h={80}
-            tam={pediFim ? 19 : 22}
-            onClick={() => encerrar()}
-            disabled={pausada || (turno.phase === 'guessing' && turno.guesses < 1)}
-          >
-            {pediFim ? t.comum.cancelar : turno.phase === 'cannon' ? t.partida.abrirMao : t.partida.encerrarVez} ({querFim}/{presentes.length})
-          </Botao>
-        </>
-      )}
-      {souMarujoDaVez && turno.phase === 'clue' && (
-        <Texto x={500} y={1000} w={1000} tam={19} cor="#F3E6C8" peso={700}>
-          {t.partida.capitaoPensando}
-        </Texto>
-      )}
-      {!minhaVez && role !== 'capitao' && (
-        <Texto x={500} y={1000} w={1000} tam={20} cor="#F3E6C8" peso={700}>
-          {role === 'gaivota' ? '👀 ' : ''}
-          {turno.phase === 'clue' ? t.partida.aguardandoOrdem(navioVezNome) : t.partida.aguardandoEscolha(navioVezNome, selecao.length, confirmaram, presentes.length)}
-        </Texto>
-      )}
-      {role === 'exCapitao' && minhaVez && (
-        <Texto x={500} y={1000} w={1000} tam={19} cor="#F3E6C8" peso={700}>
-          {t.partida.jaViuMapa}
-        </Texto>
-      )}
 
       {/* pausa */}
       {pausada && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 45 }}>
           <FundoEscuro opacidade={0.6} />
-          <IconeNovo nome="pausa" x={900} y={330} w={120} h={120} />
-          <Texto x={0} y={470} w={1920} centro titulo tam={64} cor="#FFF8EC" contorno>
-            {t.partida.pausada}
-          </Texto>
-          <Texto x={0} y={556} w={1920} centro tam={24} cor="#F3E6C8" peso={700}>
-            {souAlmirante ? t.partida.relogioParado : t.partida.almirantePausou(view.players.find((p) => p.id === view.paused?.by)?.name ?? '')}
-          </Texto>
-          {souAlmirante && (
-            <Botao cor="verde" x={820} y={620} w={280} h={90} onClick={() => enviar({ type: 'resume' })}>
-              {t.partida.retomar}
-            </Botao>
-          )}
+          <Pausa
+            texto={souAlmirante ? t.partida.relogioParado : t.partida.almirantePausou(view.players.find((p) => p.id === view.paused?.by)?.name ?? '')}
+            onRetomar={souAlmirante ? () => enviar({ type: 'resume' }) : undefined}
+          />
         </div>
       )}
 
@@ -616,6 +623,7 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
         </>
       )}
 
+      <ZoomCarta />
       <Avisos extra={aviso} />
 
       {overlay === 'ajuda' && <ModalComoJogar onFechar={() => setOverlay(null)} />}
@@ -740,5 +748,49 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
       )}
       {extra}
     </Palco>
+  )
+}
+
+/** Faixa "Vez do Navio X" no meio do palco. */
+function FaixaVez({ ship, texto }: { ship: ShipId; texto: string }) {
+  const { compacto, W, H } = usePalco()
+  const bw = compacto ? Math.min(W - 60, 900) : 1196
+  const bh = compacto ? 104 : 120
+  const bx = (W - bw) / 2
+  const by = compacto ? (H - bh) / 2 : 470
+  const fw = compacto ? 88 : 104
+  return (
+    <>
+      <div style={{ position: 'absolute', left: bx, top: by, width: bw, height: bh, background: 'linear-gradient(90deg, transparent, rgba(27,16,9,.96) 16%, rgba(27,16,9,.96) 84%, transparent)' }} />
+      <Bandeira ship={ship} x={bx + 68} y={by + 12} w={fw} h={fw * 0.866} />
+      <Bandeira ship={ship} x={bx + bw - 68 - fw} y={by + 12} w={fw} h={fw * 0.866} />
+      <Texto x={bx + 68 + fw + 6} y={by + (compacto ? 22 : 24)} w={bw - 2 * (68 + fw + 6)} centro titulo tam={compacto ? 46 : 56} cor={SHIP_INFO[ship].corClara} contorno>
+        {texto}
+      </Texto>
+    </>
+  )
+}
+
+/** Partida pausada: cobre a tela, e o Almirante pode retomar. */
+function Pausa({ texto, onRetomar }: { texto: string; onRetomar?: () => void }) {
+  const { W, H, compacto } = usePalco()
+  const t = useT()
+  const m = H / 2
+  return (
+    <>
+      <FundoEscuro opacidade={0.6} />
+      <IconeNovo nome="pausa" x={(W - 120) / 2} y={m - (compacto ? 190 : 210)} w={120} h={120} />
+      <Texto x={0} y={m - (compacto ? 64 : 70)} w={W} centro titulo tam={compacto ? 54 : 64} cor="#FFF8EC" contorno>
+        {t.partida.pausada}
+      </Texto>
+      <Texto x={20} y={m + 10} w={W - 40} centro tam={24} cor="#F3E6C8" peso={700}>
+        {texto}
+      </Texto>
+      {onRetomar && (
+        <Botao cor="verde" x={(W - 280) / 2} y={m + (compacto ? 64 : 80)} w={280} h={90} onClick={onRetomar}>
+          {t.partida.retomar}
+        </Botao>
+      )}
+    </>
   )
 }

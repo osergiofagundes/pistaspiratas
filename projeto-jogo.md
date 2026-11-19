@@ -211,7 +211,10 @@ São cinco telas, todas em uma única página por sala, que muda de estado sem r
 - **Coluna direita:** o Diário de Bordo (seção 8).
 - **Barra inferior:** para o Capitão da vez, o campo da dica, o seletor de número e o botão "Dar ordem". Para os Marujos da vez, os botões "Encerrar vez" e, quando houver, "Disparar canhão". Para os outros, a mensagem "Aguardando o navio Azul".
 
-### 7.2 Tela de partida no celular (depois do MVP)
+### 7.2 Tela de partida no celular e no tablet
+
+Decisão de 18/11/2026: celular e tablet jogam **deitados**. Em pé, o jogo mostra "Gire o aparelho". Telas pequenas usam o palco compacto (mesmas unidades do desktop, área de 1000–1240 × 560–750), e o tabuleiro ocupa o centro, com os navios à esquerda e as ações à direita. O que segue é a ideia original, adaptada para a tela deitada:
+
 
 - O tabuleiro ocupa a tela. A dica atual e o relógio ficam numa barra fixa no topo.
 - Navios e Diário de Bordo abrem como painéis deslizantes de baixo para cima, em abas.
@@ -443,7 +446,7 @@ No MVP, mandar o estado filtrado inteiro a cada mudança é suficiente: um tabul
 
 ## 12. Escopo do MVP e roadmap
 
-O MVP é uma partida completa de Pistas Piratas com 2 a 4 navios, jogada por link no computador. A versão para celular (seção 7.2) fica para depois do MVP (decisão de 17/11/2026). Contas, estatísticas e novos jogos ficam para depois.
+O MVP é uma partida completa de Pistas Piratas com 2 a 4 navios, jogada por link no computador. A versão para celular e tablet (seção 7.2) entrou em 18/11/2026, com os aparelhos deitados. Contas, estatísticas e novos jogos ficam para depois.
 
 ### 12.1 Checklist do MVP
 
@@ -454,7 +457,7 @@ O MVP é uma partida completa de Pistas Piratas com 2 a 4 navios, jogada por lin
 - [ ] Criar sala, link de convite e entrada por código
 - [ ] Perfil sem conta: nome e 16 avatares
 - [ ] Salão: escolher navio, configurações, Capitão por sorteio ou escolha
-- [ ] Tela de partida no computador, com visão de Capitão e de Marujo (celular depois do MVP)
+- [ ] Tela de partida no computador, com visão de Capitão e de Marujo (e no celular e tablet deitados)
 - [ ] Relógio configurável por fase
 - [ ] Diário de Bordo ao vivo e no fim da partida
 - [ ] Reconexão, troca de Capitão por queda e pausa

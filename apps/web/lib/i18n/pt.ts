@@ -356,6 +356,21 @@ export const pt = {
     entendi: 'Entendi!',
   },
 
+  /** formato compacto (celular e tablet deitados) */
+  compacto: {
+    gireTitulo: 'Gire o aparelho',
+    gireTexto: 'Pistas Piratas se joga com o celular ou o tablet deitado.',
+    menu: 'Menu',
+    telaCheia: 'Tela cheia',
+    sairTelaCheia: 'Sair da tela cheia',
+    compartilhar: 'Compartilhar',
+    diario: 'Diário',
+    navios: 'Navios',
+    ver: 'Ver',
+    tripulacao: 'Tripulação',
+    ultima: 'Última jogada',
+    convite: 'Convite',
+  },
   paineis: {
     afundadoKraken: 'Afundado pelo Kraken',
     tesouros: (achados: number, total: number) => `Tesouros ${achados} de ${total}`,

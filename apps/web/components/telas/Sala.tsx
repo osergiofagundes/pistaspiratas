@@ -1,8 +1,8 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Palco, Texto } from '@/components/ui'
-import { BotaoIdioma, BotaoPreferencias, ModalInfo, ModalPerfil } from '@/components/modais/comuns'
+import { Palco, Texto, usePalco } from '@/components/ui'
+import { BotaoIdioma, BotaoMenu, BotaoPreferencias, BotaoSom, ModalInfo, ModalPerfil } from '@/components/modais/comuns'
 import { useT } from '@/lib/i18n'
 import { entrarNaSala, type ErroEntrada } from '@/lib/api'
 import { perfil as lerPerfil, salvarPerfil, type Perfil } from '@/lib/identidade'
@@ -68,8 +68,7 @@ export function Sala({ code }: { code: string }) {
     const m = t.sala.erros[etapa.erro] ?? t.sala.erros['not-found']
     return (
       <Palco fundo="fundo-salao" escurecer={0.35}>
-        <BotaoIdioma x={1726} y={42} />
-        <BotaoPreferencias x={1804} y={42} />
+        <BarraSala />
         <ModalInfo titulo={m.titulo} texto={m.texto} botao={t.sala.voltarInicio} onFechar={() => router.push('/')} />
       </Palco>
     )
@@ -78,12 +77,14 @@ export function Sala({ code }: { code: string }) {
   if (etapa === 'perfil') {
     return (
       <Palco fundo="fundo-salao" escurecer={0.35}>
-        <BotaoIdioma x={1726} y={42} />
-        <BotaoPreferencias x={1804} y={42} />
-        <Texto x={0} y={120} w={1920} centro titulo tam={40} cor="#FFF8EC" contorno>
-          {t.sala.convidado(code)}
-        </Texto>
+        <BarraSala />
+        <SoDesktop>
+          <TextoCentral y={120} yc={8} tam={40}>
+            {t.sala.convidado(code)}
+          </TextoCentral>
+        </SoDesktop>
         <ModalPerfil
+          tituloCompacto={t.sala.convidado(code)}
           inicial={perfil}
           onConfirmar={(p) => {
             salvarPerfil(p)
@@ -93,9 +94,9 @@ export function Sala({ code }: { code: string }) {
           }}
         />
         {erroNome && (
-          <Texto x={0} y={980} w={1920} centro tam={22} cor="#FFB4A8" className="contorno-fino">
+          <TextoCentral y={980} yc={-1} tam={22} cor="#FFB4A8" fino>
             {t.sala.nomeInvalido}
-          </Texto>
+          </TextoCentral>
         )}
       </Palco>
     )
@@ -104,11 +105,10 @@ export function Sala({ code }: { code: string }) {
   if (!view) {
     return (
       <Palco fundo="fundo-salao" escurecer={0.35}>
-        <BotaoIdioma x={1726} y={42} />
-        <BotaoPreferencias x={1804} y={42} />
-        <Texto x={0} y={500} w={1920} centro titulo tam={44} cor="#FFF8EC" contorno>
+        <BarraSala />
+        <TextoCentral y={500} yc={0.46} tam={44}>
           {t.sala.icando}
-        </Texto>
+        </TextoCentral>
       </Palco>
     )
   }
@@ -153,4 +153,44 @@ export function Sala({ code }: { code: string }) {
       )}
     </>
   )
+}
+
+/** Idioma e Preferências (desktop) ou som e menu (compacto), no canto de cima. */
+function BarraSala() {
+  const { compacto, W } = usePalco()
+  if (compacto)
+    return (
+      <>
+        <BotaoSom x={W - 148} y={18} />
+        <BotaoMenu x={W - 80} y={18} />
+      </>
+    )
+  return (
+    <>
+      <BotaoIdioma x={1726} y={42} />
+      <BotaoPreferencias x={1804} y={42} />
+    </>
+  )
+}
+
+/**
+ * Texto centralizado na largura do palco. No compacto, yc diz onde fica: valor de 0 a 1 é a
+ * fração da altura; positivo maior que 1 é a distância do topo; negativo, colado embaixo.
+ */
+function TextoCentral({ y, yc, tam, cor = '#FFF8EC', fino, children }: { y: number; yc: number; tam: number; cor?: string; fino?: boolean; children: React.ReactNode }) {
+  const { compacto, W, H } = usePalco()
+  const top = !compacto ? y : yc < 0 ? H - 40 : yc <= 1 ? H * yc : yc
+  return fino ? (
+    <Texto x={20} y={top} w={W - 40} centro tam={tam} cor={cor} className="contorno-fino">
+      {children}
+    </Texto>
+  ) : (
+    <Texto x={20} y={top} w={W - 40} centro titulo tam={compacto ? Math.min(tam, 34) : tam} cor={cor} contorno>
+      {children}
+    </Texto>
+  )
+}
+
+function SoDesktop({ children }: { children: React.ReactNode }) {
+  return usePalco().compacto ? null : <>{children}</>
 }

@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import type { Personagem, ShipId } from '@arena/platform'
 import { tocar } from '@/lib/sons'
@@ -14,34 +14,108 @@ export const IMG = '/img'
 
 // ---------------------------------------------------------------- palco
 
-/** Palco fixo de 1920×1080 (as telas foram desenhadas nesse tamanho), escalado para caber na janela. */
+/**
+ * Formato do palco. As telas foram desenhadas em 1920×1080 (desktop). Em telas pequenas
+ * (celular e tablet deitados) o palco "compacto" usa as mesmas unidades, mas mostra uma
+ * área menor (W de 1000 a 1240, H de 560 a 750), que por isso fica mais ampliada.
+ */
+export type InfoPalco = { compacto: boolean; W: number; H: number; escala: number }
+const PALCO_DESKTOP: InfoPalco = { compacto: false, W: 1920, H: 1080, escala: 1 }
+const PalcoCtx = createContext<InfoPalco>(PALCO_DESKTOP)
+export const usePalco = () => useContext(PalcoCtx)
+
+/** limites do palco compacto */
+export const COMPACTO = { wMin: 1000, wMax: 1240, hMin: 560, hMax: 750 }
+
+/** escolhe o formato e a escala para uma área de larg×alt px */
+export function medirPalco(larg: number, alt: number): InfoPalco {
+  const e = Math.min(larg / 1920, alt / 1080)
+  if (e >= 0.6) return { compacto: false, W: 1920, H: 1080, escala: e }
+  let escala = alt / COMPACTO.hMin
+  let W = larg / escala
+  let H = COMPACTO.hMin
+  if (W > COMPACTO.wMax) W = COMPACTO.wMax
+  if (W < COMPACTO.wMin) {
+    escala = larg / COMPACTO.wMin
+    W = COMPACTO.wMin
+    H = Math.min(COMPACTO.hMax, alt / escala)
+  }
+  return { compacto: true, W: Math.floor(W), H: Math.floor(H), escala }
+}
+
+function campoEmFoco() {
+  const a = document.activeElement
+  return !!a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')
+}
+
+/** Palco escalado para caber na janela (dentro da área segura do entalhe), no formato desktop ou compacto. */
 export function Palco({ fundo, escurecer = 0.45, children }: { fundo: string; escurecer?: number; children: ReactNode }) {
-  const [escala, setEscala] = useState(1)
-  // quanto da janela sobra em volta do palco (em px do palco), para o fundo dos modais cobrir tudo
-  const [sobra, setSobra] = useState({ x: 0, y: 0 })
+  const [info, setInfo] = useState<InfoPalco | null>(null)
+  const [emPe, setEmPe] = useState(false)
+  const area = useRef<HTMLDivElement>(null)
   const animacoes = useSala((s) => s.prefs.animacoes)
   useEffect(() => {
     useSala.getState().carregarPrefs()
   }, [])
-  useEffect(() => {
+  useLayoutEffect(() => {
+    let ultimo: { larg: number; alt: number } | null = null
+    const toque = window.matchMedia('(pointer: coarse)')
     const f = () => {
-      const e = Math.min(window.innerWidth / 1920, window.innerHeight / 1080)
-      setEscala(e)
-      setSobra({ x: Math.max(0, (window.innerWidth / e - 1920) / 2) + 4, y: Math.max(0, (window.innerHeight / e - 1080) / 2) + 4 })
+      const r = area.current?.getBoundingClientRect()
+      const larg = r?.width || window.innerWidth
+      const alt = r?.height || window.innerHeight
+      setEmPe(toque.matches && window.innerHeight > window.innerWidth)
+      // teclado aberto: a altura encolhe com um campo em foco; o palco fica como estava
+      if (ultimo && larg === ultimo.larg && alt < ultimo.alt && campoEmFoco()) return
+      ultimo = { larg, alt }
+      setInfo(medirPalco(larg, alt))
     }
     f()
     window.addEventListener('resize', f)
-    return () => window.removeEventListener('resize', f)
+    window.addEventListener('orientationchange', f)
+    return () => {
+      window.removeEventListener('resize', f)
+      window.removeEventListener('orientationchange', f)
+    }
   }, [])
+  // o fundo dos modais passa das bordas do palco até cobrir a janela inteira
+  const sobra = info ? Math.ceil(Math.max(window.innerWidth, window.innerHeight) / info.escala) : 0
   return (
-    <div className={`palco-raiz ${animacoes ? "" : "sem-animacoes"}`} style={{ backgroundImage: `url(${IMG}/fundos/${fundo}.webp)` }}>
+    <div className={`palco-raiz ${animacoes ? '' : 'sem-animacoes'}`} style={{ backgroundImage: `url(${IMG}/fundos/${fundo}.webp)` }}>
       <div className="absolute inset-0" style={{ background: `rgba(10,16,24,${escurecer})` }} />
-      <div
-        className="palco"
-        style={{ transform: `translate(-50%, -50%) scale(${escala})`, ['--sobra-x' as string]: `${sobra.x}px`, ['--sobra-y' as string]: `${sobra.y}px` }}
-      >
-        {children}
+      <div ref={area} className="area-segura">
+        {info && (
+          <PalcoCtx.Provider value={info}>
+            <div
+              className={`palco ${info.compacto ? 'compacto' : ''}`}
+              style={{
+                width: info.W,
+                height: info.H,
+                transform: `translate(-50%, -50%) scale(${info.escala})`,
+                ['--sobra-x' as string]: `${sobra}px`,
+                ['--sobra-y' as string]: `${sobra}px`,
+              }}
+            >
+              {children}
+            </div>
+          </PalcoCtx.Provider>
+        )}
       </div>
+      {emPe && <GireOAparelho />}
+    </div>
+  )
+}
+
+/** Aparelho de toque em pé: o jogo é deitado. */
+function GireOAparelho() {
+  const t = useT()
+  return (
+    <div className="gire-aparelho" role="alertdialog" aria-label={t.compacto.gireTitulo}>
+      <div className="gire-celular" aria-hidden>
+        <span />
+      </div>
+      <div className="lilita gire-titulo">{t.compacto.gireTitulo}</div>
+      <div className="gire-texto">{t.compacto.gireTexto}</div>
     </div>
   )
 }
@@ -561,6 +635,11 @@ export function Segmentado<T extends string | number | null>({
 
 export type Deco = { src: string; x: number; y: number; w: number; h: number }
 
+/** recorte da rolagem dos modais altos: o miolo de pergaminho dentro da madeira da moldura */
+const ROLA = { t: 44, b: 26, l: 30, r: 30 }
+/** o rodapé fixo fica acima da madeira de baixo */
+const RODAPE_PE = 16
+
 export function Modal({
   titulo,
   w = 760,
@@ -571,6 +650,7 @@ export function Modal({
   escurecer = 0.55,
   y,
   fecharNoFundo = true,
+  rodape,
 }: {
   titulo?: string
   w?: number
@@ -582,9 +662,17 @@ export function Modal({
   y?: number
   /** false: clicar no fundo não fecha (formulários longos); Esc e o X continuam fechando */
   fecharNoFundo?: boolean
+  /** faixa fixa no pé da moldura (fora da rolagem): botões de Salvar/Cancelar */
+  rodape?: { h: number; conteudo: ReactNode }
 }) {
-  const x = (1920 - w) / 2
-  const top = y ?? (1080 - h) / 2
+  const palco = usePalco()
+  // modal mais alto que o palco compacto: a moldura fica do tamanho da tela e o conteúdo rola por dentro
+  const hVisivel = palco.compacto && h > palco.H - 64 ? palco.H - 64 : h
+  const rola = hVisivel < h
+  // último recurso: mais largo que o palco, encolhe
+  const k = w > palco.W - 24 ? (palco.W - 24) / w : 1
+  const x = (palco.W - w) / 2
+  const top = rola ? 46 : y !== undefined && !palco.compacto ? y : (palco.H - h) / 2 + (titulo && palco.compacto ? 14 : 0)
   useEffect(() => {
     if (!onFechar) return
     const f = (e: KeyboardEvent) => e.key === 'Escape' && onFechar()
@@ -601,14 +689,24 @@ export function Modal({
         initial={anim ? { opacity: 0, scale: 0.92 } : false}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ type: 'spring', stiffness: 320, damping: 24 }}
-        style={{ position: 'absolute', inset: 0, transformOrigin: `${x + w / 2}px ${top + h / 2}px`, pointerEvents: 'none' }}
+        style={{ position: 'absolute', inset: 0, transformOrigin: `${x + w / 2}px ${top + hVisivel / 2}px`, pointerEvents: 'none' }}
       >
-        <div style={{ pointerEvents: 'auto' }}>
-          <Moldura x={x} y={top} w={w} h={h}>
-            <div style={{ position: 'absolute', inset: 0 }}>{children}</div>
+        <div style={{ pointerEvents: 'auto', position: 'absolute', inset: 0, transform: k < 1 ? `scale(${k})` : undefined, transformOrigin: `${x + w / 2}px ${top + hVisivel / 2}px` }}>
+          <Moldura x={x} y={top} w={w} h={hVisivel}>
+            {rola ? (
+              // a rolagem fica recortada no miolo de pergaminho: o conteúdo some sob a madeira, sem passar por cima dela
+              <div className="rolagem rolagem-modal" style={{ position: 'absolute', left: ROLA.l, right: ROLA.r, top: ROLA.t, bottom: rodape ? RODAPE_PE + rodape.h : ROLA.b }}>
+                {/* as margens negativas mantêm as coordenadas do conteúdo iguais às da moldura */}
+                <div style={{ position: 'relative', width: w, height: h - ROLA.b, marginLeft: -ROLA.l, marginTop: -ROLA.t }}>{children}</div>
+              </div>
+            ) : (
+              <div style={{ position: 'absolute', inset: 0 }}>{children}</div>
+            )}
+            {rodape && <div style={{ position: 'absolute', left: 0, width: w, top: hVisivel - RODAPE_PE - rodape.h, height: rodape.h }}>{rodape.conteudo}</div>}
           </Moldura>
-          {decos.map((d, i) => (
-            <Imagem key={i} src={d.src} x={x + d.x} y={top + d.y} w={d.w} h={d.h} />
+          {/* no compacto a âncora do canto cobriria os botões */}
+          {(palco.compacto ? decos.filter((d) => !d.src.includes('deco-ancora')) : decos).map((d, i) => (
+            <Imagem key={i} src={d.src} x={x + d.x} y={top + (d.y > h / 2 ? d.y - (h - hVisivel) : d.y)} w={d.w} h={d.h} />
           ))}
           {onFechar && (
             <button
@@ -701,4 +799,17 @@ export function Deslizante({
       style={{ ...pos({ w: 260, h: 34, ...p }), ['--cheio' as string]: `${Math.round(valor * 100)}%` }}
     />
   )
+}
+
+// ---------------------------------------------------------------- formato
+
+/** Escolhe o desenho pelo formato do palco (fica dentro do Palco, onde o formato é conhecido). */
+export function Formato({ desktop, compacto }: { desktop: ReactNode; compacto: ReactNode }) {
+  return <>{usePalco().compacto ? compacto : desktop}</>
+}
+
+/** Posição de um menu solto (w×h) presa dentro do palco. */
+export function DentroDoPalco({ x, y, w, h, children }: { x: number; y: number; w: number; h: number; children: (x: number, y: number) => ReactNode }) {
+  const { W, H } = usePalco()
+  return <>{children(Math.max(8, Math.min(x, W - w - 8)), Math.max(8, Math.min(y, H - h - 8)))}</>
 }

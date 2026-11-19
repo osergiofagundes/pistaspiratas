@@ -3,12 +3,14 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useSala } from '@/lib/sala'
 import { traduzirMensagem, useT } from '@/lib/i18n'
+import { usePalco } from '@/components/ui'
 
 /** Faixa curta no topo para erros de ação e avisos da sala ("Link copiado!", "Ana agora é o Almirante"). */
 export function Avisos({ extra }: { extra?: { texto: string; seq: number } | null }) {
   const erro = useSala((s) => s.erro)
   const notice = useSala((s) => s.view?.notice)
   const t = useT()
+  const { compacto } = usePalco()
   const [atual, setAtual] = useState<{ texto: string; tipo: 'erro' | 'info'; id: string } | null>(null)
 
   useEffect(() => {
@@ -38,7 +40,7 @@ export function Avisos({ extra }: { extra?: { texto: string; seq: number } | nul
           style={{
             position: 'absolute',
             left: '50%',
-            top: 120,
+            top: compacto ? 86 : 120,
             zIndex: 80,
             padding: '10px 26px',
             borderRadius: 999,

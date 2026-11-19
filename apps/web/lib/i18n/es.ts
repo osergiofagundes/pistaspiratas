@@ -352,6 +352,21 @@ export const es: Dicionario = {
     entendi: '¡Entendido!',
   },
 
+  /** formato compacto (celular e tablet deitados) */
+  compacto: {
+    gireTitulo: 'Gira el dispositivo',
+    gireTexto: 'Pistas Piratas se juega con el móvil o la tableta en horizontal.',
+    menu: 'Menú',
+    telaCheia: 'Pantalla completa',
+    sairTelaCheia: 'Salir de pantalla completa',
+    compartilhar: 'Compartir',
+    diario: 'Diario',
+    navios: 'Barcos',
+    ver: 'Ver',
+    tripulacao: 'Tripulación',
+    ultima: 'Última jugada',
+    convite: 'Invitación',
+  },
   paineis: {
     afundadoKraken: 'Hundido por el Kraken',
     tesouros: (achados, total) => `Tesoros ${achados} de ${total}`,

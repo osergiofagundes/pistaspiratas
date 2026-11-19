@@ -4,7 +4,7 @@ import { motion } from 'motion/react'
 import { SHIP_IDS, SHIP_INFO, type ShipId } from '@arena/platform'
 import { BOARD_MAX, BOARD_MIN, type BoardSize, type CodenomesConfig, PRESETS, TEMPOS, fixedBoard, gridFor, updateConfig } from '@arena/codenomes'
 import { lerPalavrasPersonalizadas } from '@arena/words'
-import { Botao, DECO_ANCORA, IMG, Interruptor, Marcador, Modal, Segmentado, Seletor, Texto } from '@/components/ui'
+import { Botao, DECO_ANCORA, IMG, Interruptor, Marcador, Modal, Segmentado, Seletor, Texto, usePalco } from '@/components/ui'
 import { useSala } from '@/lib/sala'
 import { IDIOMAS, useT, type Dicionario } from '@/lib/i18n'
 import { nomeNavioConfig } from '@/lib/textos'
@@ -218,35 +218,94 @@ export function ModalConfiguracoes({
   const notaTabuleiro = fixo ? (c.treasuresManual ? k.notaManual : k.notaProporcional) : pers ? undefined : k.notaVira
   const categoria = (k: 'geral' | 'mar', v: boolean) => set({ categories: v ? [...c.categories, k] : c.categories.filter((x) => x !== k) })
 
-  const yCartoes = 166
   const hCartao1 = linha(6) + 8
   const hCartao2 = linha(4) + 8
-  const yCartoes2 = yCartoes + hCartao1 + 14
-  const hPrevia = yCartoes2 + hCartao2 - yCartoes
+  // compacto: os cartões numa coluna só, com rolagem, e Cancelar/Salvar fixos no pé
+  const cp = usePalco().compacto
+  const L = cp
+    ? (() => {
+        const y1 = 206
+        const y2 = y1 + hCartao1 + 14
+        const y3 = y2 + hCartao2 + 14
+        const y4 = y3 + hCartao1 + 14
+        const yP = y4 + hCartao2 + 14
+        const hP = 440
+        return {
+          W: COL.w + 100,
+          H: yP + hP + 44,
+          preset: { tx: COL.esq + 4, ty: 62, x: COL.esq, y: 98, w: COL.w, tam: 15, dy: 150 },
+          tab: { x: COL.esq, y: y1 },
+          cap: { x: COL.esq, y: y2 },
+          sala: { x: COL.esq, y: y3 },
+          pal: { x: COL.esq, y: y4 },
+          prev: { x: COL.esq, y: yP, h: hP },
+        }
+      })()
+    : (() => {
+        const y1 = 166
+        const y2 = y1 + hCartao1 + 14
+        return {
+          W,
+          H,
+          preset: { tx: COL.esq + 4, ty: 88, x: 180, y: 80, w: COL.dir + COL.w - 180, tam: 18, dy: 132 },
+          tab: { x: COL.esq, y: y1 },
+          cap: { x: COL.esq, y: y2 },
+          sala: { x: COL.dir, y: y1 },
+          pal: { x: COL.dir, y: y2 },
+          prev: { x: COL.previa, y: y1, h: y2 + hCartao2 - y1 },
+        }
+      })()
+  const hPrevia = L.prev.h
+  const salvar = () => onSalvar({ ...c, customWords: lidas.aceitas })
 
   return (
-    <Modal titulo={k.titulo} w={W} h={H} onFechar={onFechar} decos={[DECO_ANCORA(W, H)]} fecharNoFundo={false}>
+    <Modal
+      titulo={k.titulo}
+      w={L.W}
+      h={L.H}
+      onFechar={onFechar}
+      decos={cp ? [] : [DECO_ANCORA(W, H)]}
+      fecharNoFundo={false}
+      rodape={
+        cp
+          ? {
+              h: 92,
+              conteudo: (
+                <>
+                  <div style={{ position: 'absolute', left: 30, right: 30, top: 0, height: 2, background: 'rgba(90,52,16,.2)' }} />
+                  <Botao cor="marrom" x={L.W / 2 - 210} y={14} w={190} h={64} onClick={onFechar}>
+                    {t.comum.cancelar}
+                  </Botao>
+                  <Botao cor="verde" x={L.W / 2 + 10} y={10} w={200} h={72} onClick={salvar}>
+                    {t.comum.salvar}
+                  </Botao>
+                </>
+              ),
+            }
+          : undefined
+      }
+    >
       {/* preset */}
-      <Texto x={COL.esq + 4} y={88} titulo tam={24} cor="#5A3410">
+      <Texto x={L.preset.tx} y={L.preset.ty} titulo tam={24} cor="#5A3410">
         {k.preset}
       </Texto>
       <Segmentado
-        x={180}
-        y={80}
-        w={COL.dir + COL.w - 180}
+        x={L.preset.x}
+        y={L.preset.y}
+        w={L.preset.w}
         h={44}
-        tam={18}
+        tam={L.preset.tam}
         opcoes={PRESETS.map((p) => ({ v: p.id, rotulo: t.presets[p.id].nome }))}
         valor={c.preset}
         onChange={(v) => mudaTabuleiro({ preset: v })}
       />
-      <Texto x={180} y={132} w={COL.dir + COL.w - 180} tam={16} cor="#7A5A3A" peso={700}>
+      <Texto x={L.preset.x} y={L.preset.dy} w={L.preset.w} tam={16} cor="#7A5A3A" peso={700}>
         {t.presets[c.preset].descricao}
       </Texto>
 
       <Cartao
-        x={COL.esq}
-        y={yCartoes}
+        x={L.tab.x}
+        y={L.tab.y}
         h={hCartao1}
         titulo={k.tabuleiro}
         nota={notaTabuleiro}
@@ -320,7 +379,7 @@ export function ModalConfiguracoes({
         <Interruptor x={470} y={linha(5) + 4} ligado={c.firstBonus} onChange={(v) => mudaTabuleiro({ firstBonus: v })} />
       </Cartao>
 
-      <Cartao x={COL.esq} y={yCartoes2} h={hCartao2} titulo={k.capitaoTempo} ordem={1}>
+      <Cartao x={L.cap.x} y={L.cap.y} h={hCartao2} titulo={k.capitaoTempo} ordem={1}>
         <Rotulo i={0}>{k.escolhaCapitao}</Rotulo>
         <Segmentado
           x={250}
@@ -342,7 +401,7 @@ export function ModalConfiguracoes({
         <Segmentado x={250} y={linha(3) + 4} w={290} h={36} opcoes={OPCOES_TEMPO} valor={c.crewTime} onChange={(v) => set({ crewTime: v })} />
       </Cartao>
 
-      <Cartao x={COL.dir} y={yCartoes} h={hCartao1} titulo={k.salaRegras} ordem={2}>
+      <Cartao x={L.sala.x} y={L.sala.y} h={hCartao1} titulo={k.salaRegras} ordem={2}>
         <Rotulo i={0}>{k.tamanhoMax}</Rotulo>
         <Seletor x={408} y={linha(0) + 2} h={40} valor={c.maxPlayers} min={4} max={24} onChange={(v) => set({ maxPlayers: v })} />
         <Rotulo i={1}>{k.espectadores}</Rotulo>
@@ -379,7 +438,7 @@ export function ModalConfiguracoes({
         ))}
       </Cartao>
 
-      <Cartao x={COL.dir} y={yCartoes2} h={hCartao2} titulo={k.palavras} ordem={3}>
+      <Cartao x={L.pal.x} y={L.pal.y} h={hCartao2} titulo={k.palavras} ordem={3}>
         <Marcador x={150} y={16} marcado={c.categories.includes('geral')} onChange={(v) => categoria('geral', v)} />
         <Texto x={192} y={22} tam={17} cor="#5A3410" peso={800}>
           {t.categorias.geral}
@@ -442,18 +501,22 @@ export function ModalConfiguracoes({
         </Texto>
       </Cartao>
 
-      <Cartao x={COL.previa} y={yCartoes} h={hPrevia} titulo={k.previa} nota={k.previaNota(g.cols, g.rows, g.total)} ordem={4}>
+      <Cartao x={L.prev.x} y={L.prev.y} h={hPrevia} titulo={k.previa} nota={k.previaNota(g.cols, g.rows, g.total)} ordem={4}>
         <div style={{ position: 'absolute', left: 20, top: 56, width: COL.w - 40, height: hPrevia - 72 }}>
           <PreviaTabuleiro config={c} w={COL.w - 40} h={hPrevia - 72} />
         </div>
       </Cartao>
 
-      <Botao cor="marrom" x={W / 2 - 210} y={H - 108} w={190} h={68} onClick={onFechar}>
-        {t.comum.cancelar}
-      </Botao>
-      <Botao cor="verde" x={W / 2 + 10} y={H - 114} w={200} h={78} onClick={() => onSalvar({ ...c, customWords: lidas.aceitas })}>
-        {t.comum.salvar}
-      </Botao>
+      {!cp && (
+        <>
+          <Botao cor="marrom" x={W / 2 - 210} y={H - 108} w={190} h={68} onClick={onFechar}>
+            {t.comum.cancelar}
+          </Botao>
+          <Botao cor="verde" x={W / 2 + 10} y={H - 114} w={200} h={78} onClick={salvar}>
+            {t.comum.salvar}
+          </Botao>
+        </>
+      )}
     </Modal>
   )
 }

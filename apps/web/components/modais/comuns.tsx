@@ -9,11 +9,14 @@ import {
   DECO_ANCORA,
   Deslizante,
   Escotilha,
+  FundoEscuro,
   IMG,
+  Icone,
   IconeNovo,
   Interruptor,
   Modal,
   Texto,
+  usePalco,
   type CorBotao,
   type Deco,
   type Pos,
@@ -22,6 +25,7 @@ import { IDIOMAS, infoIdioma, traduzirMensagem, useIdioma, useT } from '@/lib/i1
 import type { Perfil } from '@/lib/identidade'
 import { useSala } from '@/lib/sala'
 import { tocar } from '@/lib/sons'
+import { alternarTelaCheia, emTelaCheia, podeTelaCheia } from '@/lib/telaCheia'
 
 /** barris e baú de ouro apoiados nos cantos de baixo da moldura (proporções de deco-barris 500×482 e deco-bau 471×408) */
 export const DECO_BARRIS = (h: number, alt = 118): Deco => ({ src: 'interface/decoracoes/deco-barris.webp', x: -54, y: h - alt + 14, w: Math.round((alt * 500) / 482), h: alt })
@@ -39,11 +43,14 @@ export function ModalPerfil({
   ship,
   onConfirmar,
   onFechar,
+  tituloCompacto,
 }: {
   inicial: Perfil | null
   ship?: ShipId | null
   onConfirmar: (p: Perfil) => void
   onFechar?: () => void
+  /** no compacto não sobra espaço acima do modal: o convite vira o título */
+  tituloCompacto?: string
 }) {
   const [nome, setNome] = useState(inicial?.name ?? '')
   const [avatar, setAvatar] = useState<Personagem>(inicial?.avatar ?? 'papagaio')
@@ -51,8 +58,18 @@ export function ModalPerfil({
   const [erro, setErro] = useState<string | null>(null)
   const anim = useSala((s) => s.prefs.animacoes)
   const t = useT()
-  const w = 1120
-  const h = 680
+  const palco = usePalco()
+  // compacto: prévia menor à esquerda e os 16 avatares em 8×2, com Confirmar sempre à vista
+  const L = palco.compacto
+    ? (() => {
+        const w = Math.min(palco.W - 40, 1000)
+        const rx = 286
+        const COL = 8
+        const CEL = (w - rx - 24) / COL
+        return { w, h: 490, prev: { x: 26, y: 46, k: 0.74, h: 446 }, rx, tituloY: 44, campoY: 74, campoH: 54, campoW: w - rx - 30 - 76, erroY: 130, avTitY: 138, avY: 172, COL, CEL, cellH: 104, escAv: Math.min(70, CEL - 8), rotulo: 13, btn: { x: w - 236, y: 490 - 88, w: 200, h: 68 } }
+      })()
+    : { w: 1120, h: 680, prev: { x: 44, y: 70, k: 1, h: 500 }, rx: 398, tituloY: 66, campoY: 100, campoH: 64, campoW: 600, erroY: 170, avTitY: 196, avY: 234, COL: 6, CEL: 112, cellH: 150, escAv: 96, rotulo: 15, btn: { x: 1120 - 300, y: 680 - 130, w: 210, h: 84 } }
+  const { w, h } = L
   const confirmar = () => {
     const e = validateName(nome)
     if (e) return setErro(traduzirMensagem(e, t))
@@ -63,19 +80,20 @@ export function ModalPerfil({
     setNome(outros[Math.floor(Math.random() * outros.length)])
     setErro(null)
   }
-  const COL = 6
-  const CEL = 112
+  const { COL, CEL } = L
 
   return (
-    <Modal titulo={t.perfil.titulo} w={w} h={h} onFechar={onFechar} decos={[DECO_ANCORA(w, h)]}>
+    <Modal titulo={(palco.compacto && tituloCompacto) || t.perfil.titulo} w={w} h={h} onFechar={onFechar} decos={[DECO_ANCORA(w, h)]}>
       {/* prévia */}
       <div
         style={{
           position: 'absolute',
-          left: 44,
-          top: 70,
+          left: L.prev.x,
+          top: L.prev.y,
           width: 320,
-          height: 500,
+          height: L.prev.h,
+          transform: L.prev.k < 1 ? `scale(${L.prev.k})` : undefined,
+          transformOrigin: '0 0',
           borderRadius: 18,
           background: 'rgba(255,248,230,.6)',
           border: '2px solid rgba(138,74,28,.35)',
@@ -116,23 +134,23 @@ export function ModalPerfil({
             </button>
           ))}
         </div>
-        <Texto x={20} y={454} w={280} centro tam={14} cor="#7A5A3A" peso={700}>
+        <Texto x={20} y={454} w={280} centro tam={palco.compacto ? 18 : 14} cor="#7A5A3A" peso={700}>
           {t.perfil.corAcompanha}
         </Texto>
       </div>
 
       {/* nome */}
-      <Texto x={404} y={66} titulo tam={24} cor="#5A3410">
+      <Texto x={L.rx + 6} y={L.tituloY} titulo tam={24} cor="#5A3410">
         {t.perfil.comoChamar}
       </Texto>
       <Campo
-        x={398}
-        y={100}
-        w={600}
-        h={64}
+        x={L.rx}
+        y={L.campoY}
+        w={L.campoW}
+        h={L.campoH}
         valor={nome}
         maxLength={16}
-        autoFocus
+        autoFocus={!palco.compacto}
         placeholder={t.perfil.placeholder}
         erro={!!erro}
         onChange={(v) => {
@@ -141,17 +159,17 @@ export function ModalPerfil({
         }}
         onEnter={confirmar}
       />
-      <Botao cor="pequeno-marrom" x={1008} y={100} w={70} h={64} tam={28} onClick={sortearNome} title={t.perfil.sortear}>
+      <Botao cor="pequeno-marrom" x={L.rx + L.campoW + 10} y={L.campoY} w={L.campoH + 6} h={L.campoH} tam={28} onClick={sortearNome} title={t.perfil.sortear}>
         🎲
       </Botao>
       {erro && (
-        <Texto x={404} y={170} tam={15} cor="#B3261E">
+        <Texto x={L.rx + 6} y={L.erroY} tam={15} cor="#B3261E">
           {erro}
         </Texto>
       )}
 
       {/* avatares */}
-      <Texto x={404} y={196} titulo tam={24} cor="#5A3410">
+      <Texto x={L.rx + 6} y={L.avTitY} titulo tam={24} cor="#5A3410">
         {t.perfil.escolhaAvatar}
       </Texto>
       {PERSONAGENS.map((p, i) => {
@@ -169,25 +187,25 @@ export function ModalPerfil({
             transition={{ duration: 0.25, delay: anim ? 0.1 + i * 0.03 : 0 }}
             style={{
               position: 'absolute',
-              left: 398 + (i % COL) * CEL,
-              top: 234 + Math.floor(i / COL) * 150,
-              width: 104,
-              height: 140,
+              left: L.rx + (i % COL) * CEL,
+              top: L.avY + Math.floor(i / COL) * L.cellH,
+              width: CEL - 8,
+              height: L.cellH - 10,
               background: sel ? 'rgba(255,210,74,.22)' : 'none',
               borderRadius: 14,
               border: 0,
               padding: 0,
             }}
           >
-            <Escotilha avatar={p.id} ship={cor} tam={96} x={4} y={4} selecionado={sel} />
+            <Escotilha avatar={p.id} ship={cor} tam={L.escAv} x={(CEL - 8 - L.escAv) / 2} y={4} selecionado={sel} />
             <span
               style={{
                 position: 'absolute',
                 left: -4,
                 right: -4,
-                top: 106,
+                top: L.escAv + 8,
                 fontWeight: 800,
-                fontSize: 15,
+                fontSize: L.rotulo,
                 color: sel ? '#B5651D' : '#5A3410',
                 whiteSpace: 'nowrap',
               }}
@@ -198,7 +216,7 @@ export function ModalPerfil({
         )
       })}
 
-      <BotaoTexto nome="confirmar" cor="verde" texto={t.comum.confirmar} x={w - 300} y={h - 130} w={210} h={84} onClick={confirmar} />
+      <BotaoTexto nome="confirmar" cor="verde" texto={t.comum.confirmar} x={L.btn.x} y={L.btn.y} w={L.btn.w} h={L.btn.h} onClick={confirmar} />
     </Modal>
   )
 }
@@ -290,7 +308,8 @@ export function ModalInfo({
 }
 
 /** o manual fica em ComoJogar.tsx; reexportado aqui para as telas */
-export { ModalComoJogar } from './ComoJogar'
+import { ModalComoJogar } from './ComoJogar'
+export { ModalComoJogar }
 
 /**
  * Botão com texto desenhado na arte (Criar Sala, Entrar na Sala, Confirmar, Sair da Sala).
@@ -347,15 +366,17 @@ export function ModalIdioma({ onFechar }: { onFechar: () => void }) {
   const idioma = useIdioma()
   const setPrefs = useSala((s) => s.setPrefs)
   const anim = useSala((s) => s.prefs.animacoes)
-  const w = 1080
-  const h = 750
-  const PW = 300
-  const PH = 230
-  const GX = 30
+  const compacto = usePalco().compacto
+  const w = compacto ? 800 : 1080
+  const h = compacto ? 488 : 750
+  const PW = compacto ? 200 : 300
+  const PH = compacto ? 144 : 230
+  const GX = compacto ? 24 : 30
+  const Y0 = compacto ? 98 : 132
   const x0 = (w - 3 * PW - 2 * GX) / 2
   return (
     <Modal titulo={t.idioma.titulo} w={w} h={h} onFechar={onFechar} decos={[DECO_ANCORA(w, h)]}>
-      <Texto x={70} y={76} w={w - 140} centro tam={18} cor="#7A5A3A" peso={700}>
+      <Texto x={70} y={compacto ? 46 : 76} w={w - 140} centro tam={compacto ? 15 : 18} cor="#7A5A3A" peso={700}>
         {t.idioma.texto}
       </Texto>
       {IDIOMAS.map((l, i) => {
@@ -376,14 +397,14 @@ export function ModalIdioma({ onFechar }: { onFechar: () => void }) {
             whileHover={{ y: -5 }}
             transition={{ duration: 0.22, delay: anim ? 0.08 + i * 0.04 : 0 }}
             className={`placa-idioma${sel ? ' ativa' : ''}`}
-            style={{ position: 'absolute', left: x0 + (i % 3) * (PW + GX), top: 132 + Math.floor(i / 3) * (PH + 22), width: PW, height: PH }}
+            style={{ position: 'absolute', left: x0 + (i % 3) * (PW + GX), top: Y0 + Math.floor(i / 3) * (PH + (compacto ? 12 : 22)), width: PW, height: PH }}
           >
             <img src={`${IMG}/${l.placa}`} alt="" draggable={false} />
             {sel && <span className="selo-visto" aria-hidden>✔</span>}
           </motion.button>
         )
       })}
-      <Botao cor="verde" x={w / 2 - 110} y={h - 112} w={220} h={74} onClick={onFechar}>
+      <Botao cor="verde" x={w / 2 - 110} y={h - (compacto ? 82 : 112)} w={220} h={compacto ? 62 : 74} onClick={onFechar}>
         {t.comum.pronto}
       </Botao>
     </Modal>
@@ -418,8 +439,11 @@ export function ModalPreferencias({ onFechar, onEditarPerfil }: { onFechar: () =
   const setPrefs = useSala((s) => s.setPrefs)
   const t = useT()
   const [idiomas, setIdiomas] = useState(false)
+  // compacto: as mesmas linhas, mais juntas, para caber sem rolar
+  const c = usePalco().compacto
   const w = 700
-  const h = 640
+  const h = c ? 490 : 640
+  const Y = c ? { vol: 50, volG: 68, div: 190, ch: 200, chG: 60, idi: 322 } : { vol: 74, volG: 82, div: 240, ch: 258, chG: 76, idi: 410 }
   const volumes: { k: 'musica' | 'efeitos'; t: string; d: string; amostra?: () => void }[] = [
     { k: 'musica', t: t.prefs.musica, d: t.prefs.musicaD },
     { k: 'efeitos', t: t.prefs.efeitos, d: t.prefs.efeitosD, amostra: () => tocar('moedas') },
@@ -430,9 +454,11 @@ export function ModalPreferencias({ onFechar, onEditarPerfil }: { onFechar: () =
   ]
   const atual = infoIdioma(prefs.idioma)
   return (
-    <Modal titulo={t.comum.preferencias} w={w} h={h} onFechar={onFechar} decos={[DECO_ANCORA(w, h)]}>
+    <>
+    {/* com o Idioma aberto por cima, o Esc só fecha o Idioma */}
+    <Modal titulo={t.comum.preferencias} w={w} h={h} onFechar={idiomas ? undefined : onFechar} decos={[DECO_ANCORA(w, h)]}>
       {volumes.map((l, i) => (
-        <div key={l.k} style={{ position: 'absolute', left: 60, top: 74 + i * 82, width: w - 120, height: 70 }}>
+        <div key={l.k} style={{ position: 'absolute', left: 60, top: Y.vol + i * Y.volG, width: w - 120, height: 70 }}>
           <Texto x={0} y={4} titulo tam={22} cor="#5A3410">
             {l.t}
           </Texto>
@@ -454,9 +480,9 @@ export function ModalPreferencias({ onFechar, onEditarPerfil }: { onFechar: () =
           </Texto>
         </div>
       ))}
-      <div style={{ position: 'absolute', left: 60, top: 240, width: w - 120, height: 2, background: 'rgba(90,52,16,.18)' }} />
+      <div style={{ position: 'absolute', left: 60, top: Y.div, width: w - 120, height: 2, background: 'rgba(90,52,16,.18)' }} />
       {chaves.map((l, i) => (
-        <div key={l.k} style={{ position: 'absolute', left: 60, top: 258 + i * 76, width: w - 120, height: 66 }}>
+        <div key={l.k} style={{ position: 'absolute', left: 60, top: Y.ch + i * Y.chG, width: w - 120, height: 66 }}>
           <Texto x={0} y={4} titulo tam={22} cor="#5A3410">
             {l.t}
           </Texto>
@@ -467,7 +493,7 @@ export function ModalPreferencias({ onFechar, onEditarPerfil }: { onFechar: () =
         </div>
       ))}
       {/* idioma: a bandeira atual abre as 6 placas */}
-      <div style={{ position: 'absolute', left: 60, top: 410, width: w - 120, height: 66 }}>
+      <div style={{ position: 'absolute', left: 60, top: Y.idi, width: w - 120, height: 66 }}>
         <Texto x={0} y={4} titulo tam={22} cor="#5A3410">
           {t.idioma.titulo}
         </Texto>
@@ -488,14 +514,176 @@ export function ModalPreferencias({ onFechar, onEditarPerfil }: { onFechar: () =
         </button>
       </div>
       {onEditarPerfil && (
-        <Botao cor="marrom" x={60} y={h - 116} w={230} h={74} onClick={onEditarPerfil}>
+        <Botao cor="marrom" x={60} y={h - (c ? 88 : 116)} w={230} h={c ? 66 : 74} onClick={onEditarPerfil}>
           {t.prefs.editarPerfil}
         </Botao>
       )}
-      <Botao cor="verde" x={w - 60 - 200} y={h - 116} w={200} h={74} onClick={onFechar}>
+      <Botao cor="verde" x={w - 60 - 200} y={h - (c ? 88 : 116)} w={200} h={c ? 66 : 74} onClick={onFechar}>
         {t.comum.pronto}
       </Botao>
-      {idiomas && <ModalIdioma onFechar={() => setIdiomas(false)} />}
     </Modal>
+    {/* fora da moldura das Preferências: assim o Idioma se posiciona pelo palco, como quando abre pela bandeira */}
+    {idiomas && <ModalIdioma onFechar={() => setIdiomas(false)} />}
+    </>
   )
+}
+
+// ---------------------------------------------------------------- formato compacto
+
+export type ItemMenu = { icone?: string; rotulo: string; descricao?: string; cor?: string; onClick: () => void }
+
+/**
+ * Formato compacto: um botão só no topo (engrenagem) abre a folha com Idioma, Preferências,
+ * Como jogar, Tela cheia e os itens da tela (Sair, Pausar…).
+ */
+export function BotaoMenu({
+  x,
+  y,
+  tam = 60,
+  itens = [],
+  onEditarPerfil,
+  semAjuda,
+}: {
+  x: number
+  y: number
+  tam?: number
+  itens?: ItemMenu[]
+  onEditarPerfil?: () => void
+  semAjuda?: boolean
+}) {
+  const [aberto, setAberto] = useState(false)
+  const [modal, setModal] = useState<null | 'idioma' | 'prefs' | 'ajuda'>(null)
+  const [cheia, setCheia] = useState(false)
+  const t = useT()
+  const idioma = useIdioma()
+  const palco = usePalco()
+  const abrir = (m: typeof modal) => () => {
+    setAberto(false)
+    setModal(m)
+  }
+  const todos: ItemMenu[] = [
+    { icone: infoIdioma(idioma).bandeira, rotulo: t.idioma.titulo, descricao: infoIdioma(idioma).nome, onClick: abrir('idioma') },
+    { icone: 'interface/icones/engrenagem.webp', rotulo: t.comum.preferencias, onClick: abrir('prefs') },
+    ...(semAjuda ? [] : [{ icone: 'interface/icones/ajuda.webp', rotulo: t.comum.comoJogar, onClick: abrir('ajuda') }]),
+    ...(podeTelaCheia()
+      ? [
+          {
+            icone: 'interface/icones/mapa.webp',
+            rotulo: cheia ? t.compacto.sairTelaCheia : t.compacto.telaCheia,
+            onClick: () => {
+              setAberto(false)
+              void alternarTelaCheia()
+            },
+          },
+        ]
+      : []),
+    ...itens.map((i) => ({ ...i, onClick: () => (setAberto(false), i.onClick()) })),
+  ]
+  const larg = 360
+  return (
+    <>
+      <IconeNovo
+        nome="engrenagem"
+        x={x}
+        y={y}
+        w={tam}
+        h={tam}
+        onClick={() => {
+          setCheia(emTelaCheia())
+          setAberto(!aberto)
+        }}
+        title={t.compacto.menu}
+      />
+      {aberto && (
+        <>
+          <FundoEscuro opacidade={0.25} z={60} onClick={() => setAberto(false)} />
+          <motion.div
+            role="menu"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.15 }}
+            style={{
+              position: 'absolute',
+              left: Math.min(palco.W - larg - 10, Math.max(10, x + tam - larg)),
+              top: y + tam + 6,
+              width: larg,
+              maxHeight: palco.H - y - tam - 16,
+              overflowY: 'auto',
+              zIndex: 61,
+              background: '#FFF6DF',
+              border: '3px solid #8A4A1C',
+              borderRadius: 14,
+              boxShadow: '0 12px 28px rgba(0,0,0,.5)',
+              padding: 8,
+            }}
+          >
+            {todos.map((o, i) => (
+              <button
+                key={o.rotulo}
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  tocar('clique')
+                  o.onClick()
+                }}
+                className="item-menu"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  width: '100%',
+                  minHeight: 62,
+                  padding: '6px 10px',
+                  border: 0,
+                  borderTop: i ? '1px solid rgba(90,52,16,.15)' : 0,
+                  background: 'transparent',
+                  textAlign: 'left',
+                  borderRadius: 8,
+                }}
+              >
+                {o.icone ? (
+                  <img
+                    src={`${IMG}/${o.icone}`}
+                    alt=""
+                    draggable={false}
+                    style={{ width: 48, height: o.icone.startsWith('idiomas') ? 32 : 48, objectFit: o.icone.startsWith('idiomas') ? 'cover' : 'contain', borderRadius: o.icone.startsWith('idiomas') ? 6 : 0, margin: o.icone.startsWith('idiomas') ? '8px 0' : 0, flex: 'none' }}
+                  />
+                ) : (
+                  <span style={{ width: 48, flex: 'none' }} />
+                )}
+                <span style={{ minWidth: 0 }}>
+                  <span className="lilita" style={{ display: 'block', fontSize: 22, lineHeight: 1.1, color: o.cor ?? '#5A3410' }}>
+                    {o.rotulo}
+                  </span>
+                  {o.descricao && <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: '#8A6A4A' }}>{o.descricao}</span>}
+                </span>
+              </button>
+            ))}
+          </motion.div>
+        </>
+      )}
+      {modal === 'idioma' && <ModalIdioma onFechar={() => setModal(null)} />}
+      {modal === 'prefs' && (
+        <ModalPreferencias
+          onFechar={() => setModal(null)}
+          onEditarPerfil={
+            onEditarPerfil &&
+            (() => {
+              setModal(null)
+              onEditarPerfil()
+            })
+          }
+        />
+      )}
+      {modal === 'ajuda' && <ModalComoJogar onFechar={() => setModal(null)} />}
+    </>
+  )
+}
+
+/** Som ligado/desligado (usado nas barras compactas). */
+export function BotaoSom({ x, y, tam = 60 }: { x: number; y: number; tam?: number }) {
+  const mudo = useSala((s) => s.prefs.mudo)
+  const setPrefs = useSala((s) => s.setPrefs)
+  const t = useT()
+  return <Icone nome={mudo ? 'som-desligado' : 'som-ligado'} x={x} y={y} w={tam} h={Math.round(tam * 1.03)} onClick={() => setPrefs({ mudo: !mudo })} title={mudo ? t.comum.ligarSom : t.comum.silenciar} />
 }

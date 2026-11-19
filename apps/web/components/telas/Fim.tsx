@@ -2,10 +2,11 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'motion/react'
 import { useRouter } from 'next/navigation'
-import { SHIP_INFO, type ShipId } from '@arena/platform'
-import { Bandeira, Botao, Escotilha, Icone, Imagem, Moldura, Navio, Palco, Texto } from '@/components/ui'
+import { SHIP_INFO, type Player, type ShipId } from '@arena/platform'
+import type { ShipView } from '@arena/codenomes'
+import { Bandeira, Botao, Escotilha, Formato, Icone, Imagem, Moldura, Navio, Palco, Texto, usePalco } from '@/components/ui'
 import { Avisos } from '@/components/ui/Avisos'
-import { BotaoIdioma, BotaoPreferencias, ModalConfirmar } from '@/components/modais/comuns'
+import { BotaoIdioma, BotaoMenu, BotaoPreferencias, BotaoSom, ModalConfirmar } from '@/components/modais/comuns'
 import { useT } from '@/lib/i18n'
 import { Diario } from '@/components/jogo/Diario'
 import { Tabuleiro } from '@/components/jogo/Paineis'
@@ -93,255 +94,263 @@ export function Fim({ view }: { view: Visao }) {
   }
 
   const tripulacao = venc ? view.players.filter((p) => p.shipId === venc.id) : []
+  const c = { view, game, venc, venci, derrota, titulo, corTitulo, subtitulo, aba, setAba, placar, stats, meuNavio, nome, tripulacao, minutos, souAlmirante, copiar, abrirSair: () => setSair(true) }
 
   return (
     <Palco fundo={derrota ? 'fundo-derrota' : 'fundo-vitoria'} escurecer={derrota ? 0.5 : 0.35}>
-      {/* título */}
-      {venc && <Bandeira ship={venc.id} x={420} y={18} w={84} h={72} className={anim ? 'flutuar' : undefined} />}
-      {venc && <Bandeira ship={venc.id} x={1416} y={18} w={84} h={72} className={anim ? 'flutuar' : undefined} />}
-      <motion.div
-        initial={anim ? (derrota ? { y: 40, opacity: 0 } : { scale: 0.3, opacity: 0, y: -40 }) : false}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        transition={derrota ? { duration: 0.9, ease: 'easeOut' } : { type: 'spring', stiffness: 260, damping: 12 }}
-        style={{ position: 'absolute', left: 510, top: 12, width: 900, height: 84 }}
-      >
-        <Texto x={0} y={0} w={900} centro titulo tam={venc && !venci && !derrota ? 56 : 68} cor={corTitulo} contorno>
-          {titulo}
-        </Texto>
-      </motion.div>
-      <motion.div
-        initial={anim ? { opacity: 0 } : false}
-        animate={{ opacity: 1 }}
-        transition={{ delay: anim ? 0.4 : 0, duration: 0.5 }}
-        style={{ position: 'absolute', left: 0, top: 0 }}
-      >
-        <Texto x={360} y={98} w={1200} centro tam={22} cor="#FFF8EC" peso={800} className="contorno-fino">
-          {subtitulo}
-        </Texto>
-      </motion.div>
-      <BotaoIdioma x={1666} y={18} />
-      <BotaoPreferencias x={1740} y={18} />
-      <Icone nome={prefs.mudo ? 'som-desligado' : 'som-ligado'} x={1814} y={18} onClick={() => setPrefs({ mudo: !prefs.mudo })} title={prefs.mudo ? t.comum.ligarSom : t.comum.silenciar} />
+      <Formato
+        desktop={
+          <>
+            {/* título */}
+            {venc && <Bandeira ship={venc.id} x={420} y={18} w={84} h={72} className={anim ? 'flutuar' : undefined} />}
+            {venc && <Bandeira ship={venc.id} x={1416} y={18} w={84} h={72} className={anim ? 'flutuar' : undefined} />}
+            <motion.div
+              initial={anim ? (derrota ? { y: 40, opacity: 0 } : { scale: 0.3, opacity: 0, y: -40 }) : false}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              transition={derrota ? { duration: 0.9, ease: 'easeOut' } : { type: 'spring', stiffness: 260, damping: 12 }}
+              style={{ position: 'absolute', left: 510, top: 12, width: 900, height: 84 }}
+            >
+              <Texto x={0} y={0} w={900} centro titulo tam={venc && !venci && !derrota ? 56 : 68} cor={corTitulo} contorno>
+                {titulo}
+              </Texto>
+            </motion.div>
+            <motion.div
+              initial={anim ? { opacity: 0 } : false}
+              animate={{ opacity: 1 }}
+              transition={{ delay: anim ? 0.4 : 0, duration: 0.5 }}
+              style={{ position: 'absolute', left: 0, top: 0 }}
+            >
+              <Texto x={360} y={98} w={1200} centro tam={22} cor="#FFF8EC" peso={800} className="contorno-fino">
+                {subtitulo}
+              </Texto>
+            </motion.div>
+            <BotaoIdioma x={1666} y={18} />
+            <BotaoPreferencias x={1740} y={18} />
+            <Icone nome={prefs.mudo ? 'som-desligado' : 'som-ligado'} x={1814} y={18} onClick={() => setPrefs({ mudo: !prefs.mudo })} title={prefs.mudo ? t.comum.ligarSom : t.comum.silenciar} />
 
-      {aba === 'resumo' ? (
-        <>
-          {/* herói: o navio vencedor e a tripulação */}
-          <motion.div
-            initial={anim ? { opacity: 0, x: -80 } : false}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: anim ? 0.2 : 0, ease: 'easeOut' }}
-            style={{ position: 'absolute', left: 0, top: 0 }}
-          >
-            <Moldura x={50} y={150} w={760} h={650} />
-            {venc ? (
+            {aba === 'resumo' ? (
               <>
-                <div style={{ position: 'absolute', left: 50, top: 210, width: 760, height: 8, display: 'flex', justifyContent: 'center' }}>
-                  <span className="lilita" style={{ padding: '4px 18px', borderRadius: 999, background: SHIP_INFO[venc.id].cor, color: '#FFF8EC', fontSize: 18, height: 30, display: 'flex', alignItems: 'center' }}>
-                    {t.fim.vencedor}
-                  </span>
-                </div>
-                <Navio ship={venc.id} className={anim ? 'navegar' : undefined} x={250} y={252} w={360} h={330} />
-                <Texto x={50} y={584} w={760} centro titulo tam={44} cor={SHIP_INFO[venc.id].cor}>
-                  {t.comum.navio(nome(venc.id))}
-                </Texto>
-                <div style={{ position: 'absolute', left: 90, top: 646, width: 680, display: 'flex', justifyContent: 'center', gap: 14 }}>
-                  {tripulacao.map((p, i) => (
-                    <motion.div
-                      key={p.id}
-                      initial={anim ? { scale: 0, y: 20 } : false}
-                      animate={{ scale: 1, y: 0 }}
-                      transition={{ type: 'spring', stiffness: 420, damping: 16, delay: anim ? 0.6 + i * 0.08 : 0 }}
-                      style={{ position: 'relative', width: 76, height: 110, textAlign: 'center' }}
-                    >
-                      <Escotilha avatar={p.avatar} ship={p.shipId} tam={70} x={3} y={6} />
-                      {p.id === venc.captainId && <Imagem src="itens/coroa.webp" x={22} y={-14} w={32} h={26} />}
-                      <div style={{ position: 'absolute', top: 80, left: -8, right: -8, fontSize: 14, fontWeight: 800, color: '#5A3410', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {p.name}
+                {/* herói: o navio vencedor e a tripulação */}
+                <motion.div
+                  initial={anim ? { opacity: 0, x: -80 } : false}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: anim ? 0.2 : 0, ease: 'easeOut' }}
+                  style={{ position: 'absolute', left: 0, top: 0 }}
+                >
+                  <Moldura x={50} y={150} w={760} h={650} />
+                  {venc ? (
+                    <>
+                      <div style={{ position: 'absolute', left: 50, top: 210, width: 760, height: 8, display: 'flex', justifyContent: 'center' }}>
+                        <span className="lilita" style={{ padding: '4px 18px', borderRadius: 999, background: SHIP_INFO[venc.id].cor, color: '#FFF8EC', fontSize: 18, height: 30, display: 'flex', alignItems: 'center' }}>
+                          {t.fim.vencedor}
+                        </span>
                       </div>
+                      <Navio ship={venc.id} className={anim ? 'navegar' : undefined} x={250} y={252} w={360} h={330} />
+                      <Texto x={50} y={584} w={760} centro titulo tam={44} cor={SHIP_INFO[venc.id].cor}>
+                        {t.comum.navio(nome(venc.id))}
+                      </Texto>
+                      <div style={{ position: 'absolute', left: 90, top: 646, width: 680, display: 'flex', justifyContent: 'center', gap: 14 }}>
+                        {tripulacao.map((p, i) => (
+                          <motion.div
+                            key={p.id}
+                            initial={anim ? { scale: 0, y: 20 } : false}
+                            animate={{ scale: 1, y: 0 }}
+                            transition={{ type: 'spring', stiffness: 420, damping: 16, delay: anim ? 0.6 + i * 0.08 : 0 }}
+                            style={{ position: 'relative', width: 76, height: 110, textAlign: 'center' }}
+                          >
+                            <Escotilha avatar={p.avatar} ship={p.shipId} tam={70} x={3} y={6} />
+                            {p.id === venc.captainId && <Imagem src="itens/coroa.webp" x={22} y={-14} w={32} h={26} />}
+                            <div style={{ position: 'absolute', top: 80, left: -8, right: -8, fontSize: 14, fontWeight: 800, color: '#5A3410', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {p.name}
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <img src="/img/interface/icones/cadeado.webp" alt="" style={{ position: 'absolute', left: 350, top: 290, width: 160, height: 160 }} />
+                      <Texto x={50} y={480} w={760} centro titulo tam={44} cor="#5A3410">
+                        {t.fim.semVencedor}
+                      </Texto>
+                      <Texto x={120} y={540} w={620} centro tam={20} cor="#7A5A3A">
+                        {t.fim.semVencedorTexto}
+                      </Texto>
+                    </>
+                  )}
+                </motion.div>
+
+                {/* placar */}
+                <Texto x={860} y={154} titulo tam={32} cor="#FFF8EC" contorno>
+                  {t.fim.placar}
+                </Texto>
+                {placar.map((s, i) => {
+                  const n = stats.porNavio.get(s.id)!
+                  const achados = s.total - s.left
+                  const meu = s.id === meuNavio
+                  const info = SHIP_INFO[s.id]
+                  const h = placar.length > 3 ? 132 : 150
+                  const top = 204 + i * (h + 12)
+                  return (
+                    <motion.div
+                      key={s.id}
+                      initial={anim ? { opacity: 0, x: 80 } : false}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.45, delay: anim ? 0.35 + i * 0.12 : 0, ease: 'easeOut' }}
+                      style={{
+                        position: 'absolute',
+                        left: 860,
+                        top,
+                        width: 1010,
+                        height: h,
+                        borderRadius: 16,
+                        background: s.eliminated ? 'rgba(232,220,200,.9)' : 'rgba(255,246,223,.95)',
+                        border: `3px solid ${meu ? info.cor : 'rgba(138,74,28,.5)'}`,
+                        boxShadow: meu ? `0 0 0 3px rgba(255,255,255,.35), 0 8px 18px rgba(0,0,0,.35)` : '0 6px 14px rgba(0,0,0,.3)',
+                      }}
+                    >
+                      {/* posição */}
+                      <div
+                        className="lilita"
+                        style={{
+                          position: 'absolute',
+                          left: 18,
+                          top: h / 2 - 28,
+                          width: 56,
+                          height: 56,
+                          borderRadius: '50%',
+                          background: s.eliminated ? '#6B5A4A' : MEDALHA[i] ?? MEDALHA[3],
+                          border: '3px solid #6B3A17',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: s.eliminated ? 26 : 28,
+                          color: s.eliminated ? '#FFF8EC' : '#3A1D0C',
+                        }}
+                      >
+                        {s.eliminated ? '☠' : t.fim.posicao(i + 1)}
+                      </div>
+                      <Navio ship={s.id} afundado={s.eliminated} x={88} y={h / 2 - 52} w={112} h={104} />
+                      <Texto x={214} y={h / 2 - 50} titulo tam={30} cor={s.eliminated ? '#7A6A5A' : info.cor}>
+                        {t.comum.navio(nome(s.id))}
+                        {meu ? <span style={{ fontSize: 18, color: '#7A5A3A' }}>{t.fim.seuNavio}</span> : null}
+                      </Texto>
+                      <Texto x={214} y={h / 2 - 12} tam={16} cor="#7A5A3A" peso={700}>
+                        {t.fim.capitaoX(s.captainName || '—')}
+                      </Texto>
+                      {/* tesouros */}
+                      <div style={{ position: 'absolute', left: 214, top: h / 2 + 18, width: 270, height: 18, borderRadius: 9, background: 'rgba(90,52,16,.18)', overflow: 'hidden' }}>
+                        <motion.div
+                          initial={anim ? { width: 0 } : false}
+                          animate={{ width: `${(achados / Math.max(1, s.total)) * 100}%` }}
+                          transition={{ duration: 0.8, delay: anim ? 0.7 + i * 0.12 : 0, ease: 'easeOut' }}
+                          style={{ height: '100%', background: s.eliminated ? '#9A8A7A' : info.cor }}
+                        />
+                      </div>
+                      <Texto x={496} y={h / 2 + 15} tam={17} cor="#5A3410" peso={800}>
+                        {t.fim.tesourosDe(achados, s.total)}
+                      </Texto>
+                      {/* números do navio */}
+                      <div style={{ position: 'absolute', right: 24, top: h / 2 - 38, display: 'flex', gap: 10 }}>
+                        <Numero valor={n.acertos} rotulo={t.fim.acertos(n.acertos)} cor="#2E7A2A" />
+                        <Numero valor={n.erros} rotulo={t.fim.erros(n.erros)} cor="#B3261E" />
+                        <Numero valor={n.turnos} rotulo={t.fim.turnos(n.turnos)} cor="#5A3410" />
+                      </div>
+                      {s.eliminated && (
+                        <Texto x={214} y={h - 26} tam={14} cor="#8A2A1E" peso={800}>
+                          {t.fim.afundouKraken(n.afundouNoTurno)}
+                        </Texto>
+                      )}
                     </motion.div>
-                  ))}
-                </div>
+                  )
+                })}
+
+                {/* números da partida */}
+                {[
+                  { v: t.fim.minutos(minutos), r: t.fim.dePartida },
+                  { v: game.log.length, r: t.fim.turnos(game.log.length) },
+                  { v: stats.tesouros, r: t.fim.tesourosAchados },
+                  { v: stats.krakens, r: t.fim.krakens(stats.krakens) },
+                  { v: stats.canhoes, r: t.fim.canhoes(stats.canhoes) },
+                ].map((n, i) => (
+                  <motion.div
+                    key={n.r}
+                    initial={anim ? { opacity: 0, y: 20 } : false}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: anim ? 0.9 + i * 0.07 : 0 }}
+                    style={{
+                      position: 'absolute',
+                      left: 50 + i * 368,
+                      top: 826,
+                      width: 352,
+                      height: 118,
+                      borderRadius: 16,
+                      background: 'rgba(27,16,9,.78)',
+                      border: '2px solid rgba(240,180,76,.55)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <span className="lilita" style={{ fontSize: 44, lineHeight: 1, color: '#FFE08A' }}>
+                      {n.v}
+                    </span>
+                    <span style={{ fontSize: 17, fontWeight: 800, color: '#F3E6C8', marginTop: 6 }}>{n.r}</span>
+                  </motion.div>
+                ))}
               </>
             ) : (
               <>
-                <img src="/img/interface/icones/cadeado.webp" alt="" style={{ position: 'absolute', left: 350, top: 290, width: 160, height: 160 }} />
-                <Texto x={50} y={480} w={760} centro titulo tam={44} cor="#5A3410">
-                  {t.fim.semVencedor}
-                </Texto>
-                <Texto x={120} y={540} w={620} centro tam={20} cor="#7A5A3A">
-                  {t.fim.semVencedorTexto}
-                </Texto>
+                <Tabuleiro
+                  view={game}
+                  players={view.players}
+                  x={40}
+                  y={140}
+                  w={1510}
+                  h={808}
+                  mapa
+                  podeVotar={false}
+                  onVotar={() => {}}
+                  destaque={null}
+                  animadas={new Set()}
+                  fim
+                />
+                <Diario view={game} players={view.players} x={1576} y={140} h={808} titulo={t.fim.diarioCompleto} />
               </>
             )}
-          </motion.div>
 
-          {/* placar */}
-          <Texto x={860} y={154} titulo tam={32} cor="#FFF8EC" contorno>
-            {t.fim.placar}
-          </Texto>
-          {placar.map((s, i) => {
-            const n = stats.porNavio.get(s.id)!
-            const achados = s.total - s.left
-            const meu = s.id === meuNavio
-            const info = SHIP_INFO[s.id]
-            const h = placar.length > 3 ? 132 : 150
-            const top = 204 + i * (h + 12)
-            return (
-              <motion.div
-                key={s.id}
-                initial={anim ? { opacity: 0, x: 80 } : false}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.45, delay: anim ? 0.35 + i * 0.12 : 0, ease: 'easeOut' }}
-                style={{
-                  position: 'absolute',
-                  left: 860,
-                  top,
-                  width: 1010,
-                  height: h,
-                  borderRadius: 16,
-                  background: s.eliminated ? 'rgba(232,220,200,.9)' : 'rgba(255,246,223,.95)',
-                  border: `3px solid ${meu ? info.cor : 'rgba(138,74,28,.5)'}`,
-                  boxShadow: meu ? `0 0 0 3px rgba(255,255,255,.35), 0 8px 18px rgba(0,0,0,.35)` : '0 6px 14px rgba(0,0,0,.3)',
-                }}
-              >
-                {/* posição */}
-                <div
-                  className="lilita"
-                  style={{
-                    position: 'absolute',
-                    left: 18,
-                    top: h / 2 - 28,
-                    width: 56,
-                    height: 56,
-                    borderRadius: '50%',
-                    background: s.eliminated ? '#6B5A4A' : MEDALHA[i] ?? MEDALHA[3],
-                    border: '3px solid #6B3A17',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: s.eliminated ? 26 : 28,
-                    color: s.eliminated ? '#FFF8EC' : '#3A1D0C',
-                  }}
-                >
-                  {s.eliminated ? '☠' : t.fim.posicao(i + 1)}
-                </div>
-                <Navio ship={s.id} afundado={s.eliminated} x={88} y={h / 2 - 52} w={112} h={104} />
-                <Texto x={214} y={h / 2 - 50} titulo tam={30} cor={s.eliminated ? '#7A6A5A' : info.cor}>
-                  {t.comum.navio(nome(s.id))}
-                  {meu ? <span style={{ fontSize: 18, color: '#7A5A3A' }}>{t.fim.seuNavio}</span> : null}
-                </Texto>
-                <Texto x={214} y={h / 2 - 12} tam={16} cor="#7A5A3A" peso={700}>
-                  {t.fim.capitaoX(s.captainName || '—')}
-                </Texto>
-                {/* tesouros */}
-                <div style={{ position: 'absolute', left: 214, top: h / 2 + 18, width: 270, height: 18, borderRadius: 9, background: 'rgba(90,52,16,.18)', overflow: 'hidden' }}>
-                  <motion.div
-                    initial={anim ? { width: 0 } : false}
-                    animate={{ width: `${(achados / Math.max(1, s.total)) * 100}%` }}
-                    transition={{ duration: 0.8, delay: anim ? 0.7 + i * 0.12 : 0, ease: 'easeOut' }}
-                    style={{ height: '100%', background: s.eliminated ? '#9A8A7A' : info.cor }}
-                  />
-                </div>
-                <Texto x={496} y={h / 2 + 15} tam={17} cor="#5A3410" peso={800}>
-                  {t.fim.tesourosDe(achados, s.total)}
-                </Texto>
-                {/* números do navio */}
-                <div style={{ position: 'absolute', right: 24, top: h / 2 - 38, display: 'flex', gap: 10 }}>
-                  <Numero valor={n.acertos} rotulo={t.fim.acertos(n.acertos)} cor="#2E7A2A" />
-                  <Numero valor={n.erros} rotulo={t.fim.erros(n.erros)} cor="#B3261E" />
-                  <Numero valor={n.turnos} rotulo={t.fim.turnos(n.turnos)} cor="#5A3410" />
-                </div>
-                {s.eliminated && (
-                  <Texto x={214} y={h - 26} tam={14} cor="#8A2A1E" peso={800}>
-                    {t.fim.afundouKraken(n.afundouNoTurno)}
-                  </Texto>
-                )}
-              </motion.div>
-            )
-          })}
-
-          {/* números da partida */}
-          {[
-            { v: t.fim.minutos(minutos), r: t.fim.dePartida },
-            { v: game.log.length, r: t.fim.turnos(game.log.length) },
-            { v: stats.tesouros, r: t.fim.tesourosAchados },
-            { v: stats.krakens, r: t.fim.krakens(stats.krakens) },
-            { v: stats.canhoes, r: t.fim.canhoes(stats.canhoes) },
-          ].map((n, i) => (
-            <motion.div
-              key={n.r}
-              initial={anim ? { opacity: 0, y: 20 } : false}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: anim ? 0.9 + i * 0.07 : 0 }}
-              style={{
-                position: 'absolute',
-                left: 50 + i * 368,
-                top: 826,
-                width: 352,
-                height: 118,
-                borderRadius: 16,
-                background: 'rgba(27,16,9,.78)',
-                border: '2px solid rgba(240,180,76,.55)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
+            {/* barra inferior */}
+            <div className="barra" style={{ left: 24, top: 968, width: 1872, height: 96 }} />
+            <Texto x={50} y={1002} tam={19} cor="#F3E6C8" peso={700}>
+              {t.fim.rodape(minutos, game.log.length)}
+            </Texto>
+            <Botao cor="azul" x={760} y={980} w={270} h={72} tam={22} onClick={() => setAba(aba === 'resumo' ? 'mapa' : 'resumo')}>
+              {aba === 'resumo' ? t.fim.verMapa : t.fim.verResumo}
+            </Botao>
+            <Botao cor="cinza" x={1050} y={980} w={150} h={72} tam={22} onClick={() => setSair(true)}>
+              {t.comum.sair}
+            </Botao>
+            <Botao cor="marrom" x={1236} y={976} w={290} h={80} tam={26} onClick={copiar}>
+              {t.fim.copiarResumo}
+            </Botao>
+            <Botao
+              cor={souAlmirante ? 'verde' : 'cinza'}
+              x={1546}
+              y={976}
+              w={330}
+              h={80}
+              tam={souAlmirante ? 28 : 21}
+              disabled={!souAlmirante}
+              onClick={() => enviar({ type: 'backToLobby' })}
+              title={souAlmirante ? undefined : t.fim.soAlmiranteLeva}
             >
-              <span className="lilita" style={{ fontSize: 44, lineHeight: 1, color: '#FFE08A' }}>
-                {n.v}
-              </span>
-              <span style={{ fontSize: 17, fontWeight: 800, color: '#F3E6C8', marginTop: 6 }}>{n.r}</span>
-            </motion.div>
-          ))}
-        </>
-      ) : (
-        <>
-          <Tabuleiro
-            view={game}
-            players={view.players}
-            x={40}
-            y={140}
-            w={1510}
-            h={808}
-            mapa
-            podeVotar={false}
-            onVotar={() => {}}
-            destaque={null}
-            animadas={new Set()}
-            fim
-          />
-          <Diario view={game} players={view.players} x={1576} y={140} h={808} titulo={t.fim.diarioCompleto} />
-        </>
-      )}
-
-      {/* barra inferior */}
-      <div className="barra" style={{ left: 24, top: 968, width: 1872, height: 96 }} />
-      <Texto x={50} y={1002} tam={19} cor="#F3E6C8" peso={700}>
-        {t.fim.rodape(minutos, game.log.length)}
-      </Texto>
-      <Botao cor="azul" x={760} y={980} w={270} h={72} tam={22} onClick={() => setAba(aba === 'resumo' ? 'mapa' : 'resumo')}>
-        {aba === 'resumo' ? t.fim.verMapa : t.fim.verResumo}
-      </Botao>
-      <Botao cor="cinza" x={1050} y={980} w={150} h={72} tam={22} onClick={() => setSair(true)}>
-        {t.comum.sair}
-      </Botao>
-      <Botao cor="marrom" x={1236} y={976} w={290} h={80} tam={26} onClick={copiar}>
-        {t.fim.copiarResumo}
-      </Botao>
-      <Botao
-        cor={souAlmirante ? 'verde' : 'cinza'}
-        x={1546}
-        y={976}
-        w={330}
-        h={80}
-        tam={souAlmirante ? 28 : 21}
-        disabled={!souAlmirante}
-        onClick={() => enviar({ type: 'backToLobby' })}
-        title={souAlmirante ? undefined : t.fim.soAlmiranteLeva}
-      >
-        {souAlmirante ? t.fim.voltarSalao : t.fim.esperandoAlmirante}
-      </Botao>
+              {souAlmirante ? t.fim.voltarSalao : t.fim.esperandoAlmirante}
+            </Botao>
+          </>
+        }
+        compacto={<FimCompacto c={c} />}
+      />
 
       <Avisos extra={aviso} />
       {sair && (
@@ -368,6 +377,198 @@ function Numero({ valor, rotulo, cor }: { valor: number; rotulo: string; cor: st
         {valor}
       </span>
       <span style={{ fontSize: 13, fontWeight: 800, color: '#7A5A3A', marginTop: 4 }}>{rotulo}</span>
+    </div>
+  )
+}
+
+type Stats = { porNavio: Map<ShipId, { acertos: number; erros: number; turnos: number; afundouNoTurno: number | null }>; krakens: number; canhoes: number; tesouros: number }
+type CtxFim = {
+  view: Visao
+  game: NonNullable<Visao['game']>
+  venc: ShipView | null
+  venci: boolean
+  derrota: boolean
+  titulo: string
+  corTitulo: string
+  subtitulo: string
+  aba: 'resumo' | 'mapa'
+  setAba: (a: 'resumo' | 'mapa') => void
+  placar: ShipView[]
+  stats: Stats
+  meuNavio: ShipId | null
+  nome: (id: ShipId) => string
+  tripulacao: Player[]
+  minutos: number
+  souAlmirante: boolean
+  copiar: () => void
+  abrirSair: () => void
+}
+
+/** Fim no formato compacto: título no alto, vencedor à esquerda e placar à direita (ou o mapa com o Diário), e os botões embaixo. */
+function FimCompacto({ c }: { c: CtxFim }) {
+  const { W, H } = usePalco()
+  const t = useT()
+  const enviar = useSala((s) => s.enviar)
+  const anim = useSala((s) => s.prefs.animacoes)
+  const { game, venc, venci, derrota, aba, placar, stats, meuNavio, nome } = c
+  const top = 88
+  const baseY = H - 82
+  const ch = baseY - 10 - top
+  return (
+    <>
+      {/* título */}
+      <motion.div
+        initial={anim ? (derrota ? { y: 30, opacity: 0 } : { scale: 0.3, opacity: 0, y: -30 }) : false}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        transition={derrota ? { duration: 0.9, ease: 'easeOut' } : { type: 'spring', stiffness: 260, damping: 12 }}
+        style={{ position: 'absolute', left: 160, top: 6, width: W - 320, height: 56 }}
+      >
+        <Texto x={0} y={0} w={W - 320} centro titulo tam={venc && !venci && !derrota ? 38 : 46} cor={c.corTitulo} contorno className="truncate">
+          {c.titulo}
+        </Texto>
+      </motion.div>
+      <Texto x={40} y={58} w={W - 80} centro tam={15} cor="#FFF8EC" peso={800} className="contorno-fino truncate">
+        {c.subtitulo}
+      </Texto>
+      <BotaoSom x={W - 142} y={12} tam={56} />
+      <BotaoMenu x={W - 78} y={12} tam={56} itens={[{ icone: 'interface/icones/sair.webp', rotulo: t.comum.sair, cor: '#B3261E', onClick: c.abrirSair }]} />
+
+      {aba === 'resumo' ? (
+        <>
+          {/* vencedor */}
+          <Moldura x={16} y={top} w={360} h={ch} />
+          {venc ? (
+            <>
+              <div style={{ position: 'absolute', left: 16, top: top + 50, width: 360, display: 'flex', justifyContent: 'center' }}>
+                <span className="lilita" style={{ padding: '3px 16px', borderRadius: 999, background: SHIP_INFO[venc.id].cor, color: '#FFF8EC', fontSize: 16 }}>
+                  {t.fim.vencedor}
+                </span>
+              </div>
+              <Navio ship={venc.id} className={anim ? 'navegar' : undefined} x={196 - 80} y={top + 80} w={160} h={147} />
+              <Texto x={26} y={top + 228} w={340} centro titulo tam={28} cor={SHIP_INFO[venc.id].cor} className="truncate">
+                {t.comum.navio(nome(venc.id))}
+              </Texto>
+              <div style={{ position: 'absolute', left: 36, top: top + 268, width: 320, display: 'flex', justifyContent: 'center', gap: 8 }}>
+                {c.tripulacao.slice(0, 5).map((p) => (
+                  <div key={p.id} style={{ position: 'relative', width: 58, height: 78, textAlign: 'center' }}>
+                    <Escotilha avatar={p.avatar} ship={p.shipId} tam={52} x={3} y={4} />
+                    {p.id === venc.captainId && <Imagem src="itens/coroa.webp" x={17} y={-8} w={24} h={20} />}
+                    <div style={{ position: 'absolute', top: 58, left: -6, right: -6, fontSize: 12, fontWeight: 800, color: '#5A3410', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <img src="/img/interface/icones/cadeado.webp" alt="" style={{ position: 'absolute', left: 196 - 60, top: top + 70, width: 120, height: 120 }} />
+              <Texto x={26} y={top + 200} w={340} centro titulo tam={32} cor="#5A3410">
+                {t.fim.semVencedor}
+              </Texto>
+              <Texto x={46} y={top + 244} w={300} centro tam={15} cor="#7A5A3A">
+                {t.fim.semVencedorTexto}
+              </Texto>
+            </>
+          )}
+
+          {/* placar */}
+          <Texto x={396} y={top - 4} titulo tam={22} cor="#FFF8EC" contorno>
+            {t.fim.placar}
+          </Texto>
+          {placar.map((s, i) => {
+            const n = stats.porNavio.get(s.id)!
+            const achados = s.total - s.left
+            const meu = s.id === meuNavio
+            const info = SHIP_INFO[s.id]
+            const gap = 8
+            const h = Math.min(100, (ch - 30 - (placar.length - 1) * gap) / placar.length)
+            const x = 392
+            const w = W - 16 - x
+            const y = top + 30 + i * (h + gap)
+            return (
+              <motion.div
+                key={s.id}
+                initial={anim ? { opacity: 0, x: 60 } : false}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, delay: anim ? 0.3 + i * 0.1 : 0 }}
+                style={{
+                  position: 'absolute',
+                  left: x,
+                  top: y,
+                  width: w,
+                  height: h,
+                  borderRadius: 14,
+                  background: s.eliminated ? 'rgba(232,220,200,.92)' : 'rgba(255,246,223,.96)',
+                  border: `3px solid ${meu ? info.cor : 'rgba(138,74,28,.5)'}`,
+                  boxShadow: '0 5px 12px rgba(0,0,0,.3)',
+                }}
+              >
+                <div className="lilita medalha" style={{ left: 10, top: h / 2 - 22, background: s.eliminated ? '#6B5A4A' : MEDALHA[i] ?? MEDALHA[3], color: s.eliminated ? '#FFF8EC' : '#3A1D0C' }}>
+                  {s.eliminated ? '☠' : t.fim.posicao(i + 1)}
+                </div>
+                <Navio ship={s.id} afundado={s.eliminated} x={60} y={h / 2 - 32} w={68} h={64} />
+                <Texto x={134} y={h / 2 - 34} w={w - 134 - 3 * 70 - 16} titulo tam={22} cor={s.eliminated ? '#7A6A5A' : info.cor} className="truncate">
+                  {t.comum.navio(nome(s.id))}
+                </Texto>
+                <Texto x={134} y={h / 2 - 8} w={w - 134 - 3 * 70 - 16} tam={13} cor="#7A5A3A" peso={700} className="truncate">
+                  {s.eliminated ? t.fim.afundouKraken(n.afundouNoTurno) : t.fim.capitaoX(s.captainName || '—')}
+                </Texto>
+                <div style={{ position: 'absolute', left: 134, top: h / 2 + 14, width: Math.min(150, w - 134 - 3 * 70 - 90), height: 12, borderRadius: 6, background: 'rgba(90,52,16,.18)', overflow: 'hidden' }}>
+                  <div style={{ width: `${(achados / Math.max(1, s.total)) * 100}%`, height: '100%', background: s.eliminated ? '#9A8A7A' : info.cor }} />
+                </div>
+                <Texto x={134 + Math.min(150, w - 134 - 3 * 70 - 90) + 8} y={h / 2 + 9} tam={14} cor="#5A3410" peso={800}>
+                  {achados}/{s.total}
+                </Texto>
+                <div style={{ position: 'absolute', right: 10, top: h / 2 - 28, display: 'flex', gap: 6 }}>
+                  <NumeroPequeno valor={n.acertos} rotulo={t.fim.acertos(n.acertos)} cor="#2E7A2A" />
+                  <NumeroPequeno valor={n.erros} rotulo={t.fim.erros(n.erros)} cor="#B3261E" />
+                  <NumeroPequeno valor={n.turnos} rotulo={t.fim.turnos(n.turnos)} cor="#5A3410" />
+                </div>
+              </motion.div>
+            )
+          })}
+        </>
+      ) : (
+        <>
+          <Tabuleiro view={game} players={c.view.players} x={16} y={top} w={W - 16 - 12 - 340 - 16} h={ch} mapa podeVotar={false} onVotar={() => {}} destaque={null} animadas={new Set()} fim />
+          <Diario view={game} players={c.view.players} x={W - 16 - 340} y={top + 18} w={340} h={ch - 18} titulo={t.fim.diarioCompleto} />
+        </>
+      )}
+
+      {/* barra de baixo */}
+      <div className="barra" style={{ left: 12, top: baseY, width: W - 24, height: 72 }} />
+      <Texto x={30} y={baseY + 16} w={W - 24 - 700} tam={15} cor="#F3E6C8" peso={700}>
+        {t.fim.rodape(c.minutos, game.log.length)}
+      </Texto>
+      <Botao cor="azul" x={W - 12 - 16 - 236 - 10 - 200 - 10 - 210} y={baseY + 8} w={210} h={56} tam={17} onClick={() => c.setAba(aba === 'resumo' ? 'mapa' : 'resumo')}>
+        {aba === 'resumo' ? t.fim.verMapa : t.fim.verResumo}
+      </Botao>
+      <Botao cor="marrom" x={W - 12 - 16 - 236 - 10 - 200} y={baseY + 8} w={200} h={56} tam={18} onClick={c.copiar}>
+        {t.fim.copiarResumo}
+      </Botao>
+      <Botao
+        cor={c.souAlmirante ? 'verde' : 'cinza'}
+        x={W - 12 - 16 - 236}
+        y={baseY + 6}
+        w={236}
+        h={60}
+        tam={c.souAlmirante ? 20 : 16}
+        disabled={!c.souAlmirante}
+        onClick={() => enviar({ type: 'backToLobby' })}
+        title={c.souAlmirante ? undefined : t.fim.soAlmiranteLeva}
+      >
+        {c.souAlmirante ? t.fim.voltarSalao : t.fim.esperandoAlmirante}
+      </Botao>
+    </>
+  )
+}
+
+function NumeroPequeno({ valor, rotulo, cor }: { valor: number; rotulo: string; cor: string }) {
+  return (
+    <div style={{ width: 64, height: 56, borderRadius: 10, background: 'rgba(90,52,16,.08)', border: '2px solid rgba(90,52,16,.18)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <span className="lilita" style={{ fontSize: 24, lineHeight: 1, color: cor }}>
+        {valor}
+      </span>
+      <span style={{ fontSize: 11, fontWeight: 800, color: '#7A5A3A', marginTop: 2, whiteSpace: 'nowrap' }}>{rotulo}</span>
     </div>
   )
 }

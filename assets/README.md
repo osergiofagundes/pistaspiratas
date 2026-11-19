@@ -20,6 +20,7 @@ cd ferramentas/imagem && node exportar-web.mjs
 | `bandeiras/` | bandeiras grandes e bandeirinhas dos 4 navios | barra da vez, Diário |
 | `logos/` | Pistas Piratas | Início, Salão |
 | `idiomas/` | placas dos 6 idiomas (`pt`, `en`, `es`, `fr`, `de`, `it`) e o pano de cada bandeira (`bandeira-*`), do lote 6 | seletor de idioma, idioma das palavras |
+| (`apps/web/public/img/app/`) | ícones do app de 180, 192 e 512 px (bandeira do Rubi sobre madeira), gerados direto pelo lote 7 | manifesto e "Adicionar à tela inicial" |
 | `itens/` | brasão do Almirante e coroa do Capitão | selos |
 | `interface/botoes/` | botões de 3 partes por cor e botões com texto, cada um com 4 estados (normal, `-hover`, `-pressionado` e `-desativado`) | `Botao`, `BotaoImagem` |
 | `interface/icones/` | ícones redondos (som, ajuda, fechar e os da segunda leva) e o X dos modais (`fechar-modal`) | `Icone`, `IconeNovo` |
