@@ -31,6 +31,8 @@ export type Room<C extends BaseConfig = BaseConfig, S = unknown, M = unknown> = 
   game: S | null
   memory: M | undefined
   captainClaims: Partial<Record<ShipId, string>>
+  /** ids de cada navio na última partida (para o embaralhar misturar quem jogou junto) */
+  lastCrews: string[][]
   paused: { since: number; by: string } | null
   version: number
   emptySince: number | null
@@ -74,6 +76,7 @@ export function createRoom<C extends BaseConfig>(code: string, game: GameDefinit
     game: null,
     memory: undefined,
     captainClaims: {},
+    lastCrews: [],
     paused: null,
     version: 1,
     emptySince: now,
@@ -171,15 +174,51 @@ function notice(room: Room<any, any, any>, text: string) {
   room.notice = { id: (room.notice?.id ?? 0) + 1, text }
 }
 
-/** Distribui os jogadores dos navios de forma equilibrada (6.6). */
-function shuffleShips(room: Room<any, any, any>, rng: () => number) {
+const dupla = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`)
+
+/** Divisão em times sem olhar o nome do navio (para saber se é a mesma de antes). */
+const chaveTimes = (times: string[][]) =>
+  times
+    .map((t) => [...t].sort().join(','))
+    .sort()
+    .join('/')
+
+const TENTATIVAS_EMBARALHAR = 300
+
+/**
+ * Embaralha quem está nos navios (6.6): os navios ficam com o mesmo número de pessoas
+ * (diferença máxima de 1) e com o mínimo de duplas que jogaram juntas na última partida.
+ * Nunca devolve a mesma divisão de agora quando existe outra possível.
+ */
+export function shuffleShips(room: Room<any, any, any>, rng: () => number) {
   const ships = activeShips(room.config)
-  const inShips = shuffle(
-    Object.values(room.players).filter((p) => p.shipId !== null),
-    rng,
-  )
-  inShips.forEach((p, i) => {
-    p.shipId = ships[i % ships.length]
+  const ids = Object.values(room.players)
+    .filter((p) => p.shipId !== null && ships.includes(p.shipId))
+    .map((p) => p.id)
+  const juntos = new Set<string>()
+  for (const time of room.lastCrews ?? []) {
+    const presentes = time.filter((id) => ids.includes(id))
+    for (let i = 0; i < presentes.length; i++) for (let j = i + 1; j < presentes.length; j++) juntos.add(dupla(presentes[i], presentes[j]))
+  }
+  const atual = chaveTimes(ships.map((s) => ids.filter((id) => room.players[id].shipId === s)))
+  let melhor: { navios: ShipId[]; times: string[][] } | null = null
+  let melhorNota = Infinity
+  for (let tentativa = 0; tentativa < TENTATIVAS_EMBARALHAR; tentativa++) {
+    const navios = shuffle(ships, rng)
+    const times: string[][] = navios.map(() => [])
+    shuffle(ids, rng).forEach((id, k) => times[k % navios.length].push(id))
+    let nota = 0
+    for (const time of times)
+      for (let i = 0; i < time.length; i++) for (let j = i + 1; j < time.length; j++) if (juntos.has(dupla(time[i], time[j]))) nota++
+    if (chaveTimes(times) === atual) nota += 1000
+    if (nota < melhorNota) {
+      melhor = { navios, times }
+      melhorNota = nota
+      if (nota === 0) break
+    }
+  }
+  melhor?.times.forEach((time, i) => {
+    for (const id of time) room.players[id].shipId = melhor!.navios[i]
   })
   room.captainClaims = {}
 }
@@ -259,6 +298,7 @@ export function applyRoomAction<C extends BaseConfig, S, A, V, M>(
       const { state, memory } = game.setup(room.config, players, ctx, room.memory, room.captainClaims)
       room.game = state
       room.memory = memory
+      room.lastCrews = activeShips(room.config).map((s) => players.filter((p) => p.shipId === s).map((p) => p.id))
       room.phase = 'playing'
       room.paused = null
       return ok([{ type: 'turn', shipId: (state as any).turn?.shipId }])
@@ -293,6 +333,7 @@ export function applyRoomAction<C extends BaseConfig, S, A, V, M>(
       if (!isAdmin) return fail('Só o Almirante embaralha os navios.')
       if (room.phase === 'playing') return fail('Só dá para embaralhar no salão.')
       shuffleShips(room, ctx.rng)
+      notice(room, `${me.name} embaralhou as tripulações.`)
       return ok()
     }
     case 'backToLobby': {

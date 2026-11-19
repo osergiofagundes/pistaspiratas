@@ -297,3 +297,15 @@ test('categorias: escolher várias no modal e ver todas misturadas no tabuleiro'
     expect(cards.filter((c) => lista.has(normalizar(c.word))).length).toBeGreaterThanOrEqual(Math.floor(cards.length / 3))
   }
 })
+
+test('embaralhar tripulações: equilibra os navios e avisa todos', async ({ browser }) => {
+  const { ps } = await mesa(browser)
+  const [ana, leo] = ps
+  for (const p of ps) await act(p, { type: 'chooseShip', shipId: 'rubi' })
+  await expect.poll(async () => (await view(ana)).players.filter((p: any) => p.shipId === 'rubi').length).toBe(4)
+  await ana.getByRole('button', { name: 'Embaralhar tripulações' }).click()
+  await expect(leo.getByText('Ana embaralhou as tripulações.')).toBeVisible()
+  const navios = (await view(leo)).players.map((p: any) => p.shipId).sort()
+  expect(navios).toEqual(['rubi', 'rubi', 'safira', 'safira'])
+  await expect(leo.getByRole('button', { name: 'Embaralhar tripulações' })).toHaveCount(0)
+})

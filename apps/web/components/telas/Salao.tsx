@@ -176,12 +176,12 @@ export function Salao({ view }: { view: Visao }) {
               {t.salao.assistindo}
             </Texto>
             {souAlmirante && (
-              <Botao cor="marrom" x={1150} y={866} w={226} h={56} tam={18} onClick={() => enviar({ type: 'shuffleShips' })}>
+              <Botao cor="marrom" x={1100} y={866} w={276} h={56} tam={18} onClick={() => enviar({ type: 'shuffleShips' })}>
                 {t.salao.embaralhar}
               </Botao>
             )}
             {me?.shipId && (
-              <Botao cor="marrom" x={souAlmirante ? 930 : 1150} y={866} w={210} h={56} tam={18} onClick={() => enviar({ type: 'chooseShip', shipId: null })}>
+              <Botao cor="marrom" x={souAlmirante ? 880 : 1150} y={866} w={210} h={56} tam={18} onClick={() => enviar({ type: 'chooseShip', shipId: null })}>
                 {t.salao.ficarAssistindo}
               </Botao>
             )}
@@ -795,7 +795,7 @@ function SalaoCompacto({
           </Botao>
         )}
         {souAlmirante && (
-          <Botao cor="marrom" w={172} h={42} tam={15} style={{ position: 'relative' }} onClick={() => enviar({ type: 'shuffleShips' })}>
+          <Botao cor="marrom" w={206} h={42} tam={15} style={{ position: 'relative' }} onClick={() => enviar({ type: 'shuffleShips' })}>
             {t.salao.embaralhar}
           </Botao>
         )}

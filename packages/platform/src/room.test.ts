@@ -85,6 +85,94 @@ describe('sala', () => {
     expect(rubi).toBe(2)
   })
 
+  describe('embaralhar tripulações', () => {
+    /** sala com n jogadores (id0 é o Almirante) */
+    function salaCom(n: number, navios = 2) {
+      const room = createRoom('K7PX2M', codenomes, 0, { shipCount: navios } as never)
+      for (let i = 0; i < n; i++) {
+        joinRoom(room, `id${i}`, `token-${i}-xxxxxxxxxxxx`, { name: `J${i}`, avatar: 'papagaio' }, i)
+        setConnected(room, `id${i}`, true, i)
+      }
+      return room
+    }
+    const times = (room: ReturnType<typeof salaCom>) => {
+      const m: Record<string, string[]> = {}
+      for (const p of Object.values(room.players)) if (p.shipId) (m[p.shipId] ??= []).push(p.id)
+      return Object.values(m).map((t) => t.sort())
+    }
+    const repetidas = (room: ReturnType<typeof salaCom>, antes: string[][]) => {
+      let n = 0
+      for (const t of times(room))
+        for (const a of t) for (const b of t) if (a < b && antes.some((x) => x.includes(a) && x.includes(b))) n++
+      return n
+    }
+    const embaralhar = (room: ReturnType<typeof salaCom>, seed: number) =>
+      applyRoomAction(room, codenomes, 'id0', { type: 'shuffleShips' }, { now: 1000, rng: seeded(seed) })
+
+    it('mistura quem jogou junto na última partida', () => {
+      for (let seed = 1; seed <= 20; seed++) {
+        const room = salaCom(4)
+        for (const p of Object.values(room.players)) p.shipId = 'rubi'
+        room.lastCrews = [['id0', 'id1'], ['id2', 'id3']]
+        embaralhar(room, seed)
+        expect(times(room).map((t) => t.length)).toEqual([2, 2])
+        expect(repetidas(room, room.lastCrews)).toBe(0)
+      }
+    })
+
+    it('3 navios: nenhuma dupla se repete', () => {
+      for (let seed = 1; seed <= 20; seed++) {
+        const room = salaCom(6, 3)
+        const antes = [['id0', 'id1'], ['id2', 'id3'], ['id4', 'id5']]
+        antes.forEach((t, i) => t.forEach((id) => (room.players[id].shipId = (['rubi', 'safira', 'esmeralda'] as const)[i])))
+        room.lastCrews = antes
+        embaralhar(room, seed)
+        expect(times(room).map((t) => t.length)).toEqual([2, 2, 2])
+        expect(repetidas(room, antes)).toBe(0)
+      }
+    })
+
+    it('sem solução perfeita, repete o mínimo possível', () => {
+      for (let seed = 1; seed <= 20; seed++) {
+        const room = salaCom(6)
+        const antes = [['id0', 'id1', 'id2'], ['id3', 'id4', 'id5']]
+        antes.forEach((t, i) => t.forEach((id) => (room.players[id].shipId = i ? 'safira' : 'rubi')))
+        room.lastCrews = antes
+        embaralhar(room, seed)
+        expect(repetidas(room, antes)).toBe(2)
+      }
+    })
+
+    it('sem histórico, tocar de novo sempre muda a divisão', () => {
+      const room = salaCom(4)
+      for (const p of Object.values(room.players)) p.shipId = 'rubi'
+      let antes = JSON.stringify(times(room))
+      for (let seed = 1; seed <= 10; seed++) {
+        embaralhar(room, seed)
+        const depois = JSON.stringify(times(room).sort())
+        expect(depois).not.toBe(antes)
+        antes = depois
+      }
+    })
+
+    it('quem está assistindo continua assistindo; todos recebem o aviso', () => {
+      const room = salaCom(5)
+      for (const id of ['id0', 'id1', 'id2', 'id3']) room.players[id].shipId = 'rubi'
+      const res = embaralhar(room, 3)
+      expect(res.error).toBeUndefined()
+      expect(room.players.id4.shipId).toBeNull()
+      expect(room.notice?.text).toBe('J0 embaralhou as tripulações.')
+      expect(applyRoomAction(room, codenomes, 'id1', { type: 'shuffleShips' }, ctx()).error).toMatch(/Almirante/)
+    })
+
+    it('zarpar guarda as tripulações da partida', () => {
+      const room = salaCom(4)
+      ;['rubi', 'rubi', 'safira', 'safira'].forEach((s, i) => (room.players[`id${i}`].shipId = s as never))
+      expect(applyRoomAction(room, codenomes, 'id0', { type: 'start' }, ctx()).error).toBeUndefined()
+      expect(room.lastCrews).toEqual([['id0', 'id1'], ['id2', 'id3']])
+    })
+  })
+
   it('Almirante que sai passa o cargo; desconectado por 5 min sai da sala', () => {
     const room = sala()
     applyRoomAction(room, codenomes, 'id0', { type: 'leave' }, ctx())

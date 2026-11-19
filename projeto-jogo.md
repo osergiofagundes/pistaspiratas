@@ -191,7 +191,7 @@ Quem chega com a partida em andamento entra como Gaivota. Ao fim da partida, esc
 
 ### 6.6 Entre partidas
 
-Ao fim da partida, a tela mostra o mapa completo revelado, o vencedor e o histórico. Depois, todos voltam ao salão com os mesmos navios. Dá para trocar de navio, mudar as configurações ou usar "Embaralhar navios", que redistribui os jogadores de forma equilibrada.
+Ao fim da partida, a tela mostra o mapa completo revelado, o vencedor e o histórico. Depois, todos voltam ao salão com os mesmos navios. Dá para trocar de navio, mudar as configurações ou usar "Embaralhar tripulações" (só o Almirante): redistribui quem está nos navios com o mesmo número de pessoas (diferença máxima de 1), mistura quem jogou junto na última partida, nunca repete a divisão de agora e avisa a todos. Quem está assistindo continua assistindo.
 
 ## 7. Telas e layout
 
