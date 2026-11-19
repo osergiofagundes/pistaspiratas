@@ -246,6 +246,7 @@ test('idiomas: segue o navegador, troca pela bandeira e a sala nasce com as pala
   const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 }, locale: 'en-US' })
   await ctx.addInitScript(() => {
     if (!localStorage.getItem('arena.perfil')) localStorage.setItem('arena.perfil', JSON.stringify({ name: 'Kai', avatar: 'papagaio' }))
+    localStorage.setItem('arena.tutorial', JSON.stringify('visto'))
   })
   const p = await ctx.newPage()
   p.on('response', (r) => {

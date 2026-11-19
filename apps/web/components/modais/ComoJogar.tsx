@@ -1,10 +1,12 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'motion/react'
 import { Botao, DECO_ANCORA, IMG, Modal, usePalco } from '@/components/ui'
 import { useIdioma, useT, type Idioma } from '@/lib/i18n'
 import { useSala } from '@/lib/sala'
 import { tocar } from '@/lib/sons'
+import { useTutorial } from '@/lib/tutorial'
 import { TITULO, type Secao } from './manual/pecas'
 import { SECOES as pt } from './manual/pt'
 import { SECOES as en } from './manual/en'
@@ -46,6 +48,14 @@ export function ModalComoJogar({ onFechar }: { onFechar: () => void }) {
   const s = SECOES[i]
   const palco = usePalco()
   const { W, H, NAV, AREA, abas, BH, BY } = medidas(palco.compacto, palco.W, palco.H)
+  const router = useRouter()
+  // dentro do tutorial o botão não aparece; dentro de uma sala, abre em outra aba para não sair dela
+  const noTutorial = useTutorial((s) => s.ativo)
+  const verTutorial = () => {
+    if (useSala.getState().code) window.open('/tutorial', '_blank')
+    else router.push('/tutorial')
+  }
+  const TW = abas ? 260 : NAV.w
   return (
     <Modal titulo={t.comum.comoJogar} w={W} h={H} onFechar={onFechar} decos={abas ? [] : [DECO_ANCORA(W, H)]}>
       {/* seções */}
@@ -110,8 +120,15 @@ export function ModalComoJogar({ onFechar }: { onFechar: () => void }) {
         </AnimatePresence>
       </div>
 
+      {/* tutorial interativo */}
+      {!noTutorial && (
+        <Botao cor="azul" x={abas ? AREA.x + (AREA.w - TW) / 2 : NAV.x} y={BY} w={TW} h={BH} tam={abas ? 22 : 24} onClick={verTutorial}>
+          {t.tutorial.verTutorial}
+        </Botao>
+      )}
+
       {/* navegação */}
-      <div style={{ position: 'absolute', left: AREA.x, top: BY + BH / 2 - 6, width: AREA.w, display: 'flex', justifyContent: 'center', gap: 8 }} aria-hidden>
+      <div style={{ position: 'absolute', left: AREA.x, top: BY + BH / 2 - 6, width: AREA.w, display: abas && !noTutorial ? 'none' : 'flex', justifyContent: 'center', gap: 8 }} aria-hidden>
         {SECOES.map((_, k) => (
           <span key={k} style={{ width: 12, height: 12, borderRadius: 6, background: k === i ? '#7E3A12' : 'rgba(126,58,18,.25)' }} />
         ))}

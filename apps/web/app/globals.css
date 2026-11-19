@@ -820,3 +820,57 @@ button:disabled {
   justify-content: center;
   font-size: 20px;
 }
+
+/* ---------------------------------------------------------------- tutorial */
+@keyframes realce-carta {
+  0%, 100% { box-shadow: 0 0 0 3px #FFD24A, 0 0 14px 4px rgba(255, 210, 74, .55); }
+  50% { box-shadow: 0 0 0 5px #FFE9A0, 0 0 30px 12px rgba(255, 210, 74, .95); }
+}
+.carta-realce { animation: realce-carta 1.1s ease-in-out infinite; z-index: 2; }
+.sem-animacoes .carta-realce { animation: none; box-shadow: 0 0 0 5px #FFD24A, 0 0 24px 8px rgba(255, 210, 74, .9); }
+
+.holofote {
+  position: absolute;
+  z-index: 30;
+  border-radius: 18px;
+  border: 4px solid #FFD24A;
+  box-shadow: 0 0 24px rgba(255, 210, 74, .8), inset 0 0 18px rgba(255, 210, 74, .35);
+  pointer-events: none;
+}
+.holofote-sombra { position: absolute; z-index: 30; background: rgba(6, 10, 16, .7); pointer-events: none; }
+
+.balao-guia {
+  position: absolute;
+  z-index: 40;
+  box-sizing: border-box;
+  padding: 14px 18px 14px;
+  border-radius: 18px;
+  background: linear-gradient(#FFF8E6, #F6E3B8);
+  border: 4px solid #8A4A1C;
+  box-shadow: 0 10px 0 rgba(58, 29, 12, .35), 0 18px 34px rgba(0, 0, 0, .45);
+  color: #5A3410;
+}
+.balao-guia .cabeca { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.balao-guia .nome { font-size: 24px; color: #7E3A12; flex: 1; line-height: 1; }
+.balao-guia .contador { font-size: 14px; font-weight: 800; color: #9A7A55; }
+.balao-guia .texto { font-size: 20px; font-weight: 700; line-height: 1.35; }
+.balao-guia .texto strong { color: #8C2A16; font-weight: 900; }
+.balao-guia .rodape { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; min-height: 40px; }
+.balao-guia .pular { white-space: nowrap; border: 0; background: none; padding: 4px 0; font-size: 15px; font-weight: 800; color: #9A7A55; text-decoration: underline; cursor: pointer; }
+.balao-guia .pular:hover { color: #7E3A12; }
+.balao-guia .aguarde { font-size: 16px; font-weight: 900; color: #2E7A2A; text-align: right; }
+.balao-guia.compacto { padding: 8px 12px 8px; border-width: 3px; }
+.balao-guia.compacto .cabeca { margin-bottom: 4px; gap: 8px; }
+.balao-guia.compacto .nome { font-size: 19px; }
+.balao-guia.compacto .contador { font-size: 12px; }
+.balao-guia.compacto .texto { font-size: 15px; line-height: 1.3; }
+.balao-guia.compacto .rodape { margin-top: 6px; min-height: 32px; }
+.balao-guia.compacto .pular { font-size: 13px; }
+.balao-guia.compacto .aguarde { font-size: 13px; }
+
+.lista-final { font-size: 20px; padding-left: 26px; color: #5A3410; font-weight: 700; line-height: 1.35; }
+.lista-final li { margin-bottom: 10px; }
+.lista-final.compacto { font-size: 17px; }
+.lista-final.compacto li { margin-bottom: 5px; }
+.lista-final li::marker { color: #C98A3A; }
+.lista-final strong { color: #8C2A16; }

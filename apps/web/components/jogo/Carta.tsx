@@ -27,6 +27,8 @@ export type CartaProps = {
   animar: boolean
   /** fim de partida: mapa inteiro aberto, as cartas não reveladas ficam um pouco apagadas */
   fim?: boolean
+  /** tutorial: a carta brilha pedindo um toque */
+  realce?: boolean
 }
 
 /** Palavra ampliada ao tocar e segurar uma carta (no celular as cartas ficam pequenas). */
@@ -57,7 +59,7 @@ export function ZoomCarta() {
 }
 
 /** Carta do tabuleiro (Carta/tabuleiro): pergaminho fechado, tesouro com o navio, Mar Aberto ou Kraken. */
-export function Carta({ carta, w, h, mapa, ordem, podeVotar, marcas = [], minhaMarca, podeMarcar, onMarcar, destaque, onVotar, animar, fim }: CartaProps) {
+export function Carta({ carta, w, h, mapa, ordem, podeVotar, marcas = [], minhaMarca, podeMarcar, onMarcar, destaque, onVotar, animar, fim, realce }: CartaProps) {
   const marcada = ordem !== null && !carta.revealed
   const clicavel = podeVotar || (!!podeMarcar && !carta.revealed)
   const k = w / 158
@@ -102,6 +104,8 @@ export function Carta({ carta, w, h, mapa, ordem, podeVotar, marcas = [], minhaM
       onPointerLeave={soltar}
       onContextMenu={(e) => e.preventDefault()}
       aria-disabled={!clicavel}
+      className={realce && !carta.revealed ? 'carta-realce' : undefined}
+      data-realce={realce && !carta.revealed ? '' : undefined}
       initial={false}
       animate={{ rotateY: animar ? [90, 0] : 0, scale: marcada ? 1.04 : 1 }}
       transition={{ duration: animar ? 0.45 : 0.15 }}

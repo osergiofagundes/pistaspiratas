@@ -12,6 +12,8 @@ export async function jogador(browser: Browser, nome: string, avatar = 'papagaio
     ([n, a]) => {
       localStorage.setItem('arena.perfil', JSON.stringify({ name: n, avatar: a }))
       localStorage.setItem('arena.preferencias', JSON.stringify({ mudo: true, animacoes: false }))
+      // o convite do tutorial (primeira visita) fica para o teste dele
+      localStorage.setItem('arena.tutorial', JSON.stringify('visto'))
     },
     [nome, avatar],
   )
@@ -63,3 +65,63 @@ export async function porId(ps: Jogador[]) {
   for (const p of ps) m[(await view(p)).you] = p
   return m
 }
+
+// ---------------------------------------------------------------- tutorial
+
+export const balao = (p: Page) => p.locator('.balao-guia')
+export const passo = (p: Page, id: string) => expect(balao(p)).toHaveAttribute('data-passo', id, { timeout: 20_000 })
+export const continuar = (p: Page) => balao(p).getByRole('button', { name: 'Continuar' }).click()
+export const carta = (p: Page, palavra: string) => p.getByRole('button', { name: palavra, exact: true })
+
+/** Joga o tutorial inteiro (já aberto na página) até o cartão final. */
+export async function jogarTutorial(p: Page) {
+  for (const id of ['boasVindas', 'navios', 'tabuleiro', 'diario', 'barra']) {
+    await passo(p, id)
+    await continuar(p)
+  }
+  // o Capitão simulado pensa e dá a ordem sozinho
+  await passo(p, 'ordem')
+  await passo(p, 'ordemDada')
+  await expect(p.getByText('FRUTA', { exact: true }).first()).toBeVisible()
+  await continuar(p)
+
+  await passo(p, 'marcar1')
+  await carta(p, 'BANANA').click()
+  await passo(p, 'marcar2')
+  await carta(p, 'UVA').click()
+  await passo(p, 'confirmar')
+  await p.getByRole('button', { name: 'Confirmar 2' }).click()
+
+  await passo(p, 'canhao')
+  await carta(p, 'MAÇÃ').click()
+  await passo(p, 'canhaoConfirmar')
+  await p.getByRole('button', { name: 'Confirmar', exact: true }).click()
+  await passo(p, 'agua')
+  await continuar(p)
+
+  // vez do Safira: só os navios simulados jogam
+  await passo(p, 'vezSafira')
+  await passo(p, 'outroNavio')
+  await continuar(p)
+
+  await passo(p, 'viraCapitao')
+  await continuar(p)
+  await passo(p, 'kraken')
+  await expect(p.locator('[data-realce]')).toHaveAttribute('aria-label', 'VULCÃO')
+  await continuar(p)
+  await passo(p, 'marcas')
+  await carta(p, 'CAVALO').click()
+  await carta(p, 'VACA').click()
+
+  await passo(p, 'dica')
+  // a validação é a de verdade
+  await p.getByPlaceholder('Digite a dica (uma palavra)').fill('Cavalo')
+  await p.getByRole('button', { name: 'Dar ordem' }).click()
+  await expect(p.getByText(/está no tabuleiro/)).toBeVisible()
+  await p.getByPlaceholder('Digite a dica (uma palavra)').fill('Fazenda')
+  await p.getByRole('button', { name: 'Dar ordem' }).click()
+
+  await passo(p, 'marujosEscolhem')
+  await expect(p.getByText('Tutorial concluído!')).toBeVisible({ timeout: 20_000 })
+}
+

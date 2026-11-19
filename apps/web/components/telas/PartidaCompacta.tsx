@@ -7,6 +7,7 @@ import { Avatar, Bandeira, Botao, Campo, FundoEscuro, Icone, IconeNovo, Navio, S
 import { BotaoMenu, BotaoSom, type ItemMenu } from '@/components/modais/comuns'
 import { Diario } from '@/components/jogo/Diario'
 import { Tabuleiro } from '@/components/jogo/Paineis'
+import { Alvo } from '@/components/jogo/Guia'
 import { traduzNavio, useT } from '@/lib/i18n'
 import { formatarTempo, resumoEntrada, textoFase } from '@/lib/textos'
 import type { CtxPartida } from './Partida'
@@ -132,8 +133,20 @@ export function PartidaCompacta({ c }: { c: CtxPartida }) {
           onVotar={c.marcar}
           destaque={c.destaque}
           animadas={c.animadas}
+          realce={c.realce}
         />
       </div>
+      {c.tutorial && (
+        <>
+          <Alvo id="barra" x={12} y={8} w={W - 24} h={70} />
+          <Alvo id="ordem" x={392} y={8} w={W - 392 - 270} h={70} />
+          <Alvo id="navios" x={12} y={TOPO} w={LW} h={navios.length * (navH + 8) - 8} />
+          <Alvo id="tabuleiro" x={bx} y={TOPO} w={bw} h={H - TOPO - 12} />
+          <Alvo id="diario" x={rx + 14} y={H - 12 - 70} w={RW - 28} h={58} />
+          <Alvo id="confirmar" x={rx + 14} y={H - 12 - 74 - 64 - 10 - 76} w={RW - 28} h={64} />
+          <Alvo id="campoDica" x={rx + 10} y={TOPO + 84} w={RW - 20} h={224} />
+        </>
+      )}
 
       {/* coluna das ações */}
       <Acoes c={c} x={rx} y={TOPO} h={H - TOPO - 12} onDiario={() => setDiario(true)} />

@@ -35,6 +35,10 @@ import { formatarTempo, nomeNavio, textoFase } from '@/lib/textos'
 import { useAgora } from '@/lib/useAgora'
 import { useMusica } from '@/lib/useMusica'
 import { intensidade } from '@/lib/musica'
+import { REALCES, useTutorial } from '@/lib/tutorial'
+import { Alvo } from '@/components/jogo/Guia'
+
+const SEM_REALCE: number[] = []
 
 /** quanto tempo o aviso dos Capitães sorteados fica na tela */
 const SORTEIO_MS = 5000
@@ -61,6 +65,9 @@ function usePartida(view: Visao) {
   const ms = useAgora(200)
   const t = useT()
   const nome = (id: ShipId) => nomeNavio(game, id, t)
+  // tutorial: os avisos automáticos ficam com o balão do José, e algumas cartas brilham
+  const tutorial = useTutorial((s) => s.ativo)
+  const realce = useTutorial((s) => (s.ativo ? (REALCES[s.passo] ?? SEM_REALCE) : SEM_REALCE))
 
   const me = view.players.find((p) => p.id === view.you)
   const souAlmirante = view.adminId === view.you
@@ -148,7 +155,7 @@ function usePartida(view: Visao) {
       }
       if (ev.type === 'reveal' && ev.owner === 'kraken' && prefs.animacoes) setTremor(ev.seq)
       if (ev.type === 'eliminated') setOverlay({ tipo: 'afundou', ship: ev.shipId })
-      if (ev.type === 'captainChanged' && ev.playerId === view.you) {
+      if (ev.type === 'captainChanged' && ev.playerId === view.you && !tutorial) {
         setOverlay({ tipo: 'capitao' })
         setOcultarMapa(false)
       }
@@ -166,7 +173,7 @@ function usePartida(view: Visao) {
   // Tiro de Canhão liberado para os Marujos do navio da vez
   const canhaoVisto = useRef<number | null>(null)
   useEffect(() => {
-    if (turno.phase === 'cannon' && souMarujoDaVez && canhaoVisto.current !== turno.number) {
+    if (turno.phase === 'cannon' && souMarujoDaVez && !tutorial && canhaoVisto.current !== turno.number) {
       canhaoVisto.current = turno.number
       setOverlay({ tipo: 'canhao', turno: turno.number })
     }
@@ -242,14 +249,14 @@ function usePartida(view: Visao) {
             : papel.gaivotaAssistindo
   const navioVezNome = nome(turno.shipId)
 
-  return { view, router, game, enviar, prefs, setPrefs, t, nome, me, souAlmirante, turno, navioVez, infoVez, role, minhaVez, souCapitaoDaVez, souMarujoDaVez, pausada, bonusPrimeiro, ocultarMapa, setOcultarMapa, dica, setDica, numero, setNumero, erroDica, setErroDica, destaque, setDestaque, overlay, setOverlay, sorteio, setSorteio, aviso, faixa, setFaixa, tremor, minhasMarcas, marcar_, animadas, restante, apertado, selecao, presentes, confirmei, pediFim, confirmaram, querFim, marcar, confirmar, encerrar, darOrdem, mapa, centro, roleTexto, navioVezNome, restantes }
+  return { tutorial, realce, view, router, game, enviar, prefs, setPrefs, t, nome, me, souAlmirante, turno, navioVez, infoVez, role, minhaVez, souCapitaoDaVez, souMarujoDaVez, pausada, bonusPrimeiro, ocultarMapa, setOcultarMapa, dica, setDica, numero, setNumero, erroDica, setErroDica, destaque, setDestaque, overlay, setOverlay, sorteio, setSorteio, aviso, faixa, setFaixa, tremor, minhasMarcas, marcar_, animadas, restante, apertado, selecao, presentes, confirmei, pediFim, confirmaram, querFim, marcar, confirmar, encerrar, darOrdem, mapa, centro, roleTexto, navioVezNome, restantes }
 }
 
 export type CtxPartida = ReturnType<typeof usePartida>
 
 export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
   const c = usePartida(view)
-  const { router, game, enviar, prefs, setPrefs, t, nome, me, souAlmirante, turno, navioVez, infoVez, role, minhaVez, souCapitaoDaVez, souMarujoDaVez, pausada, bonusPrimeiro, ocultarMapa, setOcultarMapa, dica, setDica, numero, setNumero, erroDica, setErroDica, destaque, setDestaque, overlay, setOverlay, sorteio, setSorteio, aviso, faixa, setFaixa, tremor, minhasMarcas, marcar_, animadas, restante, apertado, selecao, presentes, confirmei, pediFim, confirmaram, querFim, marcar, confirmar, encerrar, darOrdem, mapa, centro, roleTexto, navioVezNome, restantes } = c
+  const { tutorial, realce, router, game, enviar, prefs, setPrefs, t, nome, me, souAlmirante, turno, navioVez, infoVez, role, minhaVez, souCapitaoDaVez, souMarujoDaVez, pausada, bonusPrimeiro, ocultarMapa, setOcultarMapa, dica, setDica, numero, setNumero, erroDica, setErroDica, destaque, setDestaque, overlay, setOverlay, sorteio, setSorteio, aviso, faixa, setFaixa, tremor, minhasMarcas, marcar_, animadas, restante, apertado, selecao, presentes, confirmei, pediFim, confirmaram, querFim, marcar, confirmar, encerrar, darOrdem, mapa, centro, roleTexto, navioVezNome, restantes } = c
   return (
     <Palco fundo="fundo-partida" escurecer={0.45}>
       <Formato
@@ -379,8 +386,20 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
                 onVotar={marcar}
                 destaque={destaque}
                 animadas={animadas}
+                realce={realce}
               />
             </div>
+            {tutorial && (
+              <>
+                <Alvo id="barra" x={24} y={16} w={1872} h={84} />
+                <Alvo id="ordem" x={500} y={16} w={690} h={84} />
+                <Alvo id="navios" x={24} y={116} w={320} h={game.ships.length * 212 - 12} />
+                <Alvo id="tabuleiro" x={362} y={116} w={1196} h={836} />
+                <Alvo id="diario" x={1576} y={116} w={320} h={836} />
+                <Alvo id="confirmar" x={1226} y={976} w={330} h={80} />
+                <Alvo id="campoDica" x={560} y={976} w={940} h={80} />
+              </>
+            )}
 
             {/* diário */}
             <Diario view={game} players={view.players} x={1576} y={116} onDestacar={game.me.seesMap ? setDestaque : undefined} destaque={destaque} />
@@ -629,10 +648,10 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
       {overlay === 'ajuda' && <ModalComoJogar onFechar={() => setOverlay(null)} />}
       {overlay === 'sair' && (
         <ModalConfirmar
-          titulo={t.partida.sairPartida}
-          pergunta={t.partida.sairModal.pergunta}
-          texto={role === 'capitao' ? t.partida.sairModal.textoCapitao : t.partida.sairModal.texto}
-          confirmar={t.comum.sair}
+          titulo={tutorial ? t.tutorial.sair.titulo : t.partida.sairPartida}
+          pergunta={tutorial ? t.tutorial.sair.pergunta : t.partida.sairModal.pergunta}
+          texto={tutorial ? t.tutorial.sair.texto : role === 'capitao' ? t.partida.sairModal.textoCapitao : t.partida.sairModal.texto}
+          confirmar={tutorial ? t.tutorial.sair.confirmar : t.comum.sair}
           onFechar={() => setOverlay(null)}
           onConfirmar={async () => {
             await enviar({ type: 'leave' })

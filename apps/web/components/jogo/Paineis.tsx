@@ -66,6 +66,7 @@ export function Tabuleiro({
   destaque,
   animadas,
   fim,
+  realce,
 }: {
   view: CodenomesView
   players: Player[]
@@ -83,6 +84,8 @@ export function Tabuleiro({
   destaque: number | null
   animadas: Set<number>
   fim?: boolean
+  /** tutorial: cartas que brilham pedindo um toque */
+  realce?: number[]
 }) {
   const pad = 22
   const gx = 10
@@ -120,6 +123,7 @@ export function Tabuleiro({
               onVotar={() => onVotar(i)}
               animar={animadas.has(i)}
               fim={fim}
+              realce={!!realce?.includes(i)}
             />
           </div>
         )

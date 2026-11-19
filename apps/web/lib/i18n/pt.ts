@@ -1,7 +1,9 @@
 import type { Personagem, ShipId } from '@arena/platform'
-import type { EndReason } from '@arena/codenomes'
+import type { EndReason, TabuleiroTutorial } from '@arena/codenomes'
 import type { Categoria } from '@arena/words'
 import { MENSAGENS_PT, type ChaveMensagem } from './mensagens'
+
+type T = TabuleiroTutorial
 
 const plural = (n: number, um: string, varios: string) => (n === 1 ? um : varios)
 
@@ -480,6 +482,66 @@ export const pt = {
     resumoTurno: (n: number, navio: string, capitao: string) => `Turno ${n} · ${navio} (${capitao})`,
     placar: (texto: string) => `Placar: ${texto}`,
     afundado: ' (afundado)',
+  },
+
+  /** tutorial interativo (partida guiada pelo José contra navios simulados) */
+  tutorial: {
+    verTutorial: '▶ Ver tutorial',
+    guia: 'José, o papagaio',
+    continuar: 'Continuar',
+    pular: 'Pular tutorial',
+    suaVez: 'Sua vez!',
+    observe: 'Observe…',
+    siga: 'Siga o José: faça o que o balão pede.',
+    sair: {
+      titulo: 'Sair do tutorial',
+      pergunta: 'Sair do tutorial?',
+      texto: 'Você pode fazer o tutorial de novo quando quiser, no Como jogar.',
+      confirmar: 'Sair',
+    },
+    passos: {
+      boasVindas: (_p: T) => 'Ahoy! Eu sou o José e vou te ensinar *Pistas Piratas* numa partida rapidinha. Você é Marujo do *Navio Rubi*. O objetivo: achar todos os tesouros do seu navio antes do *Navio Safira*.',
+      navios: (_p: T) => 'Estes são os navios. Cada um tem um *Capitão*, que conhece o mapa, e os *Marujos*, que adivinham. O contador mostra quantos tesouros cada navio já achou.',
+      tabuleiro: (_p: T) => 'Cada carta esconde um *tesouro* de um navio, o *mar aberto* ou o terrível *Kraken*. Só os Capitães veem as cores. Os Marujos veem só as palavras.',
+      diario: (_p: T) => 'O *Diário de Bordo* guarda tudo o que aconteceu: as dicas e as cartas abertas em cada vez.',
+      barra: (_p: T) => 'Aqui em cima ficam a vez, a ordem do Capitão e o relógio. Neste tutorial o relógio está desligado: sem pressa!',
+      ordem: (p: T) => `É a vez do Rubi! O nosso Capitão, *${p.barba}*, está pensando numa dica…`,
+      ordemDada: (p: T) => `A ordem chegou: *${p.dicas.fruta} 2*. A palavra é a dica, e o número diz quantas cartas do Rubi combinam com ela.`,
+      marcar1: (p: T) => `Que palavra é uma fruta? Toque em *${p.palavras.banana}* para marcá-la.`,
+      marcar2: (p: T) => `Isso! Tem mais uma: toque em *${p.palavras.uva}*. A marcação é da tripulação inteira, todos veem.`,
+      confirmar: (_p: T) => 'Agora confirme. As cartas só abrem quando *todos os Marujos* do navio confirmam. O Juca já confirmou, falta você!',
+      canhao: (p: T) => `Acertaram as duas! Quem acerta tudo ganha o *Tiro de Canhão*: um palpite extra. Vamos arriscar *${p.palavras.maca}*?`,
+      canhaoConfirmar: (_p: T) => 'Confirme o tiro. Se for tesouro do Rubi, ótimo. Se não for, a vez acaba.',
+      agua: (p: T) => `Água! *${p.palavras.maca}* era mar aberto. O mar encerra a vez, e agora joga o Safira.`,
+      vezSafira: (_p: T) => 'Vez do *Safira*. Fique de olho: a Capitã Coral dá a dica e os Marujos dela escolhem.',
+      outroNavio: (p: T) => `${p.palavras.espada} era do Safira, mas *${p.palavras.ancora}* era nossa! Tocar no tesouro de outro navio entrega o tesouro a ele e encerra a vez. Está tudo no Diário.`,
+      viraCapitao: (_p: T) => 'Surpresa: agora *você é o Capitão* do Rubi! Você vê o mapa: as cartas *vermelhas* são do Rubi, as *azuis* são do Safira e as de *mar* são mar aberto.',
+      kraken: (p: T) => `A carta roxa é o *Kraken*: o navio que tocar nela afunda na hora. Nunca dê uma dica que lembre *${p.palavras.vulcao}*!`,
+      marcas: (p: T) => `Faltam *${p.palavras.cavalo}* e *${p.palavras.vaca}*. Toque nelas para marcar. As marcas ajudam você a se organizar, e só os Capitães veem.`,
+      dica: (p: T) => `Dê a ordem: uma palavra só, que não esteja no tabuleiro, e o número de cartas. Que tal *${p.dicas.fazenda}* com *2*? Digite e toque em Dar ordem.`,
+      marujosEscolhem: (_p: T) => 'Ordem dada! Agora os Marujos escolhem. O Capitão não pode dar nenhuma pista além da ordem: só torcer…',
+      vitoria: (_p: T) => 'Todos os tesouros do Rubi foram achados. Vitória!',
+    },
+    final: {
+      titulo: 'Tutorial concluído!',
+      itens: [
+        'O *Capitão* dá a ordem: uma palavra e um número.',
+        'Os *Marujos* marcam as cartas e todos confirmam juntos.',
+        '*Mar aberto* ou tesouro de outro navio encerram a vez. O *Kraken* afunda o navio.',
+        'Acertou tudo? Ganha o *Tiro de Canhão*.',
+        'Numa sala de verdade, o *Almirante* cria a sala, ajusta as regras e pode jogar séries de *melhor de 3*.',
+      ],
+      amigos: 'Jogar com amigos',
+      repetir: 'Repetir tutorial',
+      manual: 'Ler o manual',
+    },
+    convite: {
+      titulo: 'Bem-vindo a bordo',
+      pergunta: 'Primeira vez a bordo?',
+      texto: 'Faça o tutorial: uma partida curta e guiada para aprender a jogar em poucos minutos.',
+      sim: 'Fazer o tutorial',
+      agoraNao: 'Agora não',
+    },
   },
 
   /** mensagens do servidor (chave = texto em português, veja mensagens.ts) */

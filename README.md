@@ -15,7 +15,7 @@ pnpm install
 pnpm dev          # http://localhost:3000
 ```
 
-Para jogar sozinho testando, abra a sala em janelas anônimas diferentes (cada janela é um jogador). Na mesma rede, os amigos entram pelo endereço "Network" que o `pnpm dev` mostra (por exemplo `http://192.168.1.7:3000`).
+Para jogar sozinho testando, abra a sala em janelas anônimas diferentes (cada janela é um jogador), ou faça o tutorial em `/tutorial` (Como jogar → Ver tutorial), uma partida guiada contra navios simulados. Na mesma rede, os amigos entram pelo endereço "Network" que o `pnpm dev` mostra (por exemplo `http://192.168.1.7:3000`).
 
 Versão de produção local:
 
@@ -37,7 +37,8 @@ pnpm typecheck
 ```
 apps/web/                 Next.js: telas, API das salas e canal de tempo real
   app/api/salas/...       criar, entrar, ações (POST) e eventos (Server-Sent Events)
-  components/telas/       Início, Salão, Partida e Fim
+  components/telas/       Início, Salão, Partida, Fim e Tutorial
+  lib/tutorial/           motor local e roteiro do tutorial (sala simulada no navegador)
   components/jogo/        Carta, Tabuleiro, Painel do navio e Diário de Bordo
   components/ui/          palco 1920×1080, molduras de 9 partes, botões, avatares
   server/rooms.ts         serviço das salas (memória local)

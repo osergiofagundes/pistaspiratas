@@ -19,6 +19,7 @@ export * from './board'
 export * from './clue'
 export * from './engine'
 export * from './view'
+export * from './tutorial'
 
 /** Por que ainda não dá para zarpar (null = pode começar). */
 export function canStart(config: CodenomesConfig, players: Player[]): string | null {

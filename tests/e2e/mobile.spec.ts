@@ -1,5 +1,5 @@
 import { type Browser, expect, test } from '@playwright/test'
-import { type Jogador, imagensQuebradas, view } from './ajuda'
+import { type Jogador, imagensQuebradas, jogarTutorial, view } from './ajuda'
 
 /** Celular e tablet deitados usam o palco compacto; o iPad Air (1180×820) já cai no desktop. */
 const APARELHOS = [
@@ -14,6 +14,8 @@ async function jogadorMovel(browser: Browser, nome: string, avatar: string, w: n
     ([n, a]) => {
       localStorage.setItem('arena.perfil', JSON.stringify({ name: n, avatar: a }))
       localStorage.setItem('arena.preferencias', JSON.stringify({ mudo: true, animacoes: false }))
+      // o convite do tutorial (primeira visita) fica para o teste dele
+      localStorage.setItem('arena.tutorial', JSON.stringify('visto'))
     },
     [nome, avatar],
   )
@@ -146,8 +148,20 @@ for (const a of APARELHOS) {
 
 test('desktop com janela alta e estreita não pede para girar (só aparelhos de toque)', async ({ browser }) => {
   const ctx = await browser.newContext({ viewport: { width: 700, height: 1000 }, locale: 'pt-BR' })
+  await ctx.addInitScript(() => localStorage.setItem('arena.tutorial', JSON.stringify('visto')))
   const p = await ctx.newPage()
   await p.goto('/')
   await expect(p.getByRole('button', { name: 'Criar Sala' })).toBeVisible()
   await expect(p.getByRole('alertdialog')).toHaveCount(0)
+})
+
+test('celular: o tutorial inteiro no palco compacto', async ({ browser }) => {
+  const p = await jogadorMovel(browser, 'Ana', 'grumete', 844, 390)
+  await p.goto('/')
+  await p.getByRole('button', { name: 'Menu' }).click()
+  await p.getByText('Como jogar').click()
+  await p.getByRole('button', { name: '▶ Ver tutorial' }).click()
+  await p.waitForURL(/\/tutorial$/)
+  await jogarTutorial(p)
+  await expect(p.getByRole('button', { name: 'Jogar com amigos' })).toBeInViewport()
 })

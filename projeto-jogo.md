@@ -223,6 +223,27 @@ O Capitão vê cada carta com a borda e o fundo na cor do navio dono, o Mar Aber
 
 Cada revelação tem uma animação curta (a carta vira) com um som opcional: moedas para Tesouro, ondas para Mar Aberto e um rugido para o Kraken. Há um botão de som no canto.
 
+### 7.5 Tutorial interativo
+
+Uma partida curta e guiada contra navios simulados, que roda inteira no navegador, sem servidor. O botão "▶ Ver tutorial" fica no Como jogar. Na tela inicial ele abre na mesma aba. Dentro de uma sala abre em outra aba, para o jogador não sair da sala dos amigos. Na primeira visita, a tela inicial convida uma vez ("Primeira vez a bordo?"), e a resposta fica guardada no navegador.
+
+- **Partida:** tabuleiro fixo de 5×4 no idioma da interface, com 5 tesouros do Rubi, 4 do Safira, 1 Kraken e 10 de mar. Relógios desligados e canhão ligado.
+- **Tripulações:** o jogador está no Rubi, com o Capitão simulado "Barba Ruiva" e o colega Juca. O Safira tem a Capitã Coral e mais dois Marujos.
+- **Guia:** o papagaio José explica cada passo num balão, e um holofote destaca a área explicada. É **guiado**: em cada passo só valem as cartas realçadas e os botões indicados. Outra ação mostra "Siga o José" e não muda nada. A dica do Capitão é livre e passa pela validação de verdade (9.3).
+- **Roteiro:**
+  1. apresentação dos navios, das cartas, do Diário e da barra de cima;
+  2. o jogador é **Marujo**: recebe "FRUTA 2", marca as duas cartas e confirma junto com o colega;
+  3. ganha o Tiro de Canhão e atira na MAÇÃ, que é mar;
+  4. assiste o Safira entregar um tesouro ao Rubi;
+  5. vira **Capitão**: vê o mapa e o Kraken, marca as cartas que faltam e dá a ordem (a sugestão é "FAZENDA 2"). Os Marujos simulados acham os tesouros e o Rubi vence;
+  6. um cartão final resume as regras, com os botões Jogar com amigos, Repetir tutorial e Ler o manual.
+- **Avisos automáticos:** os da partida (Capitães sorteados, Tiro de Canhão, "você virou Capitão") não aparecem, porque o balão faz esse papel. "Pular tutorial" e o ✕ voltam ao início.
+- **Código:**
+  - cenário puro em `packages/games/codenomes/src/tutorial.ts` (testado nos 6 idiomas);
+  - motor local e roteiro em `apps/web/lib/tutorial/`;
+  - balão e holofote em `components/jogo/Guia.tsx`;
+  - a tela é a mesma `Partida`, que recebe um motor local no lugar do servidor (`useSala.local`).
+
 ## 8. Diário de Bordo (histórico)
 
 O Diário de Bordo registra cada turno com a dica, o número e as palavras escolhidas, na ordem e com o resultado de cada uma. Fica sempre visível no computador e a um toque no celular.

@@ -237,11 +237,14 @@ export function ModalConfirmar({
   onConfirmar,
   onFechar,
   icone,
+  cancelar,
 }: {
   titulo: string
   pergunta?: string
   texto: ReactNode
   confirmar: string
+  /** texto do botão de voltar (padrão: Cancelar) */
+  cancelar?: string
   corConfirmar?: CorBotao
   onConfirmar: () => void
   onFechar: () => void
@@ -265,7 +268,7 @@ export function ModalConfirmar({
         {texto}
       </Texto>
       <Botao cor="marrom" x={w / 2 - 245} y={h - 122} w={225} h={74} onClick={onFechar}>
-        {t.comum.cancelar}
+        {cancelar ?? t.comum.cancelar}
       </Botao>
       <Botao cor={corConfirmar} x={w / 2 + 20} y={h - 122} w={225} h={74} onClick={onConfirmar}>
         {confirmar}

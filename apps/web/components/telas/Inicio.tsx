@@ -15,14 +15,14 @@ import {
   Texto,
   usePalco,
 } from '@/components/ui'
-import { BotaoIdioma, BotaoMenu, BotaoPreferencias, BotaoSom, BotaoTexto, DECO_BARRIS, DECO_BAU, ModalComoJogar, ModalInfo, ModalPerfil } from '@/components/modais/comuns'
+import { BotaoIdioma, BotaoMenu, BotaoPreferencias, BotaoSom, BotaoTexto, DECO_BARRIS, DECO_BAU, ModalComoJogar, ModalConfirmar, ModalInfo, ModalPerfil } from '@/components/modais/comuns'
 import { useIdioma, useT } from '@/lib/i18n'
 import { criarSala, infoSala } from '@/lib/api'
-import { perfil as lerPerfil, salvarPerfil, type Perfil } from '@/lib/identidade'
+import { estadoTutorial, perfil as lerPerfil, salvarEstadoTutorial, salvarPerfil, type Perfil } from '@/lib/identidade'
 import { useSala } from '@/lib/sala'
 import { useMusica } from '@/lib/useMusica'
 
-type Modal = null | 'perfil' | 'ajuda' | 'cheia'
+type Modal = null | 'perfil' | 'ajuda' | 'cheia' | 'convite'
 
 /** Início da plataforma (tela 726). */
 export function Inicio({ erroInicial }: { erroInicial?: string | null }) {
@@ -41,6 +41,8 @@ export function Inicio({ erroInicial }: { erroInicial?: string | null }) {
 
   useEffect(() => {
     setPerfil(lerPerfil())
+    // primeira visita: convida para o tutorial (uma vez só)
+    if (!estadoTutorial()) setModal('convite')
   }, [])
 
   const comPerfil = (fn: () => void) => {
@@ -107,6 +109,25 @@ export function Inicio({ erroInicial }: { erroInicial?: string | null }) {
         />
       )}
       {modal === 'ajuda' && <ModalComoJogar onFechar={() => setModal(null)} />}
+      {modal === 'convite' && (
+        <ModalConfirmar
+          titulo={t.tutorial.convite.titulo}
+          pergunta={t.tutorial.convite.pergunta}
+          texto={t.tutorial.convite.texto}
+          confirmar={t.tutorial.convite.sim}
+          cancelar={t.tutorial.convite.agoraNao}
+          corConfirmar="verde"
+          icone={<Escotilha avatar="papagaio" tam={88} x={0} y={0} />}
+          onFechar={() => {
+            salvarEstadoTutorial('visto')
+            setModal(null)
+          }}
+          onConfirmar={() => {
+            salvarEstadoTutorial('visto')
+            router.push('/tutorial')
+          }}
+        />
+      )}
       {modal === 'cheia' && (
         <ModalInfo
           titulo={t.inicio.salaCheia}

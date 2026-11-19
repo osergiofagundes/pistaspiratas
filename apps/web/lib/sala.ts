@@ -24,6 +24,8 @@ type Estado = {
   setPrefs: (p: Partial<Preferencias>) => void
   carregarPrefs: () => void
   enviar: (action: Record<string, unknown>) => Promise<boolean>
+  /** motor local (tutorial): com ele, as ações não vão para o servidor */
+  local: ((action: Record<string, unknown>) => Promise<boolean>) | null
   mostrarErro: (texto: string) => void
 }
 
@@ -58,7 +60,10 @@ export const useSala = create<Estado>((set, get) => ({
     marcarLang(prefs)
     set({ prefs })
   },
+  local: null,
   enviar: async (action) => {
+    const local = get().local
+    if (local) return local(action)
     const code = get().code
     if (!code) return false
     const r = await acao(code, action)
@@ -95,9 +100,7 @@ export function conectar(code: string) {
       const view = msg.state as Visao
       useSala.setState({ view, conectado: true, offset: view.now - Date.now() })
     } else if (msg.type === 'event') {
-      const ev = { ...(msg.event as GameEvent), at: Date.now(), seq: ++seq }
-      useSala.setState((s) => ({ eventos: [...s.eventos.slice(-20), ev] }))
-      somDoEvento(ev)
+      empurrarEventos([msg.event as GameEvent])
     } else if (msg.type === 'closed' || msg.type === 'error') {
       const motivo = (msg.reason ?? msg.message) as Fechamento
       useSala.setState({ fechado: motivo, conectado: false })
@@ -112,6 +115,15 @@ export function desconectar() {
   fonte?.close()
   fonte = null
   useSala.setState({ code: null, view: null, fechado: null, conectado: false, eventos: [] })
+}
+
+/** Eventos do jogo chegando (do servidor ou do motor local): animações e sons. */
+export function empurrarEventos(lista: GameEvent[]) {
+  for (const e of lista) {
+    const ev = { ...e, at: Date.now(), seq: ++seq }
+    useSala.setState((s) => ({ eventos: [...s.eventos.slice(-20), ev] }))
+    somDoEvento(ev)
+  }
 }
 
 function somDoEvento(ev: GameEvent) {

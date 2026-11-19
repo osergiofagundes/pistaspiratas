@@ -64,3 +64,17 @@ export function preferencias(): Preferencias {
 export function salvarPreferencias(p: Preferencias) {
   gravar('arena.preferencias', p)
 }
+
+/** Tutorial: 'visto' = já foi convidado (ou pulou); 'feito' = chegou ao fim. */
+export type EstadoTutorial = 'visto' | 'feito'
+
+export function estadoTutorial(): EstadoTutorial | null {
+  const v = ler<string>('arena.tutorial')
+  return v === 'visto' || v === 'feito' ? v : null
+}
+
+export function salvarEstadoTutorial(v: EstadoTutorial) {
+  // quem terminou não volta a "só visto"
+  if (v === 'visto' && estadoTutorial() === 'feito') return
+  gravar('arena.tutorial', v)
+}
