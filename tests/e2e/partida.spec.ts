@@ -92,10 +92,16 @@ test('poderes do Almirante: configurar, expulsar, pausar, passar o cargo e encer
   // configurações (só o Almirante)
   await ana.getByRole('button', { name: 'Editar' }).click()
   await expect(ana.getByText('Configurações da sala')).toBeVisible()
-  await ana.getByRole('radio', { name: 'Rápido' }).click()
+  await expect(ana.getByRole('radio', { name: 'Rápido' })).toHaveCount(0)
+  // "Restaurar padrão" desfaz o que foi mexido antes de salvar
+  await ana.getByRole('radio', { name: '6', exact: true }).click()
+  await expect(ana.getByRole('radio', { name: '6', exact: true })).toHaveAttribute('aria-checked', 'true')
+  await ana.getByRole('button', { name: /Restaurar padrão/ }).click()
+  await expect(ana.getByRole('radio', { name: 'Auto', exact: true })).toHaveAttribute('aria-checked', 'true')
+  await ana.getByRole('radio', { name: '7', exact: true }).click()
   await ana.getByRole('button', { name: 'Salvar' }).click()
-  await expect.poll(async () => (await view(leo)).config.preset).toBe('rapido')
-  expect(await act(leo, { type: 'updateConfig', patch: { preset: 'classico' } })).toBe(false)
+  await expect.poll(async () => (await view(leo)).config.boardSize).toBe(7)
+  expect(await act(leo, { type: 'updateConfig', patch: { boardSize: 'auto' } })).toBe(false)
 
   // expulsar a Bia pelo menu do jogador
   await ana.getByRole('button', { name: /^Bia/ }).click()
@@ -287,7 +293,8 @@ test('categorias: escolher várias no modal e ver todas misturadas no tabuleiro'
   await expect(ana.getByRole('button', { name: /Categorias de palavras: Animais \+ Esportes \+ Lugares do mundo/ })).toBeVisible()
   await ana.getByRole('button', { name: 'Salvar' }).click()
   await expect.poll(async () => (await view(leo)).config.categories).toEqual(['animais', 'esportes', 'lugares'])
-  await expect(leo.getByText(/Animais \+2/)).toBeVisible()
+  // a faixa do resumo no Salão mostra até 3 categorias
+  await expect(leo.getByText('Animais + Esportes + Lugares do mundo')).toBeVisible()
 
   await ana.getByRole('button', { name: 'Zarpar!' }).click()
   await expect.poll(async () => (await view(ana)).game?.cards?.length ?? 0).toBeGreaterThan(0)

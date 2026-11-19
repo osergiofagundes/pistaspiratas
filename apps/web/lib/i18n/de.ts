@@ -47,13 +47,6 @@ export const de: Dicionario = {
     'Kompass', 'Sturm', 'Sardine', 'Riesenkrake', 'Freibeuterin', 'Bukanier', 'Salzgesicht', 'Goldzahn',
     'Eisenfaust', 'Wilde Möwe', 'Käpt’n Nebel', 'Fröhlicher Maat', 'Bilgenratte', 'Wilde Welle', 'Seestern', 'Glückspirat',
   ],
-  presets: {
-    classico: { nome: 'Klassisch', descricao: '8 Schätze pro Schiff, 90 s / 120 s' },
-    rapido: { nome: 'Schnell', descricao: '6 Schätze, kleineres Feld, 60 s / 60 s' },
-    caotico: { nome: 'Chaotisch', descricao: 'Weniger offene See und 2 Kraken' },
-    tranquilo: { nome: 'Entspannt', descricao: 'Ohne Uhr, für Einsteiger' },
-    personalizado: { nome: 'Eigene', descricao: 'Alles einstellen' },
-  },
   categorias: {
     geral: 'Allgemein', mar: 'Meer und Piraterie', brasil: 'Brasilien', pop: 'Popkultur', infantil: 'Kinder', filmes: 'Filme',
     series: 'Serien', desenhos: 'Zeichentrick', animais: 'Tiere', comidas: 'Essen', esportes: 'Sport', profissoes: 'Berufe',
@@ -209,12 +202,11 @@ export const de: Dicionario = {
 
   config: {
     titulo: 'Raumoptionen',
-    preset: 'Vorlage',
+    restaurarPadrao: 'Standard wiederherstellen',
     auto: 'Auto',
     pers: 'Eig.',
     notaManual: 'Schätze: von Hand eingestellt',
     notaProporcional: 'Schätze: passend zum Spielfeld',
-    notaVira: 'Schätze oder Kraken ändern wechselt zu Eigene',
     tabuleiro: 'Spielfeld',
     tamanho: 'Größe',
     colunasLinhas: 'Spalten × Zeilen',

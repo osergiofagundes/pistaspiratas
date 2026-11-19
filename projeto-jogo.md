@@ -45,7 +45,7 @@ Vence o primeiro navio que tiver todos os seus Tesouros revelados, ou o último 
 
 ### 3.1 Preparação
 
-1. O sistema sorteia as palavras do tabuleiro e o mapa secreto (a qual navio cada palavra pertence), de acordo com o preset (seção 4).
+1. O sistema sorteia as palavras do tabuleiro e o mapa secreto (a qual navio cada palavra pertence), de acordo com as configurações da sala (seções 4 e 5).
 2. O navio que começa é sorteado e recebe 1 Tesouro a mais.
 3. A ordem dos turnos segue a ordem dos navios a partir do primeiro, em rodízio. Navios eliminados são pulados.
 4. Só os Capitães veem o mapa secreto. Marujos e Gaivotas veem apenas as palavras.
@@ -97,11 +97,11 @@ Com o Tiro de Canhão desligado, acertar os N palpites leva direto a "Vez termin
 
 O Capitão só se comunica pela dica. Como os grupos falam pelo Discord, essa regra depende da honestidade dos jogadores. O jogo mostra um lembrete para os Capitães no início da partida.
 
-## 4. Tabuleiro e presets
+## 4. Tabuleiro
 
 O tabuleiro cresce com o número de navios: 5×5 para 2, 6×6 para 3 e 7×7 para 4, sempre com 8 Tesouros por navio e 1 a mais para o navio que começa.
 
-### 4.1 Preset Clássico (padrão)
+### 4.1 Valores padrão
 
 | Navios | Grade | Tesouros (1º navio + demais) | Mar Aberto | Kraken | Total |
 | --- | --- | --- | --- | --- | --- |
@@ -109,19 +109,9 @@ O tabuleiro cresce com o número de navios: 5×5 para 2, 6×6 para 3 e 7×7 para
 | 3 | 6×6 | 9 + 8 + 8 = 25 | 9 | 2 | 36 |
 | 4 | 7×7 | 9 + 8 + 8 + 8 = 33 | 14 | 2 | 49 |
 
-### 4.2 Outros presets
+### 4.2 Grade automática
 
-| Preset | Tesouros por navio | Kraken | Tiro de Canhão | Tempo por turno | Para quem |
-| --- | --- | --- | --- | --- | --- |
-| Clássico | 8 (+1) | 1 com 2 navios, 2 com 3 ou 4 | Ligado | 90 s Capitão / 120 s Marujos | Padrão |
-| Rápido | 6 (+1), grade menor | 1 | Ligado | 60 s / 60 s | Partidas de 10 a 15 min |
-| Caótico | 8 (+1), menos Mar Aberto | 2 sempre | Ligado | 60 s / 90 s | Grupos experientes |
-| Tranquilo | 8 (+1) | 1 | Ligado | Sem limite | Iniciantes e crianças |
-| Personalizado | 4 a 10 | 1 ou 2 | Ligado ou desligado | Configurável | Quem quiser ajustar tudo |
-
-### 4.3 Grade no modo Personalizado
-
-O dono escolhe Tesouros por navio e Kraken. O sistema escolhe a menor grade de 5 a 7 colunas que comporte todas as palavras e completa as casas que sobram com Mar Aberto. Se o Mar Aberto ficar abaixo de 20% do tabuleiro, a tela de configuração mostra um aviso de que o jogo vai ficar muito fácil.
+Não há presets: o Almirante ajusta cada opção direto (seção 5) e pode voltar aos valores padrão com "Restaurar padrão". O dono escolhe Tesouros por navio e Kraken. O sistema escolhe a menor grade de 5 a 7 colunas que comporte todas as palavras e completa as casas que sobram com Mar Aberto. Se o Mar Aberto ficar abaixo de 20% do tabuleiro, a tela de configuração mostra um aviso de que o jogo vai ficar muito fácil.
 
 **Celular:** uma grade de 7×7 em tela de 375 px deixa as cartas com cerca de 48 px de largura. O tabuleiro de 4 navios precisa de um layout próprio para celular: fonte menor nas cartas, com zoom ao tocar e segurar.
 
@@ -131,10 +121,9 @@ Só o Almirante (dono da sala) altera as configurações, e apenas no salão, an
 
 | Configuração | Opções | Padrão |
 | --- | --- | --- |
-| Preset | Clássico, Rápido, Caótico, Tranquilo, Personalizado | Clássico |
 | Número de navios | 2, 3 ou 4 | 2 |
-| Tesouros por navio | 4 a 10 (só no Personalizado) | 8 |
-| Quantidade de Kraken | 1 ou 2 (só no Personalizado) | Pelo preset |
+| Tesouros por navio | 4 a 10 na grade automática (no tamanho fixo, proporcional ou à mão) | 8 |
+| Quantidade de Kraken | 1 ou 2; volta à sugestão quando muda o número de navios | 1 com 2 navios, 2 com 3 ou 4 |
 | Tiro de Canhão | Ligado ou desligado | Ligado |
 | Escolha do Capitão | Sorteio ou o navio escolhe | Sorteio |
 | Rodízio de Capitão | Manter ou trocar a cada partida | Trocar |
@@ -145,6 +134,8 @@ Só o Almirante (dono da sala) altera as configurações, e apenas no salão, an
 | Usar só palavras personalizadas | Sim ou não | Não |
 | Espectadores | Permitir ou não | Permitir |
 | Tamanho máximo da sala | 4 a 24 jogadores | 16 |
+
+**Restaurar padrão:** um link no topo das configurações volta tabuleiro, tesouros, Kraken, tempos e Tiro de Canhão aos valores padrão. Número de navios, regras de Capitão, palavras, idioma e nomes dos navios ficam como estão.
 
 **Escolha do Capitão:** no modo sorteio, o sistema sorteia um Capitão por navio ao iniciar a partida. No modo "o navio escolhe", cada navio tem um botão "Quero ser Capitão"; o primeiro a apertar assume e o Almirante pode trocar. O rodízio evita que a mesma pessoa seja Capitã em toda partida.
 
@@ -463,7 +454,7 @@ O MVP é uma partida completa de Pistas Piratas com 2 a 4 navios, jogada por lin
 ### 12.1 Checklist do MVP
 
 - [ ] Motor de regras com testes: tabuleiro, turnos, votação, Tiro de Canhão, Kraken e vitória
-- [ ] Gerador de tabuleiro com os presets Clássico, Rápido, Caótico, Tranquilo e Personalizado
+- [ ] Gerador de tabuleiro com grade automática ou tamanho fixo (os presets saíram em 19/11/2026)
 - [ ] Banco com 500 palavras (Geral e Mar e Pirataria) e palavras personalizadas
 - [ ] Validação automática de dicas
 - [ ] Criar sala, link de convite e entrada por código

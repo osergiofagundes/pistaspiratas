@@ -547,7 +547,7 @@ function ItemMenu({
   )
 }
 
-/** Resumo das configurações no Salão: preset no topo e 8 cartões com ícone. */
+/** Resumo das configurações no Salão: categorias de palavras no topo e 8 cartões com ícone. */
 type CartaoResumo = { icone: string; rotulo: string; valor: string; apagado?: boolean }
 
 function cartoesResumo(config: CodenomesConfig, t: Dicionario): CartaoResumo[] {
@@ -555,7 +555,6 @@ function cartoesResumo(config: CodenomesConfig, t: Dicionario): CartaoResumo[] {
   const g = gridFor(config)
   const tempo = (s: number | null) => (s === null ? '∞' : `${s} s`)
   const idioma = infoIdioma(config.wordLanguage ?? 'pt')
-  const categorias = config.onlyCustom ? t.config.personalizadas : resumoCategorias(config.categories, t, 1)
   return [
     { icone: 'navios/navio-rubi.webp', rotulo: r.navios, valor: r.nNavios(config.shipCount) },
     { icone: 'cartas/fechada.webp', rotulo: r.tabuleiro, valor: r.cartas(g.cols, g.rows, g.total) },
@@ -568,14 +567,22 @@ function cartoesResumo(config: CodenomesConfig, t: Dicionario): CartaoResumo[] {
     },
     { icone: 'interface/icones/ampulheta.webp', rotulo: r.tempos, valor: `${tempo(config.captainTime)} / ${tempo(config.crewTime)}` },
     { icone: 'interface/icones/canhao.webp', rotulo: r.canhao, valor: config.cannon ? r.ligado : r.desligado, apagado: !config.cannon },
-    { icone: idioma.bandeira, rotulo: `${r.palavras} · ${categorias}`, valor: idioma.nome.split(' ')[0] },
+    { icone: idioma.bandeira, rotulo: r.palavras, valor: idioma.nome.split(' ')[0] },
   ]
+}
+
+/** Faixa do topo do resumo: as categorias escolhidas (ou só as personalizadas). */
+function faixaPalavras(config: CodenomesConfig, t: Dicionario) {
+  return {
+    nome: config.onlyCustom ? t.config.personalizadas : resumoCategorias(config.categories, t, 3),
+    descricao: t.config.escolherCategorias,
+  }
 }
 
 function ResumoConfig({ config, x = 1462, y = 476 }: { config: CodenomesConfig; x?: number; y?: number }) {
   const anim = useSala((s) => s.prefs.animacoes)
   const t = useT()
-  const preset = t.presets[config.preset]
+  const faixa = faixaPalavras(config, t)
   const cartoes = cartoesResumo(config, t)
   const X = x
   const Y = y
@@ -583,9 +590,9 @@ function ResumoConfig({ config, x = 1462, y = 476 }: { config: CodenomesConfig; 
   const CW = (W - 8) / 2
   return (
     <>
-      {/* preset */}
+      {/* categorias de palavras */}
       <motion.div
-        key={`preset-${config.preset}`}
+        key={`palavras-${faixa.nome}`}
         initial={anim ? { opacity: 0, y: 6 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25 }}
@@ -605,11 +612,11 @@ function ResumoConfig({ config, x = 1462, y = 476 }: { config: CodenomesConfig; 
           padding: '0 14px',
         }}
       >
-        <span className="lilita" style={{ fontSize: 19, lineHeight: 1.05, color: '#FFE08A' }}>
-          {preset?.nome}
+        <span className="lilita" style={{ fontSize: 19, lineHeight: 1.05, color: '#FFE08A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {faixa.nome}
         </span>
         <span style={{ fontSize: 12.5, fontWeight: 700, color: '#F3DDB0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {preset?.descricao}
+          {faixa.descricao}
         </span>
       </motion.div>
       {/* cartões */}
@@ -690,7 +697,7 @@ function SalaoCompacto({
   const souAlmirante = view.adminId === view.you
   const almirante = view.players.find((p) => p.id === view.adminId)
   const escolha = view.config.captainMode === 'escolha'
-  const preset = t.presets[view.config.preset]
+  const faixa = faixaPalavras(view.config, t)
 
   // coluna da direita
   const RW = 280
@@ -855,7 +862,7 @@ function SalaoCompacto({
         </Botao>
       )}
 
-      {/* configurações: o preset e os cartões do resumo que couberem; o botão abre o resumo inteiro (ou a edição) */}
+      {/* configurações: as categorias e os cartões do resumo que couberem; o botão abre o resumo inteiro (ou a edição) */}
       <div className="faixa-pergaminho" style={{ left: rx, top: cfgY, width: RW, height: cfgH }} />
       <Texto x={rx + 16} y={cfgY + 10} titulo tam={19} cor="#5A3410">
         {t.salao.configuracoes}
@@ -866,7 +873,7 @@ function SalaoCompacto({
       <button
         type="button"
         onClick={onConfig}
-        aria-label={preset?.nome}
+        aria-label={`${t.salao.configuracoes}: ${faixa.nome}`}
         style={{
           position: 'absolute',
           left: rx + 14,
@@ -884,10 +891,10 @@ function SalaoCompacto({
           textAlign: 'left',
         }}
       >
-        <span className="lilita" style={{ fontSize: 16, lineHeight: 1.05, color: '#FFE08A' }}>
-          {preset?.nome}
+        <span className="lilita" style={{ width: '100%', fontSize: 16, lineHeight: 1.05, color: '#FFE08A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {faixa.nome}
         </span>
-        <span style={{ width: '100%', fontSize: 11, fontWeight: 700, color: '#F3DDB0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{preset?.descricao}</span>
+        <span style={{ width: '100%', fontSize: 11, fontWeight: 700, color: '#F3DDB0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{faixa.descricao}</span>
       </button>
       {resumo.map((c, i) => (
         <div

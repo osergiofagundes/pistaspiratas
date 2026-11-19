@@ -2,7 +2,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import { SHIP_IDS, SHIP_INFO, type ShipId } from '@arena/platform'
-import { BOARD_MAX, BOARD_MIN, type BoardSize, type CodenomesConfig, PRESETS, TEMPOS, fixedBoard, gridFor, updateConfig } from '@arena/codenomes'
+import { BOARD_MAX, BOARD_MIN, type BoardSize, type CodenomesConfig, TEMPOS, fixedBoard, gridFor, restaurarPadrao, updateConfig } from '@arena/codenomes'
 import { lerPalavrasPersonalizadas } from '@arena/words'
 import { Botao, DECO_ANCORA, IMG, Interruptor, Marcador, Modal, Segmentado, Seletor, Texto, usePalco } from '@/components/ui'
 import { useSala } from '@/lib/sala'
@@ -26,7 +26,7 @@ function opcoesTabuleiro(t: Dicionario): { v: BoardSize; rotulo: ReactNode }[] {
 }
 
 const W = 1820
-const H = 890
+const H = 814
 /** colunas dos cartões (a terceira é a prévia do tabuleiro) */
 const COL = { esq: 50, dir: 630, previa: 1210, w: 560 }
 /** topo de cada linha dentro do cartão */
@@ -202,21 +202,13 @@ export function ModalConfiguracoes({
   const lidas = useMemo(() => lerPalavrasPersonalizadas(texto), [texto])
   const g = gridFor(c)
   const set = (patch: Partial<CodenomesConfig>) => setC((atual) => updateConfig(atual, patch))
-  const pers = c.preset === 'personalizado'
   const fixo = fixedBoard(c) !== null
   // mudou o tabuleiro (tamanho, navios, Kraken ou bônus): os tesouros voltam a ser proporcionais
   const mudaTabuleiro = (patch: Partial<CodenomesConfig>) => set({ ...patch, treasuresManual: false })
-  const mudaTesouros = (v: number) => {
-    if (fixo) set({ treasuresPerShip: v, treasuresManual: true })
-    else if (pers) set({ treasuresPerShip: v })
-    // no automático, mexer nos tesouros vira Personalizado (guardando o Kraken de agora)
-    else set({ preset: 'personalizado', krakenCount: g.kraken, treasuresPerShip: v })
-  }
-  const mudaKraken = (v: number) => {
-    if (pers) mudaTabuleiro({ krakenCount: v })
-    else mudaTabuleiro({ preset: 'personalizado', treasuresPerShip: g.treasures, krakenCount: v })
-  }
-  const notaTabuleiro = fixo ? (c.treasuresManual ? k.notaManual : k.notaProporcional) : pers ? undefined : k.notaVira
+  // no tamanho fixo, ajustar os tesouros à mão deixa de ser proporcional
+  const mudaTesouros = (v: number) => set(fixo ? { treasuresPerShip: v, treasuresManual: true } : { treasuresPerShip: v })
+  const mudaKraken = (v: number) => mudaTabuleiro({ krakenCount: v })
+  const notaTabuleiro = fixo ? (c.treasuresManual ? k.notaManual : k.notaProporcional) : undefined
   const [escolhendo, setEscolhendo] = useState(false)
 
   const hCartao1 = linha(6) + 8
@@ -225,7 +217,7 @@ export function ModalConfiguracoes({
   const cp = usePalco().compacto
   const L = cp
     ? (() => {
-        const y1 = 206
+        const y1 = 96
         const y2 = y1 + hCartao1 + 14
         const y3 = y2 + hCartao2 + 14
         const y4 = y3 + hCartao1 + 14
@@ -234,7 +226,7 @@ export function ModalConfiguracoes({
         return {
           W: COL.w + 100,
           H: yP + hP + 44,
-          preset: { tx: COL.esq + 4, ty: 62, x: COL.esq, y: 98, w: COL.w, tam: 15, dy: 150 },
+          padrao: { y: 60 },
           tab: { x: COL.esq, y: y1 },
           cap: { x: COL.esq, y: y2 },
           sala: { x: COL.esq, y: y3 },
@@ -243,12 +235,12 @@ export function ModalConfiguracoes({
         }
       })()
     : (() => {
-        const y1 = 166
+        const y1 = 90
         const y2 = y1 + hCartao1 + 14
         return {
           W,
           H,
-          preset: { tx: COL.esq + 4, ty: 88, x: 180, y: 80, w: COL.dir + COL.w - 180, tam: 18, dy: 132 },
+          padrao: { y: 56 },
           tab: { x: COL.esq, y: y1 },
           cap: { x: COL.esq, y: y2 },
           sala: { x: COL.dir, y: y1 },
@@ -288,23 +280,15 @@ export function ModalConfiguracoes({
           : undefined
       }
     >
-      {/* preset */}
-      <Texto x={L.preset.tx} y={L.preset.ty} titulo tam={24} cor="#5A3410">
-        {k.preset}
-      </Texto>
-      <Segmentado
-        x={L.preset.x}
-        y={L.preset.y}
-        w={L.preset.w}
-        h={44}
-        tam={L.preset.tam}
-        opcoes={PRESETS.map((p) => ({ v: p.id, rotulo: t.presets[p.id].nome }))}
-        valor={c.preset}
-        onChange={(v) => mudaTabuleiro({ preset: v })}
-      />
-      <Texto x={L.preset.x} y={L.preset.dy} w={L.preset.w} tam={16} cor="#7A5A3A" peso={700}>
-        {t.presets[c.preset].descricao}
-      </Texto>
+      {/* volta tabuleiro, tesouros, Kraken, tempos e Canhão aos valores iniciais */}
+      <button
+        type="button"
+        className="link-ajuste"
+        onClick={() => setC(restaurarPadrao(c))}
+        style={{ position: 'absolute', right: L.W - (cp ? COL.esq + COL.w : COL.previa + COL.w), top: L.padrao.y, background: 'none', border: 0, padding: 0, fontSize: 16, fontWeight: 800, color: '#9A5A1A', textDecoration: 'underline' }}
+      >
+        ↺ {k.restaurarPadrao}
+      </button>
 
       <Cartao
         x={L.tab.x}

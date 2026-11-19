@@ -47,13 +47,6 @@ export const fr: Dicionario = {
     'Boussole', 'Tempête', 'Sardine', 'Calmar Géant', 'Corsaire', 'Boucanier', 'Tête de Sel', 'Dent en Or',
     'Main de Fer', 'Mouette Brave', 'Capitaine Brume', 'Matelot Joyeux', 'Rat de Cale', 'Vague Folle', 'Étoile de Mer', 'Pirate Chanceux',
   ],
-  presets: {
-    classico: { nome: 'Classique', descricao: '8 trésors par navire, 90 s / 120 s' },
-    rapido: { nome: 'Rapide', descricao: '6 trésors, grille plus petite, 60 s / 60 s' },
-    caotico: { nome: 'Chaotique', descricao: 'Moins de Haute Mer et 2 Krakens' },
-    tranquilo: { nome: 'Tranquille', descricao: 'Sans horloge, pour débutants' },
-    personalizado: { nome: 'Personnalisé', descricao: 'Tout régler' },
-  },
   categorias: {
     geral: 'Général', mar: 'Mer et Piraterie', brasil: 'Brésil', pop: 'Culture pop', infantil: 'Enfants', filmes: 'Films',
     series: 'Séries', desenhos: 'Dessins animés', animais: 'Animaux', comidas: 'Cuisine', esportes: 'Sports', profissoes: 'Métiers',
@@ -209,12 +202,11 @@ export const fr: Dicionario = {
 
   config: {
     titulo: 'Réglages de la salle',
-    preset: 'Mode',
+    restaurarPadrao: 'Valeurs par défaut',
     auto: 'Auto',
     pers: 'Pers.',
     notaManual: 'Trésors : réglés à la main',
     notaProporcional: 'Trésors : proportionnels au plateau',
-    notaVira: 'Changer trésors ou Kraken passe en Personnalisé',
     tabuleiro: 'Plateau',
     tamanho: 'Taille',
     colunasLinhas: 'Colonnes × lignes',

@@ -47,13 +47,6 @@ export const en: Dicionario = {
     'Compass', 'Storm', 'Sardine', 'Giant Squid', 'Corsair', 'Buccaneer', 'Salty Face', 'Gold Tooth',
     'Iron Hand', 'Wild Gull', 'Captain Mist', 'Happy Sailor', 'Bilge Rat', 'Rough Wave', 'Starfish', 'Lucky Pirate',
   ],
-  presets: {
-    classico: { nome: 'Classic', descricao: '8 treasures per ship, 90 s / 120 s' },
-    rapido: { nome: 'Quick', descricao: '6 treasures, smaller grid, 60 s / 60 s' },
-    caotico: { nome: 'Chaotic', descricao: 'Less Open Sea and 2 Krakens' },
-    tranquilo: { nome: 'Relaxed', descricao: 'No clock, for beginners' },
-    personalizado: { nome: 'Custom', descricao: 'Tweak everything' },
-  },
   categorias: {
     geral: 'General', mar: 'Sea and Piracy', brasil: 'Brazil', pop: 'Pop culture', infantil: 'Kids', filmes: 'Movies',
     series: 'TV shows', desenhos: 'Cartoons', animais: 'Animals', comidas: 'Food', esportes: 'Sports', profissoes: 'Jobs',
@@ -209,12 +202,11 @@ export const en: Dicionario = {
 
   config: {
     titulo: 'Room settings',
-    preset: 'Preset',
+    restaurarPadrao: 'Reset to default',
     auto: 'Auto',
     pers: 'Cust.',
     notaManual: 'Treasures: set by hand',
     notaProporcional: 'Treasures: proportional to the board',
-    notaVira: 'Changing treasures or Kraken switches to Custom',
     tabuleiro: 'Board',
     tamanho: 'Size',
     colunasLinhas: 'Columns × rows',

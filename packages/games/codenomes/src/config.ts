@@ -1,7 +1,6 @@
 import { ehCategoria, ehIdioma, type Categoria, type Idioma } from '@arena/words'
 import type { ShipId } from '@arena/platform'
 
-export type Preset = 'classico' | 'rapido' | 'caotico' | 'tranquilo' | 'personalizado'
 export type Tempo = number | null // segundos; null = sem limite
 /** 'auto' escolhe pela quantidade de tesouros; número = grade quadrada; 'custom' = boardCols × boardRows */
 export type BoardSize = 'auto' | 5 | 6 | 7 | 8 | 9 | 10 | 'custom'
@@ -13,12 +12,11 @@ export const BOARD_MAX = 10
 const TESOUROS_NO_TABULEIRO = 0.75
 
 export type CodenomesConfig = {
-  preset: Preset
   shipCount: number // 2 a 4
-  treasuresPerShip: number // Personalizado (4 a 10) ou ajuste à mão no tabuleiro fixo
+  treasuresPerShip: number // grade automática (4 a 10) ou ajuste à mão no tabuleiro fixo
   /** tabuleiro fixo: true = usa treasuresPerShip; false = proporcional ao tabuleiro */
   treasuresManual: boolean
-  krakenCount: number // 1 ou 2 (Personalizado)
+  krakenCount: number // 1 ou 2 (segue os navios até o Almirante mudar)
   boardSize: BoardSize
   boardCols: number // 4 a 10 (boardSize 'custom')
   boardRows: number // 4 a 10 (boardSize 'custom')
@@ -39,32 +37,22 @@ export type CodenomesConfig = {
   shipNames: Partial<Record<ShipId, string>>
 }
 
-export const PRESETS: { id: Preset; nome: string; descricao: string }[] = [
-  { id: 'classico', nome: 'Clássico', descricao: '8 tesouros por navio, 90 s / 120 s' },
-  { id: 'rapido', nome: 'Rápido', descricao: '6 tesouros, grade menor, 60 s / 60 s' },
-  { id: 'caotico', nome: 'Caótico', descricao: 'Menos Mar Aberto e 2 Krakens' },
-  { id: 'tranquilo', nome: 'Tranquilo', descricao: 'Sem relógio, para iniciantes' },
-  { id: 'personalizado', nome: 'Personalizado', descricao: 'Ajuste tudo' },
-]
-
 export const TEMPOS: Tempo[] = [null, 60, 90, 120, 180]
 
-type PresetValues = { treasures: number; kraken: (ships: number) => number; captainTime: Tempo; crewTime: Tempo; seaMin: number }
+/** Mar Aberto mínimo da grade automática */
+const MAR_MINIMO = 0.2
 
-const VALORES: Record<Exclude<Preset, 'personalizado'>, PresetValues> = {
-  classico: { treasures: 8, kraken: (n) => (n === 2 ? 1 : 2), captainTime: 90, crewTime: 120, seaMin: 0.2 },
-  rapido: { treasures: 6, kraken: () => 1, captainTime: 60, crewTime: 60, seaMin: 0.2 },
-  caotico: { treasures: 8, kraken: () => 2, captainTime: 60, crewTime: 90, seaMin: 0.1 },
-  tranquilo: { treasures: 8, kraken: () => 1, captainTime: null, crewTime: null, seaMin: 0.2 },
+/** Kraken sugerido: 1 com 2 navios, 2 com 3 ou 4. */
+export function krakenSugerido(navios: number): number {
+  return navios <= 2 ? 1 : 2
 }
 
 export function defaultConfig(wordLanguage: Idioma = 'pt'): CodenomesConfig {
   return {
-    preset: 'classico',
     shipCount: 2,
     treasuresPerShip: 8,
     treasuresManual: false,
-    krakenCount: 1,
+    krakenCount: krakenSugerido(2),
     boardSize: 'auto',
     boardCols: 6,
     boardRows: 6,
@@ -86,25 +74,20 @@ export function defaultConfig(wordLanguage: Idioma = 'pt'): CodenomesConfig {
 
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, Math.round(n)))
 
-/** Aplica uma alteração do Almirante, respeitando limites e presets. */
+/** Aplica uma alteração do Almirante, respeitando os limites. */
 export function updateConfig(current: CodenomesConfig, patch: Partial<CodenomesConfig>): CodenomesConfig {
   const c: CodenomesConfig = { ...current }
-  if (patch.preset && patch.preset !== current.preset && PRESETS.some((p) => p.id === patch.preset)) {
-    c.preset = patch.preset
-    if (patch.preset !== 'personalizado') {
-      const v = VALORES[patch.preset]
-      c.captainTime = v.captainTime
-      c.crewTime = v.crewTime
-      c.cannon = true
-    }
+  // campo de versões antigas (presets): ignorado
+  delete (c as Partial<CodenomesConfig> & { preset?: unknown }).preset
+  if (patch.shipCount !== undefined) {
+    c.shipCount = clamp(patch.shipCount, 2, 4)
+    // mudou o número de navios: o Kraken volta à sugestão (a não ser que venha junto)
+    if (c.shipCount !== current.shipCount && patch.krakenCount === undefined) c.krakenCount = krakenSugerido(c.shipCount)
   }
-  if (patch.shipCount !== undefined) c.shipCount = clamp(patch.shipCount, 2, 4)
-  // tesouros: aceitos em qualquer preset (o gridFor aplica o limite de cada modo)
+  // tesouros: o gridFor aplica o limite de cada modo (grade automática ou tamanho fixo)
   if (patch.treasuresPerShip !== undefined) c.treasuresPerShip = clamp(patch.treasuresPerShip, 2, 60)
   if (patch.treasuresManual !== undefined) c.treasuresManual = !!patch.treasuresManual
-  if (c.preset === 'personalizado') {
-    if (patch.krakenCount !== undefined) c.krakenCount = clamp(patch.krakenCount, 1, 2)
-  }
+  if (patch.krakenCount !== undefined) c.krakenCount = clamp(patch.krakenCount, 1, 2)
   if (patch.boardSize !== undefined && BOARD_SIZES.includes(patch.boardSize)) c.boardSize = patch.boardSize
   if (patch.boardCols !== undefined) c.boardCols = clamp(patch.boardCols, BOARD_MIN, BOARD_MAX)
   if (patch.boardRows !== undefined) c.boardRows = clamp(patch.boardRows, BOARD_MIN, BOARD_MAX)
@@ -159,26 +142,17 @@ export function fixedBoard(config: CodenomesConfig): [number, number] | null {
 /**
  * Tamanho do tabuleiro.
  * - Automático: escolhe a menor grade de 5 a 7 colunas (quase quadrada) que comporte os
- *   Tesouros e Krakens deixando a fração mínima de Mar Aberto do preset. Com 8 tesouros e
- *   Mar mínimo de 20%, reproduz o Clássico: 5×5, 6×6 e 7×7.
+ *   Tesouros (4 a 10 por navio) e Krakens deixando pelo menos 20% de Mar Aberto. Com os
+ *   valores padrão (8 tesouros, Kraken sugerido), dá 5×5, 6×6 e 7×7.
  * - Tamanho fixo: os tesouros são proporcionais ao tabuleiro (cerca de 75% das casas,
  *   divididos entre os navios); o resto é Mar Aberto e Kraken.
  */
 export function gridFor(config: CodenomesConfig): GridInfo {
   const ships = config.shipCount
   const bonus = config.firstBonus === false ? 0 : 1
-  let treasures: number, kraken: number, seaMin: number
-  if (config.preset === 'personalizado') {
-    treasures = clamp(config.treasuresPerShip, 4, 10)
-    kraken = config.krakenCount
-    // como nos outros presets, a grade automática deixa pelo menos 20% de Mar Aberto
-    seaMin = 0.2
-  } else {
-    const v = VALORES[config.preset]
-    treasures = v.treasures
-    kraken = v.kraken(ships)
-    seaMin = v.seaMin
-  }
+  let treasures = clamp(config.treasuresPerShip, 4, 10)
+  const kraken = clamp(config.krakenCount ?? krakenSugerido(ships), 1, 2)
+  const seaMin = MAR_MINIMO
   const fixed = fixedBoard(config)
   if (fixed) {
     const [cols, rows] = fixed
@@ -221,4 +195,25 @@ export function gridFor(config: CodenomesConfig): GridInfo {
 
 export function shipName(config: CodenomesConfig, id: ShipId, fallback: string): string {
   return config.shipNames[id] || fallback
+}
+
+/**
+ * "Restaurar padrão" das Configurações: tabuleiro, tesouros, Kraken, tempos e Canhão voltam
+ * aos valores iniciais. Navios, regras de Capitão, palavras, idioma e nomes ficam como estão.
+ */
+export function restaurarPadrao(c: CodenomesConfig): CodenomesConfig {
+  const d = defaultConfig(c.wordLanguage)
+  return {
+    ...c,
+    boardSize: d.boardSize,
+    boardCols: d.boardCols,
+    boardRows: d.boardRows,
+    treasuresPerShip: d.treasuresPerShip,
+    treasuresManual: d.treasuresManual,
+    krakenCount: krakenSugerido(c.shipCount),
+    firstBonus: d.firstBonus,
+    cannon: d.cannon,
+    captainTime: d.captainTime,
+    crewTime: d.crewTime,
+  }
 }

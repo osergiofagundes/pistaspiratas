@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { type GameContext, type Player, type ShipId, seeded } from '@arena/platform'
 import { PALAVRAS } from '@arena/words'
 import { codenomes, canStart } from './index'
-import { defaultConfig, gridFor, updateConfig } from './config'
+import { defaultConfig, gridFor, restaurarPadrao, updateConfig } from './config'
 import { validateClue } from './clue'
 import { wordPool } from './board'
 import { type CodenomesAction, type CodenomesState, CANNON_HOLD_MS, CAPTAIN_WAIT_MS, tick, treasuresLeft } from './engine'
@@ -66,7 +66,7 @@ describe('banco de palavras', () => {
 })
 
 describe('tabuleiro', () => {
-  it('reproduz o preset Clássico', () => {
+  it('valores padrão: 5×5, 6×6 e 7×7', () => {
     const g2 = gridFor(updateConfig(defaultConfig(), { shipCount: 2 }))
     const g3 = gridFor(updateConfig(defaultConfig(), { shipCount: 3 }))
     const g4 = gridFor(updateConfig(defaultConfig(), { shipCount: 4 }))
@@ -118,11 +118,68 @@ describe('tabuleiro', () => {
     expect(g.first).toBe(g.treasures)
   })
 
-  it('personalizado avisa quando há pouco Mar Aberto', () => {
-    const c = updateConfig(updateConfig(defaultConfig(), { preset: 'personalizado', shipCount: 4 }), { treasuresPerShip: 10, krakenCount: 2 })
+  it('avisa quando há pouco Mar Aberto', () => {
+    const c = updateConfig(updateConfig(defaultConfig(), { shipCount: 4 }), { treasuresPerShip: 10, krakenCount: 2 })
     const g = gridFor(c)
     expect(g.total).toBeGreaterThanOrEqual(43)
     expect(g.seaWarning).toBe(true)
+  })
+
+  it('o Kraken segue o número de navios até o Almirante mudar', () => {
+    const c3 = updateConfig(defaultConfig(), { shipCount: 3 })
+    expect(c3.krakenCount).toBe(2)
+    const umSo = updateConfig(c3, { krakenCount: 1 })
+    expect(gridFor(umSo).kraken).toBe(1)
+    // mexer em outra coisa não muda o Kraken escolhido
+    expect(updateConfig(umSo, { crewTime: 60 }).krakenCount).toBe(1)
+    // mudar os navios volta à sugestão
+    expect(updateConfig(umSo, { shipCount: 4 }).krakenCount).toBe(2)
+    expect(updateConfig(umSo, { shipCount: 2 }).krakenCount).toBe(1)
+    // salvar a config inteira (mesmo número de navios) mantém o que foi escolhido
+    expect(updateConfig(c3, { ...umSo }).krakenCount).toBe(1)
+  })
+
+  it('tesouros por navio ajustáveis direto na grade automática', () => {
+    const g = gridFor(updateConfig(defaultConfig(), { treasuresPerShip: 6 }))
+    expect([g.treasures, g.first]).toEqual([6, 7])
+    expect(gridFor(updateConfig(defaultConfig(), { treasuresPerShip: 30 })).treasures).toBe(10)
+  })
+
+  it('restaurar padrão volta o tabuleiro e os tempos, mas mantém palavras, navios e nomes', () => {
+    const mexida = updateConfig(defaultConfig('fr'), {
+      shipCount: 3,
+      boardSize: 8,
+      treasuresPerShip: 5,
+      treasuresManual: true,
+      krakenCount: 1,
+      firstBonus: false,
+      cannon: false,
+      captainTime: null,
+      crewTime: 60,
+      captainMode: 'escolha',
+      categories: ['filmes', 'games'],
+      customWords: ['Alfa'],
+      shipNames: { rubi: 'Pérola' },
+    })
+    const r = restaurarPadrao(mexida)
+    const d = defaultConfig()
+    expect(r).toMatchObject({
+      boardSize: d.boardSize,
+      treasuresPerShip: d.treasuresPerShip,
+      treasuresManual: false,
+      krakenCount: 2,
+      firstBonus: true,
+      cannon: true,
+      captainTime: d.captainTime,
+      crewTime: d.crewTime,
+    })
+    expect(r).toMatchObject({ shipCount: 3, captainMode: 'escolha', wordLanguage: 'fr', categories: ['filmes', 'games'], customWords: ['Alfa'], shipNames: { rubi: 'Pérola' } })
+  })
+
+  it('o campo preset de versões antigas é ignorado', () => {
+    const c = updateConfig({ ...defaultConfig(), preset: 'rapido' } as never, { preset: 'caotico' } as never)
+    expect('preset' in c).toBe(false)
+    expect(c.captainTime).toBe(defaultConfig().captainTime)
   })
 })
 

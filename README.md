@@ -44,7 +44,7 @@ apps/web/                 Next.js: telas, API das salas e canal de tempo real
   public/img/             artes em WebP, geradas de assets/ por ferramentas/imagem/exportar-web.mjs
 packages/
   platform/               sala, jogadores, Almirante, interface GameDefinition, RoomService
-  games/codenomes/        regras, tabuleiro e presets, validação de dicas, Diário, visão filtrada
+  games/codenomes/        regras, tabuleiro, validação de dicas, Diário, visão filtrada
   words/                  banco de palavras: 17 categorias nos 6 idiomas (src/<idioma>/<categoria>.ts)
 tests/e2e/                testes de ponta a ponta
 assets/                   artes-fonte usadas pelo jogo (estrutura em assets/README.md)

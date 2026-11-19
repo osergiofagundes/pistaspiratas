@@ -47,13 +47,6 @@ export const it: Dicionario = {
     'Bussola', 'Tempesta', 'Sardina', 'Calamaro Gigante', 'Corsara', 'Bucaniere', 'Faccia di Sale', 'Dente d’Oro',
     'Mano di Ferro', 'Gabbiano Fiero', 'Capitana Nebbia', 'Marinaio Felice', 'Topo di Stiva', 'Onda Brava', 'Stella Marina', 'Pirata Fortuna',
   ],
-  presets: {
-    classico: { nome: 'Classica', descricao: '8 tesori per nave, 90 s / 120 s' },
-    rapido: { nome: 'Rapida', descricao: '6 tesori, griglia più piccola, 60 s / 60 s' },
-    caotico: { nome: 'Caotica', descricao: 'Meno Mare Aperto e 2 Kraken' },
-    tranquilo: { nome: 'Tranquilla', descricao: 'Senza orologio, per principianti' },
-    personalizado: { nome: 'Personalizzata', descricao: 'Regola tutto' },
-  },
   categorias: {
     geral: 'Generale', mar: 'Mare e Pirateria', brasil: 'Brasile', pop: 'Cultura pop', infantil: 'Bambini', filmes: 'Film',
     series: 'Serie TV', desenhos: 'Cartoni animati', animais: 'Animali', comidas: 'Cibo', esportes: 'Sport', profissoes: 'Mestieri',
@@ -209,12 +202,11 @@ export const it: Dicionario = {
 
   config: {
     titulo: 'Opzioni della stanza',
-    preset: 'Modalità',
+    restaurarPadrao: 'Ripristina predefiniti',
     auto: 'Auto',
     pers: 'Pers.',
     notaManual: 'Tesori: regolati a mano',
     notaProporcional: 'Tesori: proporzionali al tabellone',
-    notaVira: 'Cambiare tesori o Kraken passa a Personalizzata',
     tabuleiro: 'Tabellone',
     tamanho: 'Dimensione',
     colunasLinhas: 'Colonne × righe',

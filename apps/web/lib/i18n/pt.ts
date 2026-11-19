@@ -1,5 +1,5 @@
 import type { Personagem, ShipId } from '@arena/platform'
-import type { EndReason, Preset } from '@arena/codenomes'
+import type { EndReason } from '@arena/codenomes'
 import type { Categoria } from '@arena/words'
 import { MENSAGENS_PT, type ChaveMensagem } from './mensagens'
 
@@ -51,13 +51,6 @@ export const pt = {
     'Bússola', 'Tempestade', 'Sardinha', 'Lula Gigante', 'Corsária', 'Bucaneiro', 'Cara de Sal', 'Dente de Ouro',
     'Mão de Ferro', 'Gaivota Brava', 'Capitã Névoa', 'Marujo Feliz', 'Rato do Porão', 'Onda Brava', 'Estrela do Mar', 'Pirata Sorte',
   ],
-  presets: {
-    classico: { nome: 'Clássico', descricao: '8 tesouros por navio, 90 s / 120 s' },
-    rapido: { nome: 'Rápido', descricao: '6 tesouros, grade menor, 60 s / 60 s' },
-    caotico: { nome: 'Caótico', descricao: 'Menos Mar Aberto e 2 Krakens' },
-    tranquilo: { nome: 'Tranquilo', descricao: 'Sem relógio, para iniciantes' },
-    personalizado: { nome: 'Personalizado', descricao: 'Ajuste tudo' },
-  } satisfies Record<Preset, { nome: string; descricao: string }>,
   categorias: {
     geral: 'Geral', mar: 'Mar e Pirataria', brasil: 'Brasil', pop: 'Cultura pop', infantil: 'Infantil', filmes: 'Filmes',
     series: 'Séries', desenhos: 'Desenhos', animais: 'Animais', comidas: 'Comidas', esportes: 'Esportes', profissoes: 'Profissões',
@@ -213,12 +206,11 @@ export const pt = {
 
   config: {
     titulo: 'Configurações da sala',
-    preset: 'Preset',
+    restaurarPadrao: 'Restaurar padrão',
     auto: 'Auto',
     pers: 'Pers.',
     notaManual: 'Tesouros: ajustados à mão',
     notaProporcional: 'Tesouros: proporcionais ao tabuleiro',
-    notaVira: 'Mudar tesouros ou Kraken vira Personalizado',
     tabuleiro: 'Tabuleiro',
     tamanho: 'Tamanho',
     colunasLinhas: 'Colunas × linhas',
