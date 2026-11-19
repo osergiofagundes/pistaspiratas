@@ -662,6 +662,33 @@ button:disabled {
   outline: 3px solid var(--amarelo);
   outline-offset: 2px;
 }
+/* placar da série no salão e na tela de fim */
+.placar-serie {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  height: 34px;
+  padding: 0 16px 0 8px;
+  border-radius: 999px;
+  background: linear-gradient(#9a5a2a, #6b3a17);
+  border: 2px solid #3a1d0c;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), 0 2px 0 rgba(0, 0, 0, 0.3);
+  color: #ffe08a;
+  font-size: 17px;
+  font-weight: 800;
+  pointer-events: auto;
+}
+.placar-serie img { width: 26px; height: 26px; object-fit: contain; flex: 0 0 auto; }
+.placar-serie .texto { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.placar-serie .zerar { background: none; border: 0; padding: 0 0 0 4px; font-size: 14px; font-weight: 800; color: #f3ddb0; text-decoration: underline; white-space: nowrap; }
+@media (hover: hover) { .placar-serie .zerar:hover { color: #fff8ec; } }
+.placar-serie.campeao { background: linear-gradient(#f2c14e, #c98a12); border-color: #7a5208; color: #3a1d0c; }
+.placar-serie.campeao .zerar { color: #3a1d0c; }
+.placar-serie.compacto { height: 26px; padding: 0 12px 0 6px; font-size: 13px; gap: 6px; }
+.placar-serie.compacto img { width: 20px; height: 20px; }
+.placar-serie.compacto .zerar { font-size: 12px; }
+
 .painel-exemplos {
   display: flex;
   flex-direction: column;

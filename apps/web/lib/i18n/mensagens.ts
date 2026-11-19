@@ -44,6 +44,8 @@ export const MENSAGENS_PT = {
   soAlmiranteCargo: 'Só o Almirante pode passar o cargo.',
   soAlmiranteEmbaralha: 'Só o Almirante embaralha os navios.',
   embaralhaSalao: 'Só dá para embaralhar no salão.',
+  soAlmiranteZera: 'Só o Almirante zera o placar.',
+  zeraSalao: 'Só dá para zerar o placar no salão.',
   soAlmiranteVolta: 'Só o Almirante leva todos de volta ao salão.',
   naoAcabou: 'A partida ainda não acabou.',
   soAlmirantePausa: 'Só o Almirante pausa a partida.',

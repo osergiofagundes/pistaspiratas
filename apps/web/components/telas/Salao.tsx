@@ -24,16 +24,16 @@ import {
 } from '@/components/ui'
 import { Avisos } from '@/components/ui/Avisos'
 import { BotaoIdioma, BotaoMenu, BotaoPreferencias, BotaoSom, BotaoTexto, ICONE_CONFIRMAR, ModalComoJogar, ModalConfirmar, ModalPerfil } from '@/components/modais/comuns'
-import { DECO_ANCORA, Modal } from '@/components/ui'
+import { DECO_ANCORA, IMG, Modal } from '@/components/ui'
 import { infoIdioma, traduzirMensagem, useT, type Dicionario } from '@/lib/i18n'
-import { nomeNavioConfig, resumoCategorias } from '@/lib/textos'
+import { nomeNavioConfig, placarSerie, resumoCategorias, serieEmAndamento } from '@/lib/textos'
 import { ModalConfiguracoes } from '@/components/modais/Configuracoes'
 import { salvarPerfil } from '@/lib/identidade'
 import { useSala, type Visao } from '@/lib/sala'
 import { useMusica } from '@/lib/useMusica'
 
 type Menu = { player: Player; x: number; y: number } | null
-type Confirmar = null | { tipo: 'sair' } | { tipo: 'expulsar'; player: Player } | { tipo: 'cargo'; player: Player }
+type Confirmar = null | { tipo: 'sair' } | { tipo: 'expulsar'; player: Player } | { tipo: 'cargo'; player: Player } | { tipo: 'embaralhar' }
 
 /** Salão de espera (telas 805, 9334, 9533, 9732, 18658, 18860). */
 export function Salao({ view }: { view: Visao }) {
@@ -61,6 +61,9 @@ export function Salao({ view }: { view: Visao }) {
   const motivo = motivoPt && traduzirMensagem(motivoPt, t)
   const link = typeof window !== 'undefined' ? `${window.location.host}/sala/${view.code}` : `/sala/${view.code}`
   const escolha = view.config.captainMode === 'escolha'
+  // série: com uma em andamento, embaralhar desmancha os times e pede confirmação
+  const embaralhar = () =>
+    serieEmAndamento(view.config.bestOf, view.series) ? setConfirmar({ tipo: 'embaralhar' }) : enviar({ type: 'shuffleShips' })
 
   const copiar = async () => {
     try {
@@ -108,9 +111,10 @@ export function Salao({ view }: { view: Visao }) {
           <>
             <Imagem src="logos/logo-pistas-piratas.webp" x={28} y={14} w={204} h={134} />
             <Placa texto={t.salao.titulo} x={760} y={36} w={400} tam={28} />
-            <Texto x={560} y={122} w={800} centro tam={20} cor="#FFF8EC" className="contorno-fino">
+            <Texto x={560} y={(view.config.bestOf ?? 1) > 1 ? 114 : 122} w={800} centro tam={20} cor="#FFF8EC" className="contorno-fino">
               {t.salao.info(view.code, almirante?.name ?? '—')}
             </Texto>
+            <PlacarSerie view={view} x={460} y={144} w={1000} />
             <BotaoIdioma x={1338} y={38} />
             <Icone nome={mudo ? 'som-desligado' : 'som-ligado'} x={1416} y={38} onClick={() => setPrefs({ mudo: !mudo })} title={mudo ? t.comum.ligarSom : t.comum.silenciar} />
             <Icone nome="ajuda" x={1494} y={38} onClick={() => setAjuda(true)} title={t.comum.comoJogar} />
@@ -132,7 +136,7 @@ export function Salao({ view }: { view: Visao }) {
                     {t.comum.navio(nome)}
                   </Texto>
                   <Texto x={x} y={366} w={colW} centro tam={17} cor="#7A5A3A">
-                    {t.salao.jogadores(crew.length)}
+                    {comVitorias(t.salao.jogadores(crew.length), view, id, t)}
                   </Texto>
                   <div className="rolagem" style={{ position: 'absolute', left: x + 30, top: 396, width: colW - 60, height: escolha ? 220 : 262 }}>
                     <AnimatePresence initial={false}>
@@ -176,7 +180,7 @@ export function Salao({ view }: { view: Visao }) {
               {t.salao.assistindo}
             </Texto>
             {souAlmirante && (
-              <Botao cor="marrom" x={1100} y={866} w={276} h={56} tam={18} onClick={() => enviar({ type: 'shuffleShips' })}>
+              <Botao cor="marrom" x={1100} y={866} w={276} h={56} tam={18} onClick={embaralhar}>
                 {t.salao.embaralhar}
               </Botao>
             )}
@@ -293,6 +297,7 @@ export function Salao({ view }: { view: Visao }) {
             onCopiar={copiar}
             onCompartilhar={compartilhar}
             onSair={() => setConfirmar({ tipo: 'sair' })}
+            onEmbaralhar={embaralhar}
             onPerfil={me ? () => setPerfil(true) : undefined}
             onConfig={() => (souAlmirante ? setConfig(true) : setResumo(true))}
             onJogador={(p, e) => (p.id === view.you && !souAlmirante ? setPerfil(true) : abrirMenu(p, e))}
@@ -418,6 +423,20 @@ export function Salao({ view }: { view: Visao }) {
           }}
         />
       )}
+      {confirmar?.tipo === 'embaralhar' && (
+        <ModalConfirmar
+          titulo={t.salao.serie.confirmarTitulo}
+          texto={t.salao.serie.confirmarTexto}
+          confirmar={t.salao.serie.confirmar}
+          corConfirmar="verde"
+          icone={<Imagem src="itens/coroa.webp" x={0} y={0} w={ICONE_CONFIRMAR} h={ICONE_CONFIRMAR} />}
+          onFechar={() => setConfirmar(null)}
+          onConfirmar={() => {
+            enviar({ type: 'shuffleShips' })
+            setConfirmar(null)
+          }}
+        />
+      )}
       {confirmar?.tipo === 'cargo' && (
         <ModalConfirmar
           titulo={t.salao.cargo.titulo}
@@ -434,6 +453,44 @@ export function Salao({ view }: { view: Visao }) {
         />
       )}
     </Palco>
+  )
+}
+
+/** "2 jogadores · 1 vitória" quando a sala joga uma série. */
+function comVitorias(texto: string, view: Visao, id: ShipId, t: Dicionario): string {
+  if ((view.config.bestOf ?? 1) <= 1) return texto
+  return `${texto} · ${t.salao.serie.vitorias(view.series.wins[id] ?? 0)}`
+}
+
+/**
+ * Placar da série no Salão: "Melhor de 3 · Rubi 1 × 0 Safira" (e "Zerar placar" para o
+ * Almirante); com campeão, o resultado fica até zarpar de novo. Nada aparece em partida avulsa.
+ */
+function PlacarSerie({ view, x, y, w, compacto }: { view: Visao; x: number; y: number; w: number; compacto?: boolean }) {
+  const t = useT()
+  const enviar = useSala((s) => s.enviar)
+  const bestOf = view.config.bestOf ?? 1
+  if (bestOf <= 1) return null
+  const ships = SHIP_IDS.slice(0, view.config.shipCount)
+  const nome = (id: ShipId) => nomeNavioConfig(view.config.shipNames, id, t)
+  const placar = placarSerie(view.series, ships, nome)
+  const campeao = view.series.champion
+  const texto = campeao
+    ? `${t.salao.serie.campeao(nome(campeao), placar)} · ${t.salao.serie.novaAoZarpar}`
+    : `${t.salao.serie.titulo(bestOf)} · ${placar}`
+  const souAlmirante = view.adminId === view.you
+  return (
+    <div style={{ position: 'absolute', left: x, top: y, width: w, display: 'flex', justifyContent: compacto ? 'flex-start' : 'center', pointerEvents: 'none' }}>
+      <div className={`placar-serie${campeao ? ' campeao' : ''}${compacto ? ' compacto' : ''}`} data-testid="placar-serie">
+        <img src={`${IMG}/itens/coroa.webp`} alt="" />
+        <span className="texto">{texto}</span>
+        {souAlmirante && view.series.games > 0 && !campeao && (
+          <button type="button" className="link-ajuste zerar" onClick={() => enviar({ type: 'resetSeries' })}>
+            {t.salao.serie.zerar}
+          </button>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -674,6 +731,7 @@ function SalaoCompacto({
   onCopiar,
   onCompartilhar,
   onSair,
+  onEmbaralhar,
   onPerfil,
   onConfig,
   onJogador,
@@ -686,6 +744,7 @@ function SalaoCompacto({
   onCopiar: () => void
   onCompartilhar?: () => void
   onSair: () => void
+  onEmbaralhar: () => void
   onPerfil?: () => void
   onConfig: () => void
   onJogador: (p: Player, e: React.MouseEvent) => void
@@ -723,9 +782,10 @@ function SalaoCompacto({
     <>
       {/* topo */}
       <Placa texto={t.salao.titulo} x={16} y={14} w={260} h={64} tam={24} />
-      <Texto x={292} y={30} w={W - 292 - 170} tam={18} cor="#FFF8EC" className="contorno-fino truncate">
+      <Texto x={292} y={(view.config.bestOf ?? 1) > 1 ? 14 : 30} w={W - 292 - 170} tam={(view.config.bestOf ?? 1) > 1 ? 15 : 18} cor="#FFF8EC" className="contorno-fino truncate">
         {t.salao.info(view.code, almirante?.name ?? '—')}
       </Texto>
+      <PlacarSerie view={view} x={292} y={38} w={W - 292 - 170} compacto />
       <BotaoSom x={W - 148} y={16} />
       <BotaoMenu
         x={W - 80}
@@ -752,7 +812,7 @@ function SalaoCompacto({
               {nome}
             </Texto>
             <Texto x={tx} y={topo + 72} w={tw} centro={!comImagem} tam={14} cor="#7A5A3A">
-              {t.salao.jogadores(crew.length)}
+              {comVitorias(t.salao.jogadores(crew.length), view, id, t)}
             </Texto>
             <div className="rolagem" style={{ position: 'absolute', left: x + 14, top: topo + cab, width: colW - 28, height: navH - cab - 80 }}>
               <AnimatePresence initial={false}>
@@ -802,7 +862,7 @@ function SalaoCompacto({
           </Botao>
         )}
         {souAlmirante && (
-          <Botao cor="marrom" w={206} h={42} tam={15} style={{ position: 'relative' }} onClick={() => enviar({ type: 'shuffleShips' })}>
+          <Botao cor="marrom" w={206} h={42} tam={15} style={{ position: 'relative' }} onClick={onEmbaralhar}>
             {t.salao.embaralhar}
           </Botao>
         )}

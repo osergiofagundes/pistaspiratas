@@ -17,6 +17,9 @@ test('partida completa: salão, ordem, votação, canhão, Kraken, fim e volta a
   await duda.getByRole('button', { name: 'Entrar neste navio' }).nth(1).click()
   await expect(ana.getByRole('button', { name: 'Zarpar!' })).toBeEnabled()
   await expect(leo.getByRole('button', { name: 'Zarpar!' })).toBeDisabled()
+  // série melhor de 3: o placar aparece no salão
+  await act(ana, { type: 'updateConfig', patch: { bestOf: 3 } })
+  await expect(leo.getByTestId('placar-serie')).toContainText('Melhor de 3 · Rubi 0 × 0 Safira')
   await ana.getByRole('button', { name: 'Zarpar!' }).click()
   for (const p of ps) await expect(p.getByText('Capitães sorteados')).toBeVisible()
   for (const p of ps) await fecharModais(p)
@@ -59,6 +62,9 @@ test('partida completa: salão, ordem, votação, canhão, Kraken, fim e volta a
   await expect.poll(async () => (await view(ana)).phase, { timeout: 8000 }).toBe('finished')
   await expect(ana.getByText(/^(Vitória|Derrota)/).first()).toBeVisible()
   await expect(ana.getByText('Placar')).toBeVisible()
+  // a faixa da série mostra o 1 × 0 (ou 0 × 1) da primeira partida
+  await expect(ana.getByTestId('faixa-serie')).toContainText(/Melhor de 3 · Rubi [01] × [01] Safira/)
+  const vencedor = (await view(ana)).game.winner as string
   await ana.getByRole('button', { name: 'Ver mapa e diário' }).click()
   await expect(ana.getByText('Diário completo')).toBeVisible()
 
@@ -72,6 +78,18 @@ test('partida completa: salão, ordem, votação, canhão, Kraken, fim e volta a
   v = await view(leo)
   expect(v.code).toBe(code)
   expect(v.players.filter((p: any) => p.shipId).length).toBe(4)
+  // de volta ao salão: placar acumulado e "1 vitória" na coluna do vencedor
+  expect(v.series.wins).toEqual({ [vencedor]: 1 })
+  await expect(leo.getByTestId('placar-serie')).toContainText(vencedor === 'rubi' ? 'Rubi 1 × 0 Safira' : 'Rubi 0 × 1 Safira')
+  await expect(leo.getByText('2 jogadores · 1 vitória')).toBeVisible()
+  await expect(leo.getByRole('button', { name: 'Zerar placar' })).toHaveCount(0)
+  await expect(ana.getByRole('button', { name: 'Zerar placar' })).toBeVisible()
+  // embaralhar no meio da série pede confirmação
+  await ana.getByRole('button', { name: 'Embaralhar tripulações' }).click()
+  await expect(ana.getByText('Embaralhar no meio da série?')).toBeVisible()
+  await ana.getByRole('button', { name: 'Embaralhar', exact: true }).click()
+  await expect(leo.getByText('Ana embaralhou as tripulações.')).toBeVisible()
+  expect((await view(leo)).series.wins).toEqual({ [vencedor]: 1 })
 
   // nova partida: o "Navio afundado!" da partida anterior não reaparece,
   // e o aviso dos Capitães sorteados some sozinho

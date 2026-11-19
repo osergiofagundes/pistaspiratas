@@ -423,6 +423,22 @@ export function ModalConfiguracoes({
             }}
           />
         ))}
+        {/* série: placar por navio, guardado na sala entre as partidas */}
+        <Rotulo i={5}>{k.serie}</Rotulo>
+        <Segmentado
+          x={150}
+          y={linha(5) + 4}
+          w={390}
+          h={36}
+          tam={14}
+          opcoes={[
+            { v: 1 as const, rotulo: k.avulsa },
+            { v: 3 as const, rotulo: k.melhorDe(3) },
+            { v: 5 as const, rotulo: k.melhorDe(5) },
+          ]}
+          valor={c.bestOf ?? 1}
+          onChange={(v) => set({ bestOf: v })}
+        />
       </Cartao>
 
       <Cartao x={L.pal.x} y={L.pal.y} h={hCartao2} titulo={k.palavras} ordem={3}>

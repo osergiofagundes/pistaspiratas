@@ -132,6 +132,7 @@ Só o Almirante (dono da sala) altera as configurações, e apenas no salão, an
 | Categorias de palavras | Uma ou mais, misturadas em partes iguais (seção 9) | Geral |
 | Palavras personalizadas | Lista colada pelo dono | Vazia |
 | Usar só palavras personalizadas | Sim ou não | Não |
+| Série | Avulsa, melhor de 3 (quem vencer 2) ou melhor de 5 (quem vencer 3) | Avulsa |
 | Espectadores | Permitir ou não | Permitir |
 | Tamanho máximo da sala | 4 a 24 jogadores | 16 |
 
@@ -183,6 +184,8 @@ Quem chega com a partida em andamento entra como Gaivota. Ao fim da partida, esc
 ### 6.6 Entre partidas
 
 Ao fim da partida, a tela mostra o mapa completo revelado, o vencedor e o histórico. Depois, todos voltam ao salão com os mesmos navios. Dá para trocar de navio, mudar as configurações ou usar "Embaralhar tripulações" (só o Almirante): redistribui quem está nos navios com o mesmo número de pessoas (diferença máxima de 1), mistura quem jogou junto na última partida, nunca repete a divisão de agora e avisa a todos. Quem está assistindo continua assistindo.
+
+**Série de partidas:** com "melhor de 3" ou "melhor de 5", a sala soma as vitórias de cada navio (placar por cor: Rubi 1 × 0 Safira) e o placar aparece no salão, na coluna de cada navio e na tela de fim. Quem troca de navio passa a jogar pelo outro time; por isso, no meio de uma série, Embaralhar tripulações pede confirmação. Partida encerrada pelo Almirante não conta. Quando um navio chega à meta, a tela de fim comemora o campeão e o placar final fica no salão até o Almirante zarpar de novo, quando começa outra série. Mudar o formato ou o número de navios zera o placar, e o Almirante também pode zerar à mão.
 
 ## 7. Telas e layout
 

@@ -14,6 +14,20 @@ export interface BaseConfig {
   shipCount: number
   maxPlayers: number
   allowSpectators: boolean
+  /** série: 1 = partida avulsa; 3 ou 5 = melhor de 3 ou de 5 */
+  bestOf?: number
+}
+
+/** Placar da série (por navio) entre as partidas da sala. */
+export type Series = { wins: Partial<Record<ShipId, number>>; games: number; champion: ShipId | null }
+
+export function serieVazia(): Series {
+  return { wins: {}, games: 0, champion: null }
+}
+
+/** Vitórias para ganhar a série: 2 no melhor de 3, 3 no melhor de 5. */
+export function metaDaSerie(bestOf: number | undefined): number {
+  return Math.ceil((bestOf ?? 1) / 2)
 }
 
 export type Room<C extends BaseConfig = BaseConfig, S = unknown, M = unknown> = {
@@ -33,6 +47,7 @@ export type Room<C extends BaseConfig = BaseConfig, S = unknown, M = unknown> = 
   captainClaims: Partial<Record<ShipId, string>>
   /** ids de cada navio na última partida (para o embaralhar misturar quem jogou junto) */
   lastCrews: string[][]
+  series: Series
   paused: { since: number; by: string } | null
   version: number
   emptySince: number | null
@@ -50,6 +65,7 @@ export type RoomAction<C = unknown, A = unknown> =
   | { type: 'movePlayer'; playerId: string; shipId: ShipId | null }
   | { type: 'transferAdmin'; playerId: string }
   | { type: 'shuffleShips' }
+  | { type: 'resetSeries' }
   | { type: 'backToLobby' }
   | { type: 'leave' }
   | { type: 'pause' }
@@ -77,6 +93,7 @@ export function createRoom<C extends BaseConfig>(code: string, game: GameDefinit
     memory: undefined,
     captainClaims: {},
     lastCrews: [],
+    series: serieVazia(),
     paused: null,
     version: 1,
     emptySince: now,
@@ -168,6 +185,27 @@ function removePlayer(room: Room<any, any, any>, id: string) {
     room.adminId = next ? next.id : null
   }
   if (Object.keys(room.players).length === 0) room.emptySince = room.emptySince ?? Date.now()
+}
+
+/**
+ * Conta o vencedor da partida que acabou de terminar na série (só em melhor de 3 ou de 5,
+ * com vencedor e enquanto ninguém ganhou a série).
+ */
+export function registrarResultado(room: Room<any, any, any>, winner: ShipId | null) {
+  const bestOf = room.config.bestOf ?? 1
+  room.series ??= serieVazia()
+  if (bestOf <= 1 || !winner || room.series.champion) return
+  room.series.wins[winner] = (room.series.wins[winner] ?? 0) + 1
+  room.series.games++
+  if (room.series.wins[winner]! >= metaDaSerie(bestOf)) room.series.champion = winner
+}
+
+/** A partida terminou agora: muda a fase e conta na série (uma vez só). */
+function terminar<S>(room: Room<any, S, any>, game: AnyGame, state: S) {
+  const res = game.result(state)
+  if (!res || room.phase !== 'playing') return
+  room.phase = 'finished'
+  registrarResultado(room, res.winner)
 }
 
 function notice(room: Room<any, any, any>, text: string) {
@@ -264,7 +302,10 @@ export function applyRoomAction<C extends BaseConfig, S, A, V, M>(
       if (!isAdmin) return fail('Só o Almirante muda as configurações.')
       if (room.phase === 'playing') return fail('As configurações só mudam no salão.')
       const before = room.config.shipCount
+      const bestOfAntes = room.config.bestOf ?? 1
       room.config = game.updateConfig(room.config, action.patch)
+      // outro formato ou outro número de navios: a série recomeça
+      if ((room.config.bestOf ?? 1) !== bestOfAntes || room.config.shipCount !== before) room.series = serieVazia()
       if (room.config.shipCount < before) {
         const ships = activeShips(room.config)
         for (const p of Object.values(room.players)) if (p.shipId && !ships.includes(p.shipId)) p.shipId = null
@@ -295,6 +336,8 @@ export function applyRoomAction<C extends BaseConfig, S, A, V, M>(
       const players = Object.values(room.players)
       const err = game.canStart(room.config, players)
       if (err) return fail(err)
+      // série decidida (ou partida avulsa): começa do zero
+      if ((room.config.bestOf ?? 1) <= 1 || room.series?.champion) room.series = serieVazia()
       const { state, memory } = game.setup(room.config, players, ctx, room.memory, room.captainClaims)
       room.game = state
       room.memory = memory
@@ -336,6 +379,13 @@ export function applyRoomAction<C extends BaseConfig, S, A, V, M>(
       notice(room, `${me.name} embaralhou as tripulações.`)
       return ok()
     }
+    case 'resetSeries': {
+      if (!isAdmin) return fail('Só o Almirante zera o placar.')
+      if (room.phase === 'playing') return fail('Só dá para zerar o placar no salão.')
+      room.series = serieVazia()
+      notice(room, `${me.name} zerou o placar da série.`)
+      return ok()
+    }
     case 'backToLobby': {
       if (!isAdmin) return fail('Só o Almirante leva todos de volta ao salão.')
       if (room.phase !== 'finished') return fail('A partida ainda não acabou.')
@@ -374,7 +424,7 @@ export function applyRoomAction<C extends BaseConfig, S, A, V, M>(
       if (err) return fail(err)
       const step = game.apply(room.game, playerId, action.action, ctx)
       room.game = step.state
-      if (game.result(step.state)) room.phase = 'finished'
+      terminar(room, game, step.state)
       if (!step.changed) return { room, events: step.events, changed: false }
       return ok(step.events)
     }
@@ -425,7 +475,7 @@ export function tickRoom<C extends BaseConfig, S, A, V, M>(
       room.game = step.state
       events = step.events
       changed = true
-      if (game.result(step.state)) room.phase = 'finished'
+      terminar(room, game, step.state)
     }
   }
   if (changed) room.version++
@@ -444,6 +494,7 @@ export type RoomView<C, V> = {
   players: Player[]
   config: C
   captainClaims: Partial<Record<ShipId, string>>
+  series: Series
   paused: { since: number; by: string } | null
   game: V | null
   notice: { id: number; text: string } | null
@@ -469,6 +520,7 @@ export function viewRoom<C extends BaseConfig, S, A, V, M>(
     paused: room.paused,
     game: room.game ? game.viewFor(room.game, playerId, ctx) : null,
     notice: room.notice,
+    series: room.series ?? serieVazia(),
     now,
     version: room.version,
   }

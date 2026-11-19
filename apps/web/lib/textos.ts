@@ -1,4 +1,4 @@
-import { SHIP_INFO, type ShipId } from '@arena/platform'
+import { SHIP_INFO, type Series, type ShipId } from '@arena/platform'
 import type { CodenomesView, LogEntry, Owner } from '@arena/codenomes'
 import type { Categoria } from '@arena/words'
 import { traduzNavio, type Dicionario } from './i18n'
@@ -7,6 +7,18 @@ import { traduzNavio, type Dicionario } from './i18n'
 export function nomeNavio(view: CodenomesView | null, id: ShipId, t: Dicionario): string {
   const nome = view?.ships.find((s) => s.id === id)?.name
   return nome ? traduzNavio(t, nome, id) : t.navios[id]
+}
+
+/** Placar da série: "Rubi 1 × 0 Safira" com 2 navios; "Rubi 1 · Safira 0 · Ouro 2" com mais. */
+export function placarSerie(series: Series, ships: ShipId[], nome: (id: ShipId) => string): string {
+  const v = (id: ShipId) => series.wins[id] ?? 0
+  if (ships.length === 2) return `${nome(ships[0])} ${v(ships[0])} × ${v(ships[1])} ${nome(ships[1])}`
+  return ships.map((id) => `${nome(id)} ${v(id)}`).join(' · ')
+}
+
+/** Série em andamento: já teve partida e ninguém ganhou ainda. */
+export function serieEmAndamento(bestOf: number | undefined, series: Series): boolean {
+  return (bestOf ?? 1) > 1 && series.games > 0 && !series.champion
 }
 
 /** Categorias escolhidas em poucas palavras: até `max` nomes e "+N" para o resto. */

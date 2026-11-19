@@ -50,6 +50,7 @@ const VARIAVEIS: [RegExp, (t: Dicionario, m: string[]) => string][] = [
   [/^(.+) foi removido da sala\.$/, (t, m) => t.servidorVariavel.removido(m[1])],
   [/^(.+) agora é o Almirante\.$/, (t, m) => t.servidorVariavel.agoraAlmirante(m[1])],
   [/^(.+) embaralhou as tripulações\.$/, (t, m) => t.servidorVariavel.embaralhou(m[1])],
+  [/^(.+) zerou o placar da série\.$/, (t, m) => t.servidorVariavel.zerouPlacar(m[1])],
   [/^O Navio (.+) afundou$/, (t, m) => t.servidorVariavel.afundou(traduzNavio(t, m[1]))],
   [/^O Navio (.+) venceu!$/, (t, m) => t.servidorVariavel.venceu(traduzNavio(t, m[1]))],
   [/^(.+) caiu; (.+) assumiu como Capitão$/, (t, m) => t.servidorVariavel.caiuAssumiu(m[1], m[2])],

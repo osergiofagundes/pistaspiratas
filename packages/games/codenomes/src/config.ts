@@ -34,6 +34,8 @@ export type CodenomesConfig = {
   onlyCustom: boolean
   allowSpectators: boolean
   maxPlayers: number // 4 a 24
+  /** série: 1 = avulsa; 3 ou 5 = melhor de 3 ou de 5 (placar por navio, guardado na sala) */
+  bestOf: 1 | 3 | 5
   shipNames: Partial<Record<ShipId, string>>
 }
 
@@ -68,6 +70,7 @@ export function defaultConfig(wordLanguage: Idioma = 'pt'): CodenomesConfig {
     onlyCustom: false,
     allowSpectators: true,
     maxPlayers: 16,
+    bestOf: 1,
     shipNames: {},
   }
 }
@@ -106,6 +109,7 @@ export function updateConfig(current: CodenomesConfig, patch: Partial<CodenomesC
   if (patch.onlyCustom !== undefined) c.onlyCustom = !!patch.onlyCustom
   if (patch.allowSpectators !== undefined) c.allowSpectators = !!patch.allowSpectators
   if (patch.maxPlayers !== undefined) c.maxPlayers = clamp(patch.maxPlayers, 4, 24)
+  if (patch.bestOf === 1 || patch.bestOf === 3 || patch.bestOf === 5) c.bestOf = patch.bestOf
   if (patch.shipNames) {
     const names: Partial<Record<ShipId, string>> = { ...c.shipNames }
     for (const [k, v] of Object.entries(patch.shipNames)) {

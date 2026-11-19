@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { codenomes } from '../../games/codenomes/src/index'
-import { applyRoomAction, createRoom, joinRoom, setConnected, tickRoom, DISCONNECT_GRACE_MS, isExpired, ROOM_EXPIRY_MS } from './room'
+import { applyRoomAction, createRoom, joinRoom, metaDaSerie, registrarResultado, setConnected, tickRoom, viewRoom, DISCONNECT_GRACE_MS, isExpired, ROOM_EXPIRY_MS } from './room'
+import type { GameDefinition, ShipId } from './types'
 import { MemoryStore, RoomService } from './service'
 import { seeded, uniqueName, validateName, isValidCode, roomCode } from './util'
 
@@ -170,6 +171,112 @@ describe('sala', () => {
       ;['rubi', 'rubi', 'safira', 'safira'].forEach((s, i) => (room.players[`id${i}`].shipId = s as never))
       expect(applyRoomAction(room, codenomes, 'id0', { type: 'start' }, ctx()).error).toBeUndefined()
       expect(room.lastCrews).toEqual([['id0', 'id1'], ['id2', 'id3']])
+    })
+  })
+
+  describe('série de partidas', () => {
+    type Estado = { done: boolean; winner: ShipId | null }
+    type Acao = { type: 'fim'; winner: ShipId | null }
+    /** jogo de mentira: termina na primeira ação, com o vencedor que ela disser */
+    const falso: GameDefinition<any, Estado, Acao, Estado> = {
+      id: 'falso',
+      defaultConfig: () => ({ shipCount: 2, maxPlayers: 16, allowSpectators: true, bestOf: 3 }),
+      updateConfig: (c, patch) => ({ ...c, ...patch }),
+      canStart: () => null,
+      setup: (_c, _p, _ctx, memory) => ({ state: { done: false, winner: null }, memory }),
+      validate: () => null,
+      apply: (_s, _id, a) => ({ state: { done: true, winner: a.winner }, events: [], changed: true }),
+      tick: (s) => ({ state: s, events: [], changed: true }),
+      pause: (s) => s,
+      end: (s) => ({ ...s, done: true }),
+      viewFor: (s) => s,
+      result: (s) => (s.done ? { winner: s.winner, reason: 'teste' } : null),
+    }
+    function salaFalsa(bestOf = 3) {
+      const room = createRoom('K7PX2M', falso, 0, { bestOf })
+      for (const [i, n] of ['Ana', 'Léo', 'Rafa', 'Duda'].entries()) {
+        joinRoom(room, `id${i}`, `token-${i}-xxxxxxxxxxxx`, { name: n, avatar: 'papagaio' }, i)
+        setConnected(room, `id${i}`, true, i)
+      }
+      return room
+    }
+    const agir = (room: ReturnType<typeof salaFalsa>, id: string, action: any) => applyRoomAction(room, falso, id, action, ctx())
+    /** uma partida inteira: zarpar, vencer e voltar ao salão */
+    function partida(room: ReturnType<typeof salaFalsa>, winner: ShipId | null) {
+      expect(agir(room, 'id0', { type: 'start' }).error).toBeUndefined()
+      agir(room, 'id1', { type: 'game', action: { type: 'fim', winner } })
+      expect(room.phase).toBe('finished')
+      agir(room, 'id0', { type: 'backToLobby' })
+    }
+
+    it('melhor de 3: duas vitórias dão o campeão', () => {
+      const room = salaFalsa()
+      partida(room, 'rubi')
+      expect(room.series).toEqual({ wins: { rubi: 1 }, games: 1, champion: null })
+      partida(room, 'safira')
+      partida(room, 'rubi')
+      expect(room.series).toEqual({ wins: { rubi: 2, safira: 1 }, games: 3, champion: 'rubi' })
+      expect(metaDaSerie(3)).toBe(2)
+      expect(metaDaSerie(5)).toBe(3)
+    })
+
+    it('a mesma partida não conta duas vezes', () => {
+      const room = salaFalsa()
+      agir(room, 'id0', { type: 'start' })
+      agir(room, 'id1', { type: 'game', action: { type: 'fim', winner: 'rubi' } })
+      tickRoom(room, falso, { now: 2000, rng: seeded(1) })
+      registrarResultado(room, null)
+      expect(room.series.games).toBe(1)
+    })
+
+    it('partida encerrada pelo Almirante e partida avulsa não contam', () => {
+      const room = salaFalsa()
+      agir(room, 'id0', { type: 'start' })
+      agir(room, 'id0', { type: 'endGame' })
+      expect(room.series.games).toBe(0)
+      const avulsa = salaFalsa(1)
+      partida(avulsa, 'rubi')
+      expect(avulsa.series.games).toBe(0)
+    })
+
+    it('zarpar depois do campeão começa outra série', () => {
+      const room = salaFalsa()
+      partida(room, 'rubi')
+      partida(room, 'rubi')
+      expect(room.series.champion).toBe('rubi')
+      // o placar final fica no salão até zarpar de novo
+      expect(room.series.wins.rubi).toBe(2)
+      partida(room, 'safira')
+      expect(room.series).toEqual({ wins: { safira: 1 }, games: 1, champion: null })
+    })
+
+    it('mudar o formato ou o número de navios zera; outras mudanças não', () => {
+      const room = salaFalsa()
+      partida(room, 'rubi')
+      agir(room, 'id0', { type: 'updateConfig', patch: { maxPlayers: 10 } })
+      expect(room.series.games).toBe(1)
+      agir(room, 'id0', { type: 'updateConfig', patch: { bestOf: 5 } })
+      expect(room.series.games).toBe(0)
+      partida(room, 'rubi')
+      agir(room, 'id0', { type: 'updateConfig', patch: { shipCount: 3 } })
+      expect(room.series.games).toBe(0)
+    })
+
+    it('zerar o placar: só o Almirante, fora da partida, com aviso', () => {
+      const room = salaFalsa()
+      partida(room, 'rubi')
+      expect(agir(room, 'id1', { type: 'resetSeries' }).error).toMatch(/Almirante/)
+      expect(agir(room, 'id0', { type: 'resetSeries' }).error).toBeUndefined()
+      expect(room.series.games).toBe(0)
+      expect(room.notice?.text).toBe('Ana zerou o placar da série.')
+      agir(room, 'id0', { type: 'start' })
+      expect(agir(room, 'id0', { type: 'resetSeries' }).error).toMatch(/salão/)
+    })
+
+    it('a visão da sala leva o placar', () => {
+      const room = salaFalsa()
+      partida(room, 'safira')
+      expect(viewRoom(room, falso, 'id1', 0).series.wins).toEqual({ safira: 1 })
     })
   })
 

@@ -4,14 +4,14 @@ import { motion } from 'motion/react'
 import { useRouter } from 'next/navigation'
 import { SHIP_INFO, type Player, type ShipId } from '@arena/platform'
 import type { ShipView } from '@arena/codenomes'
-import { Bandeira, Botao, Escotilha, Formato, Icone, Imagem, Moldura, Navio, Palco, Texto, usePalco } from '@/components/ui'
+import { Bandeira, Botao, Escotilha, Formato, IMG, Icone, Imagem, Moldura, Navio, Palco, Texto, usePalco } from '@/components/ui'
 import { Avisos } from '@/components/ui/Avisos'
 import { BotaoIdioma, BotaoMenu, BotaoPreferencias, BotaoSom, ModalConfirmar } from '@/components/modais/comuns'
 import { useT } from '@/lib/i18n'
 import { Diario } from '@/components/jogo/Diario'
 import { Tabuleiro } from '@/components/jogo/Paineis'
 import { useSala, type Visao } from '@/lib/sala'
-import { nomeNavio, resumoPartida } from '@/lib/textos'
+import { nomeNavio, placarSerie, resumoPartida } from '@/lib/textos'
 import { useMusica } from '@/lib/useMusica'
 
 const MEDALHA = ['#F5C542', '#C9D1D9', '#D08A4E', '#9A7A5A']
@@ -45,6 +45,16 @@ export function Fim({ view }: { view: Visao }) {
       ? t.fim.motivoSobrevivencia(nome(venc.id))
       : t.fim.motivoTesouros(nome(venc.id), venc.total)
   const subtitulo = derrota ? t.fim.proxima(motivo) : venci ? t.fim.rica(motivo) : motivo
+  // série: placar por navio; com campeão, esta partida decidiu a série (o placar só zera ao zarpar)
+  const bestOf = view.config.bestOf ?? 1
+  const serie = (() => {
+    if (bestOf <= 1) return null
+    const placarTxt = placarSerie(view.series, game.ships.map((s) => s.id), nome)
+    const campeao = view.series.champion
+    return campeao
+      ? { texto: `${t.fim.campeaoSerie(nome(campeao))} · ${placarTxt}`, campeao: true }
+      : { texto: `${t.salao.serie.titulo(bestOf)} · ${placarTxt}`, campeao: false }
+  })()
 
   // números de cada navio e da partida, tirados do Diário
   const stats = useMemo(() => {
@@ -94,7 +104,7 @@ export function Fim({ view }: { view: Visao }) {
   }
 
   const tripulacao = venc ? view.players.filter((p) => p.shipId === venc.id) : []
-  const c = { view, game, venc, venci, derrota, titulo, corTitulo, subtitulo, aba, setAba, placar, stats, meuNavio, nome, tripulacao, minutos, souAlmirante, copiar, abrirSair: () => setSair(true) }
+  const c = { view, game, venc, venci, derrota, titulo, corTitulo, subtitulo, serie, aba, setAba, placar, stats, meuNavio, nome, tripulacao, minutos, souAlmirante, copiar, abrirSair: () => setSair(true) }
 
   return (
     <Palco fundo={derrota ? 'fundo-derrota' : 'fundo-vitoria'} escurecer={derrota ? 0.5 : 0.35}>
@@ -120,9 +130,10 @@ export function Fim({ view }: { view: Visao }) {
               transition={{ delay: anim ? 0.4 : 0, duration: 0.5 }}
               style={{ position: 'absolute', left: 0, top: 0 }}
             >
-              <Texto x={360} y={98} w={1200} centro tam={22} cor="#FFF8EC" peso={800} className="contorno-fino">
+              <Texto x={360} y={serie ? 88 : 98} w={1200} centro tam={22} cor="#FFF8EC" peso={800} className="contorno-fino">
                 {subtitulo}
               </Texto>
+              {serie && <FaixaSerie serie={serie} x={360} y={118} w={1200} />}
             </motion.div>
             <BotaoIdioma x={1666} y={18} />
             <BotaoPreferencias x={1740} y={18} />
@@ -391,6 +402,7 @@ type CtxFim = {
   titulo: string
   corTitulo: string
   subtitulo: string
+  serie: { texto: string; campeao: boolean } | null
   aba: 'resumo' | 'mapa'
   setAba: (a: 'resumo' | 'mapa') => void
   placar: ShipView[]
@@ -402,6 +414,18 @@ type CtxFim = {
   souAlmirante: boolean
   copiar: () => void
   abrirSair: () => void
+}
+
+/** Faixa da série na tela de fim: placar, ou o campeão quando esta partida decidiu a série. */
+function FaixaSerie({ serie, x, y, w, compacto }: { serie: { texto: string; campeao: boolean }; x: number; y: number; w: number; compacto?: boolean }) {
+  return (
+    <div style={{ position: 'absolute', left: x, top: y, width: w, display: 'flex', justifyContent: 'center' }}>
+      <div className={`placar-serie${serie.campeao ? ' campeao' : ''}${compacto ? ' compacto' : ''}`} data-testid="faixa-serie">
+        <img src={`${IMG}/itens/coroa.webp`} alt="" />
+        <span className="texto">{serie.texto}</span>
+      </div>
+    </div>
+  )
 }
 
 /** Fim no formato compacto: título no alto, vencedor à esquerda e placar à direita (ou o mapa com o Diário), e os botões embaixo. */
@@ -427,9 +451,13 @@ function FimCompacto({ c }: { c: CtxFim }) {
           {c.titulo}
         </Texto>
       </motion.div>
-      <Texto x={40} y={58} w={W - 80} centro tam={15} cor="#FFF8EC" peso={800} className="contorno-fino truncate">
-        {c.subtitulo}
-      </Texto>
+      {c.serie ? (
+        <FaixaSerie serie={c.serie} x={40} y={58} w={W - 80} compacto />
+      ) : (
+        <Texto x={40} y={58} w={W - 80} centro tam={15} cor="#FFF8EC" peso={800} className="contorno-fino truncate">
+          {c.subtitulo}
+        </Texto>
+      )}
       <BotaoSom x={W - 142} y={12} tam={56} />
       <BotaoMenu x={W - 78} y={12} tam={56} itens={[{ icone: 'interface/icones/sair.webp', rotulo: t.comum.sair, cor: '#B3261E', onClick: c.abrirSair }]} />
 

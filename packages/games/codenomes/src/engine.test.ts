@@ -176,6 +176,15 @@ describe('tabuleiro', () => {
     expect(r).toMatchObject({ shipCount: 3, captainMode: 'escolha', wordLanguage: 'fr', categories: ['filmes', 'games'], customWords: ['Alfa'], shipNames: { rubi: 'Pérola' } })
   })
 
+  it('série: aceita avulsa, melhor de 3 ou de 5; restaurar padrão mantém', () => {
+    expect(defaultConfig().bestOf).toBe(1)
+    const c = updateConfig(defaultConfig(), { bestOf: 3 })
+    expect(c.bestOf).toBe(3)
+    expect(updateConfig(c, { bestOf: 4 as never }).bestOf).toBe(3)
+    expect(updateConfig(c, { bestOf: 5 }).bestOf).toBe(5)
+    expect(restaurarPadrao(c).bestOf).toBe(3)
+  })
+
   it('o campo preset de versões antigas é ignorado', () => {
     const c = updateConfig({ ...defaultConfig(), preset: 'rapido' } as never, { preset: 'caotico' } as never)
     expect('preset' in c).toBe(false)
