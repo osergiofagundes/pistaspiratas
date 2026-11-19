@@ -14,6 +14,7 @@ import {
   Escotilha,
   Icone,
   IconeNovo,
+  Imagem,
   Modal,
   Navio,
   Palco,
@@ -21,7 +22,7 @@ import {
   Texto,
 } from '@/components/ui'
 import { Avisos } from '@/components/ui/Avisos'
-import { BotaoPreferencias, ModalComoJogar, ModalConfirmar, ModalInfo } from '@/components/modais/comuns'
+import { BotaoPreferencias, ICONE_CONFIRMAR, ModalComoJogar, ModalConfirmar, ModalInfo } from '@/components/modais/comuns'
 import { Diario } from '@/components/jogo/Diario'
 import { PainelNavio, Tabuleiro } from '@/components/jogo/Paineis'
 import { useSala, type Visao } from '@/lib/sala'
@@ -617,10 +618,11 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
       {overlay === 'sair' && (
         <ModalConfirmar
           titulo="Sair da partida"
+          pergunta="Abandonar o navio?"
           texto={
             role === 'capitao'
               ? 'Você é o Capitão! Se sair, outro Marujo do navio assume e passa a ver o mapa.'
-              : 'Quer mesmo sair? A partida continua sem você.'
+              : 'A partida continua sem você.'
           }
           confirmar="Sair"
           onFechar={() => setOverlay(null)}
@@ -633,7 +635,9 @@ export function Partida({ view, extra }: { view: Visao; extra?: ReactNode }) {
       {overlay === 'encerrar' && (
         <ModalConfirmar
           titulo="Encerrar partida"
-          texto="A partida termina agora, sem vencedor. Todos veem o mapa e depois voltam ao salão."
+          pergunta="Encerrar a partida?"
+          texto="Ela termina agora, sem vencedor. Todos veem o mapa e depois voltam ao salão."
+          icone={<Imagem src="itens/brasao-almirante.webp" x={0} y={0} w={ICONE_CONFIRMAR} h={ICONE_CONFIRMAR} />}
           confirmar="Encerrar"
           onFechar={() => setOverlay(null)}
           onConfirmar={() => {

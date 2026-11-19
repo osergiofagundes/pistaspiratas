@@ -20,7 +20,7 @@ import {
   Texto,
 } from '@/components/ui'
 import { Avisos } from '@/components/ui/Avisos'
-import { BotaoPreferencias, ModalComoJogar, ModalConfirmar, ModalPerfil } from '@/components/modais/comuns'
+import { BotaoPreferencias, ICONE_CONFIRMAR, ModalComoJogar, ModalConfirmar, ModalPerfil } from '@/components/modais/comuns'
 import { ModalConfiguracoes } from '@/components/modais/Configuracoes'
 import { salvarPerfil } from '@/lib/identidade'
 import { useSala, type Visao } from '@/lib/sala'
@@ -358,7 +358,12 @@ export function Salao({ view }: { view: Visao }) {
       {confirmar?.tipo === 'sair' && (
         <ModalConfirmar
           titulo="Sair da sala"
-          texto={souAlmirante ? 'Você é o Almirante. Se sair, o cargo passa para o jogador há mais tempo na sala.' : 'Quer mesmo deixar a tripulação?'}
+          pergunta="Deixar a tripulação?"
+          texto={
+            souAlmirante
+              ? 'Você é o Almirante. Se sair, o cargo passa para o jogador há mais tempo na sala.'
+              : 'Você pode voltar pelo link enquanto a sala existir.'
+          }
           confirmar="Sair"
           onFechar={() => setConfirmar(null)}
           onConfirmar={async () => {
@@ -370,9 +375,10 @@ export function Salao({ view }: { view: Visao }) {
       {confirmar?.tipo === 'expulsar' && (
         <ModalConfirmar
           titulo="Expulsar jogador"
-          texto={`Expulsar ${confirmar.player.name}? Ele não poderá voltar para esta sala com o mesmo navegador.`}
+          pergunta={`Expulsar ${confirmar.player.name}?`}
+          texto="Não vai dar para voltar para esta sala com o mesmo navegador."
           confirmar="Expulsar"
-          icone={<Escotilha avatar={confirmar.player.avatar} ship={confirmar.player.shipId} tam={76} />}
+          icone={<Escotilha avatar={confirmar.player.avatar} ship={confirmar.player.shipId} tam={ICONE_CONFIRMAR} />}
           onFechar={() => setConfirmar(null)}
           onConfirmar={() => {
             enviar({ type: 'kick', playerId: confirmar.player.id })
@@ -383,10 +389,11 @@ export function Salao({ view }: { view: Visao }) {
       {confirmar?.tipo === 'cargo' && (
         <ModalConfirmar
           titulo="Passar o cargo"
-          texto={`${confirmar.player.name} vira o Almirante: configura, inicia e encerra as partidas. Você continua jogando normalmente.`}
+          pergunta={`${confirmar.player.name} vira o Almirante?`}
+          texto="O Almirante configura, inicia e encerra as partidas. Você continua jogando normalmente."
           confirmar="Passar cargo"
           corConfirmar="verde"
-          icone={<Imagem src="itens/brasao-almirante.webp" x={0} y={0} w={76} h={70} />}
+          icone={<Imagem src="itens/brasao-almirante.webp" x={0} y={0} w={ICONE_CONFIRMAR} h={ICONE_CONFIRMAR} />}
           onFechar={() => setConfirmar(null)}
           onConfirmar={() => {
             enviar({ type: 'transferAdmin', playerId: confirmar.player.id })

@@ -24,7 +24,7 @@ cd ferramentas/imagem && node exportar-web.mjs
 | `interface/icones/` | ícones redondos (som, ajuda, fechar e os da segunda leva) e o X dos modais (`fechar-modal`) | `Icone`, `IconeNovo` |
 | `interface/molduras/` | peças que esticam em 9 ou 3 partes: moldura, painel grande, placa, campo, faixa e escotilha | `Moldura`, `PainelGrande`, `Placa`, `Campo` |
 | `interface/controles/` | interruptor e caixa de marcar | `Interruptor`, `Marcador` |
-| `interface/decoracoes/` | âncora, barris, moedas e palmeiras em volta dos modais e painéis | modais |
+| `interface/decoracoes/` | âncora, barris, baú de ouro e palmeiras em volta dos modais e painéis (barris e baú: `ferramentas/imagem/lotes/lote-5.mjs`) | modais, Início |
 | `interface/fatias.json` | medidas das fatias (border-image) de cada moldura e botão, em px do PNG | CSS e `components/ui` |
 
 ## Nova leva de artes

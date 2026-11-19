@@ -1,10 +1,10 @@
 'use client'
 import { useMemo, useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
-import { SHIP_IDS, SHIP_INFO } from '@arena/platform'
+import { SHIP_IDS, SHIP_INFO, type ShipId } from '@arena/platform'
 import { BOARD_MAX, BOARD_MIN, type BoardSize, type CodenomesConfig, PRESETS, TEMPOS, fixedBoard, gridFor, updateConfig } from '@arena/codenomes'
 import { lerPalavrasPersonalizadas } from '@arena/words'
-import { Aviso, Botao, DECO_ANCORA, Interruptor, Marcador, Modal, Segmentado, Seletor, Texto } from '@/components/ui'
+import { Botao, DECO_ANCORA, IMG, Interruptor, Marcador, Modal, Segmentado, Seletor, Texto } from '@/components/ui'
 import { useSala } from '@/lib/sala'
 
 export function rotuloTempo(t: number | null) {
@@ -28,15 +28,15 @@ const OPCOES_TABULEIRO: { v: BoardSize; rotulo: ReactNode }[] = [
   { v: 'custom', rotulo: 'Pers.' },
 ]
 
-const W = 1240
-const H = 950
-/** colunas dos cartões */
-const COL = { esq: 50, dir: 630, w: 560 }
+const W = 1820
+const H = 890
+/** colunas dos cartões (a terceira é a prévia do tabuleiro) */
+const COL = { esq: 50, dir: 630, previa: 1210, w: 560 }
 /** topo de cada linha dentro do cartão */
 const linha = (i: number) => 54 + i * 46
 
 /** Cartão de pergaminho claro que agrupa as opções; entra com um leve atraso. */
-function Cartao({ x, y, h, titulo, nota, ordem, children }: { x: number; y: number; h: number; titulo: string; nota?: string; ordem: number; children: ReactNode }) {
+function Cartao({ x, y, w = COL.w, h, titulo, nota, ordem, children }: { x: number; y: number; w?: number; h: number; titulo: string; nota?: string; ordem: number; children: ReactNode }) {
   const anim = useSala((s) => s.prefs.animacoes)
   return (
     <motion.div
@@ -47,7 +47,7 @@ function Cartao({ x, y, h, titulo, nota, ordem, children }: { x: number; y: numb
         position: 'absolute',
         left: x,
         top: y,
-        width: COL.w,
+        width: w,
         height: h,
         background: 'rgba(255,248,230,.55)',
         border: '2px solid rgba(138,74,28,.35)',
@@ -59,12 +59,122 @@ function Cartao({ x, y, h, titulo, nota, ordem, children }: { x: number; y: numb
         {titulo}
       </Texto>
       {nota && (
-        <Texto x={200} y={20} w={COL.w - 220} tam={13} cor="#9A7A5A" peso={700} className="text-right">
+        <Texto x={200} y={20} w={w - 220} tam={13} cor="#9A7A5A" peso={700} className="text-right">
           {nota}
         </Texto>
       )}
       {children}
     </motion.div>
+  )
+}
+
+type TipoCarta = ShipId | 'bonus' | 'mar' | 'kraken'
+const IMG_CARTA: Record<TipoCarta, string> = {
+  rubi: 'rubi', safira: 'safira', esmeralda: 'esmeralda', ouro: 'ouro', mar: 'mar', kraken: 'kraken', bonus: 'fechada',
+}
+
+/** permutação fixa de 0..n-1 (mesma semente para o mesmo total), para a prévia não pular a cada clique */
+function permutacao(n: number): number[] {
+  let a = (n * 2654435761) >>> 0
+  const rnd = () => {
+    a = (a + 0x6d2b79f5) >>> 0
+    let t = a
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+  const p = Array.from({ length: n }, (_, i) => i)
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1))
+    ;[p[i], p[j]] = [p[j], p[i]]
+  }
+  return p
+}
+
+/** Miniatura de carta com selo "+1" para o tesouro extra de quem começa. */
+function MiniCarta({ tipo, w, h }: { tipo: TipoCarta; w: number; h: number }) {
+  return (
+    <>
+      <img src={`${IMG}/cartas/${IMG_CARTA[tipo]}.webp`} alt="" draggable={false} style={{ width: w, height: h, display: 'block' }} />
+      {tipo === 'bonus' && (
+        <span
+          className="lilita"
+          style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.max(11, h * 0.42), color: '#7E3A12' }}
+        >
+          +1
+        </span>
+      )}
+    </>
+  )
+}
+
+/** Prévia do tabuleiro: a grade com as cartas de cada tipo e a legenda com as quantidades. */
+function PreviaTabuleiro({ config, w, h }: { config: CodenomesConfig; w: number; h: number }) {
+  const anim = useSala((s) => s.prefs.animacoes)
+  const g = gridFor(config)
+  const navios = SHIP_IDS.slice(0, config.shipCount)
+  const bonus = g.first - g.treasures
+  // as cartas na ordem dos tipos, espalhadas por uma permutação fixa
+  const tipos: TipoCarta[] = [
+    ...navios.flatMap((id) => Array<TipoCarta>(g.treasures).fill(id)),
+    ...Array<TipoCarta>(bonus).fill('bonus'),
+    ...Array<TipoCarta>(g.kraken).fill('kraken'),
+    ...Array<TipoCarta>(Math.max(0, g.sea)).fill('mar'),
+  ]
+  const perm = permutacao(g.total)
+  const casas: TipoCarta[] = Array(g.total).fill('mar')
+  tipos.slice(0, g.total).forEach((t, i) => (casas[perm[i]] = t))
+
+  const legenda: { tipo: TipoCarta; nome: string; n: number; cor?: string }[] = [
+    ...navios.map((id) => ({ tipo: id as TipoCarta, nome: `Navio ${config.shipNames[id] || SHIP_INFO[id].nome}`, n: g.treasures, cor: SHIP_INFO[id].cor })),
+    ...(bonus ? [{ tipo: 'bonus' as const, nome: 'Extra de quem começar', n: bonus }] : []),
+    { tipo: 'mar', nome: 'Mar Aberto', n: g.sea },
+    { tipo: 'kraken', nome: 'Kraken', n: g.kraken, cor: '#5B2A86' },
+  ]
+  const colsLeg = 2
+  const linhasLeg = Math.ceil(legenda.length / colsLeg)
+  const hLinha = 50
+  const hLegenda = linhasLeg * hLinha
+  // grade centralizada na área que sobra (mesma conta do Tabuleiro da partida)
+  const gap = 4
+  const areaW = w
+  const areaH = h - hLegenda - 14
+  const cw = Math.min((areaW - (g.cols - 1) * gap) / g.cols, ((areaH - (g.rows - 1) * gap) / g.rows) * (474 / 312))
+  const ch = (cw * 312) / 474
+  const gw = g.cols * cw + (g.cols - 1) * gap
+  const gh = g.rows * ch + (g.rows - 1) * gap
+  const ox = (areaW - gw) / 2
+  const oy = (areaH - gh) / 2
+
+  return (
+    <div aria-label="Prévia do tabuleiro" style={{ position: 'absolute', inset: 0 }}>
+      {casas.map((t, i) => (
+        <motion.div
+          key={`${i}-${t}`}
+          initial={anim ? { opacity: 0, scale: 0.85 } : false}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.25 }}
+          style={{ position: 'absolute', left: ox + (i % g.cols) * (cw + gap), top: oy + Math.floor(i / g.cols) * (ch + gap), width: cw, height: ch }}
+        >
+          <MiniCarta tipo={t} w={cw} h={ch} />
+        </motion.div>
+      ))}
+      {legenda.map((l, i) => {
+        const x = (i % colsLeg) * (w / colsLeg)
+        const y = areaH + 14 + Math.floor(i / colsLeg) * hLinha
+        return (
+          <div key={l.tipo} style={{ position: 'absolute', left: x, top: y, width: w / colsLeg - 10, height: hLinha - 6, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ position: 'relative', flex: 'none' }}>
+              <MiniCarta tipo={l.tipo} w={62} h={41} />
+            </div>
+            <span style={{ flex: 1, fontSize: 15, fontWeight: 800, color: l.cor ?? '#5A3410', lineHeight: 1.1 }}>{l.nome}</span>
+            <span className="lilita" style={{ fontSize: 22, color: '#5A3410', whiteSpace: 'nowrap' }}>
+              × {l.n}
+            </span>
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
@@ -118,6 +228,7 @@ export function ModalConfiguracoes({
   const hCartao1 = linha(6) + 8
   const hCartao2 = linha(4) + 8
   const yCartoes2 = yCartoes + hCartao1 + 14
+  const hPrevia = yCartoes2 + hCartao2 - yCartoes
 
   return (
     <Modal titulo="Configurações da sala" w={W} h={H} onFechar={onFechar} decos={[DECO_ANCORA(W, H)]} fecharNoFundo={false}>
@@ -128,14 +239,14 @@ export function ModalConfiguracoes({
       <Segmentado
         x={180}
         y={80}
-        w={W - 180 - COL.esq}
+        w={COL.dir + COL.w - 180}
         h={44}
         tam={18}
         opcoes={PRESETS.map((p) => ({ v: p.id, rotulo: p.nome }))}
         valor={c.preset}
         onChange={(v) => mudaTabuleiro({ preset: v })}
       />
-      <Texto x={180} y={132} w={W - 230} tam={16} cor="#7A5A3A" peso={700}>
+      <Texto x={180} y={132} w={COL.dir + COL.w - 180} tam={16} cor="#7A5A3A" peso={700}>
         {PRESETS.find((p) => p.id === c.preset)?.descricao}
       </Texto>
 
@@ -164,7 +275,7 @@ export function ModalConfiguracoes({
               Grade
             </Rotulo>
             <Texto x={250} y={linha(1) + 10} w={290} tam={17} cor="#7A5A3A" peso={800} className="text-right">
-              {g.cols}×{g.rows} · {g.total} cartas{fixo ? '' : ' (pelo número de navios)'}
+              {g.cols}×{g.rows} · {g.total} cartas{fixo ? '' : ' · automática'}
             </Texto>
           </>
         )}
@@ -315,17 +426,11 @@ export function ModalConfiguracoes({
         </Texto>
       </Cartao>
 
-      <Aviso
-        x={COL.esq}
-        y={yCartoes2 + hCartao2 + 16}
-        w={W - COL.esq * 2}
-        style={{ textAlign: 'center' }}
-        texto={
-          `Tabuleiro ${g.cols}×${g.rows}: ` +
-          (g.first > g.treasures ? `${g.first} tesouros para quem começa, ${g.treasures} para os outros` : `${g.treasures} tesouros por navio`) +
-          `, ${g.sea} de Mar Aberto e ${g.kraken} Kraken.`
-        }
-      />
+      <Cartao x={COL.previa} y={yCartoes} h={hPrevia} titulo="Prévia do tabuleiro" nota={`${g.cols}×${g.rows} · ${g.total} cartas`} ordem={4}>
+        <div style={{ position: 'absolute', left: 20, top: 56, width: COL.w - 40, height: hPrevia - 72 }}>
+          <PreviaTabuleiro config={c} w={COL.w - 40} h={hPrevia - 72} />
+        </div>
+      </Cartao>
 
       <Botao cor="marrom" x={W / 2 - 210} y={H - 108} w={190} h={68} onClick={onFechar}>
         Cancelar

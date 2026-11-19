@@ -28,37 +28,19 @@
    "dx": -626,
    "dy": -490
   },
-  "deco-barril-moedas": {
-   "arquivo": "interface/decoracoes/deco-barril-moedas.png",
-   "largura": 305,
-   "altura": 545,
+  "deco-barris": {
+   "arquivo": "interface/decoracoes/deco-barris.png",
+   "largura": 500,
+   "altura": 482,
    "ancora": "inferior-esquerdo",
-   "dx": -23,
-   "dy": -540
+   "observacao": "lote-5: apoiada no canto, a base sobre a borda de baixo da moldura"
   },
-  "deco-moedas": {
-   "arquivo": "interface/decoracoes/deco-moedas.png",
-   "largura": 213,
-   "altura": 235,
+  "deco-bau": {
+   "arquivo": "interface/decoracoes/deco-bau.png",
+   "largura": 471,
+   "altura": 408,
    "ancora": "inferior-direito",
-   "dx": -199,
-   "dy": -230
-  },
-  "deco-barril-sala-esq": {
-   "arquivo": "interface/decoracoes/deco-barril-sala-esq.png",
-   "largura": 580,
-   "altura": 418,
-   "ancora": "inferior-esquerdo",
-   "dx": -54,
-   "dy": -407
-  },
-  "deco-barril-sala-dir": {
-   "arquivo": "interface/decoracoes/deco-barril-sala-dir.png",
-   "largura": 512,
-   "altura": 338,
-   "ancora": "inferior-direito",
-   "dx": -484,
-   "dy": -327
+   "observacao": "lote-5: apoiada no canto, a base sobre a borda de baixo da moldura"
   },
   "painel-grande-palmeira-esq": {
    "arquivo": "interface/decoracoes/painel-grande-palmeira-esq.png",

@@ -343,7 +343,8 @@ export function Fim({ view }: { view: Visao }) {
       {sair && (
         <ModalConfirmar
           titulo="Sair da sala"
-          texto="Quer mesmo deixar a tripulação? Você pode entrar de novo pelo link enquanto a sala existir."
+          pergunta="Deixar a tripulação?"
+          texto="Você pode voltar pelo link enquanto a sala existir."
           confirmar="Sair"
           onFechar={() => setSair(false)}
           onConfirmar={async () => {

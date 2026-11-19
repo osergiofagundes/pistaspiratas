@@ -15,7 +15,7 @@ import {
   Placa,
   Texto,
 } from '@/components/ui'
-import { BotaoPreferencias, ModalComoJogar, ModalInfo, ModalPerfil } from '@/components/modais/comuns'
+import { BotaoPreferencias, DECO_BARRIS, DECO_BAU, ModalComoJogar, ModalInfo, ModalPerfil } from '@/components/modais/comuns'
 import { criarSala, infoSala } from '@/lib/api'
 import { perfil as lerPerfil, salvarPerfil, type Perfil } from '@/lib/identidade'
 import { useSala } from '@/lib/sala'
@@ -131,8 +131,10 @@ export function Inicio({ erroInicial }: { erroInicial?: string | null }) {
       <Entrar atraso={0.2} de="direita">
       <Moldura x={1184} y={200} w={632} h={612} />
       <Placa texto="Jogar agora" x={1356} y={180} w={290} tam={26} />
-      <Imagem src="interface/decoracoes/deco-barril-sala-esq.webp" x={1166} y={720} w={145} h={105} />
-      <Imagem src="interface/decoracoes/deco-barril-sala-dir.webp" x={1690} y={735} w={128} h={85} />
+      {/* barris e baú apoiados nos cantos de baixo da moldura (base em 200 + 612) */}
+      {[DECO_BARRIS(612, 136), DECO_BAU(632, 612, 112)].map((d) => (
+        <Imagem key={d.src} src={d.src} x={1184 + d.x} y={200 + d.y} w={d.w} h={d.h} />
+      ))}
       <Texto x={1184} y={268} w={632} centro titulo tam={34} cor="#5A3410">
         Monte sua tripulação
       </Texto>

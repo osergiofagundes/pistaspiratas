@@ -20,10 +20,13 @@ import type { Perfil } from '@/lib/identidade'
 import { useSala } from '@/lib/sala'
 import { tocar } from '@/lib/sons'
 
-const DECO_CONFIRMAR = (w: number, h: number): Deco[] => [
-  { src: 'interface/decoracoes/deco-barril-moedas.webp', x: -40, y: h - 140, w: 76, h: 136 },
-  { src: 'interface/decoracoes/deco-moedas.webp', x: w - 44, y: h - 60, w: 53, h: 59 },
-]
+/** barris e baú de ouro apoiados nos cantos de baixo da moldura (proporções de deco-barris 500×482 e deco-bau 471×408) */
+export const DECO_BARRIS = (h: number, alt = 118): Deco => ({ src: 'interface/decoracoes/deco-barris.webp', x: -54, y: h - alt + 14, w: Math.round((alt * 500) / 482), h: alt })
+export const DECO_BAU = (w: number, h: number, alt = 96): Deco => {
+  const larg = Math.round((alt * 471) / 408)
+  return { src: 'interface/decoracoes/deco-bau.webp', x: w - larg + 50, y: h - alt + 14, w: larg, h: alt }
+}
+const DECO_CONFIRMAR = (w: number, h: number): Deco[] => [DECO_BARRIS(h), DECO_BAU(w, h)]
 
 /** nomes piratas para o botão de sortear (todos passam em validateName) */
 const NOMES_PIRATAS = [
@@ -205,8 +208,16 @@ export function ModalPerfil({
   )
 }
 
+/** tamanho do ícone do ModalConfirmar (quem passa `icone` desenha nesse quadrado, em x=0 y=0) */
+export const ICONE_CONFIRMAR = 88
+
+/**
+ * Confirmação: ícone no alto, pergunta em destaque, explicação e os dois botões.
+ * Sem `icone`, mostra a porta de saída.
+ */
 export function ModalConfirmar({
   titulo,
+  pergunta,
   texto,
   confirmar,
   corConfirmar = 'vermelho',
@@ -215,6 +226,7 @@ export function ModalConfirmar({
   icone,
 }: {
   titulo: string
+  pergunta?: string
   texto: ReactNode
   confirmar: string
   corConfirmar?: CorBotao
@@ -222,18 +234,26 @@ export function ModalConfirmar({
   onFechar: () => void
   icone?: ReactNode
 }) {
-  const w = 700
-  const h = 380
+  const w = 680
+  const h = 410
+  const I = ICONE_CONFIRMAR
   return (
     <Modal titulo={titulo} w={w} h={h} onFechar={onFechar} decos={DECO_CONFIRMAR(w, h)}>
-      {icone && <div style={{ position: 'absolute', left: w / 2 - 32, top: 54 }}>{icone}</div>}
-      <Texto x={60} y={icone ? 130 : 80} w={w - 120} h={140} centro tam={20} cor="#5A3410" peso={700}>
+      <div style={{ position: 'absolute', left: w / 2 - I / 2, top: 44, width: I, height: I }}>
+        {icone ?? <IconeNovo nome="sair" x={0} y={0} w={I} h={I} />}
+      </div>
+      {pergunta && (
+        <Texto x={50} y={146} w={w - 100} centro titulo tam={30} cor="#5A3410">
+          {pergunta}
+        </Texto>
+      )}
+      <Texto x={70} y={pergunta ? 190 : 150} w={w - 140} centro tam={19} cor="#7A5A3A" peso={700}>
         {texto}
       </Texto>
-      <Botao cor="marrom" x={w / 2 - 250} y={h - 120} w={230} h={74} onClick={onFechar}>
+      <Botao cor="marrom" x={w / 2 - 245} y={h - 122} w={225} h={74} onClick={onFechar}>
         Cancelar
       </Botao>
-      <Botao cor={corConfirmar} x={w / 2 + 20} y={h - 120} w={230} h={74} onClick={onConfirmar}>
+      <Botao cor={corConfirmar} x={w / 2 + 20} y={h - 122} w={225} h={74} onClick={onConfirmar}>
         {confirmar}
       </Botao>
     </Modal>
@@ -272,58 +292,8 @@ export function ModalInfo({
   )
 }
 
-const PASSOS: { icone: 'mapa' | 'olho' | 'canhao' | 'cadeado'; titulo: string; texto: string }[] = [
-  {
-    icone: 'mapa',
-    titulo: '1. A Ordem do Capitão',
-    texto: 'Só o Capitão vê o mapa. Ele dá uma palavra e um número: "PIRATA · 3" quer dizer 3 tesouros ligados a pirata.',
-  },
-  {
-    icone: 'olho',
-    titulo: '2. Os Marujos votam',
-    texto: 'Toquem numa palavra para votar. Com a maioria do navio, ela é revelada em 3 segundos. Dá para encerrar a vez depois do 1º palpite.',
-  },
-  {
-    icone: 'canhao',
-    titulo: '3. Tiro de Canhão',
-    texto: 'Acertou todas as palavras da ordem? Ganha um palpite livre em qualquer carta. Depois do tiro, a vez acaba.',
-  },
-  {
-    icone: 'cadeado',
-    titulo: '4. Cuidado com o Kraken',
-    texto: 'Mar Aberto ou tesouro de outro navio encerram a vez. O Kraken afunda o navio! Vence quem achar todos os seus tesouros primeiro.',
-  },
-]
-
-export function ModalComoJogar({ onFechar }: { onFechar: () => void }) {
-  const w = 1040
-  const h = 660
-  return (
-    <Modal titulo="Como jogar" w={w} h={h} onFechar={onFechar} decos={[DECO_ANCORA(w, h)]}>
-      <Texto x={60} y={78} w={w - 120} centro tam={20} cor="#5A3410" peso={700}>
-        Cada equipe é a tripulação de um navio. Achem os seus tesouros no mapa antes dos outros navios!
-      </Texto>
-      {PASSOS.map((p, i) => {
-        const col = i % 2
-        const row = Math.floor(i / 2)
-        return (
-          <div key={p.titulo} style={{ position: 'absolute', left: 60 + col * 470, top: 140 + row * 190, width: 450, height: 170 }}>
-            <IconeNovo nome={p.icone} x={0} y={4} w={72} h={72} />
-            <Texto x={86} y={4} w={360} titulo tam={23} cor="#7E3A12">
-              {p.titulo}
-            </Texto>
-            <Texto x={86} y={38} w={360} tam={16} cor="#5A3410" peso={600}>
-              {p.texto}
-            </Texto>
-          </div>
-        )
-      })}
-      <Botao cor="verde" x={w / 2 - 120} y={h - 116} w={240} h={78} onClick={onFechar}>
-        Entendi!
-      </Botao>
-    </Modal>
-  )
-}
+/** o manual fica em ComoJogar.tsx; reexportado aqui para as telas */
+export { ModalComoJogar } from './ComoJogar'
 
 /** Engrenagem que abre as Preferências; fica na barra de cima de todas as telas. */
 export function BotaoPreferencias({ x, y, onEditarPerfil }: { x: number; y: number; onEditarPerfil?: () => void }) {
